@@ -32,8 +32,8 @@ export default function RootLayout({
         <div className="site-watermark" aria-hidden="true" />
         <div className="site-top-banner">
           <p>
-            Built by Marines to help service members transition, please donate to keep it free for everyone. It
-            will hopefully cover API fees.{" "}
+            Built by Marines for service members. Sign in with your email for free access to resume tools, and donate
+            if you can to help keep it free for everyone and cover API costs.{" "}
             <Link href="https://russell-innovation-group.com/" target="_blank" rel="noopener noreferrer">
               Donate
             </Link>

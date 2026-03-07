@@ -3,8 +3,8 @@ import Image from "next/image";
 
 const features = [
   "Master Resume Builder from VMET, JST, and FITREPs/EVALs",
-  "MOS translator for role mapping and cert paths",
-  "Job Description Decoder for must-haves and interview prep",
+  "MOS Translator for role mapping and credential pathways",
+  "Job Description Decoder for must-haves, risks, and interview prep",
   "Targeted Resume Builder for job-specific alignment",
 ];
 
@@ -27,28 +27,28 @@ export default function Home() {
               </p>
             </div>
             <h1 className="text-4xl font-extrabold tracking-tight text-balance md:text-5xl">
-              Transition support that turns military performance into civilian results.
+              Turn military experience into interview-ready civilian resumes.
             </h1>
             <p className="max-w-2xl text-lg text-[var(--muted)]">
-              Move from documents and MOS data to targeted resumes with one guided workflow.
-              Built for speed, clarity, and ATS relevance.
+              Upload your records once, then build a master resume and role-specific versions in minutes.
+              Designed for veterans, optimized for ATS, and free to start with your email.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link href="/login" className="btn btn-primary">
-                Sign In
+                Start Free
               </Link>
               <Link href="/app" className="btn btn-secondary">
-                Open App
+                View Workspace
               </Link>
             </div>
           </div>
           <div className="panel bg-[#0f6d53] p-6 text-white">
-            <p className="text-xs font-semibold tracking-widest text-[#d2efe5]">MVP OUTCOMES</p>
+            <p className="text-xs font-semibold tracking-widest text-[#d2efe5]">WHAT YOU GET</p>
             <ul className="mt-4 space-y-3 text-sm">
-              <li>Time-to-first-value under 10 minutes</li>
-              <li>Master bullets artifact generation</li>
-              <li>Targeted resume generation per job</li>
-              <li>Persistent tool history + artifacts</li>
+              <li>Actionable first output in under 10 minutes</li>
+              <li>Master resume generated from your source records</li>
+              <li>Targeted resume per job posting</li>
+              <li>Saved document and resume library for reuse</li>
             </ul>
           </div>
         </div>
