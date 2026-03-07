@@ -36,29 +36,28 @@ export default async function Home({
           <div className="space-y-6">
             <div className="flex items-center gap-3">
               <Image
-                src="/assets/the-next-mission-logo.svg"
-                alt="The Next Mission logo"
+                src="/assets/milvector-ai-logo.svg"
+                alt="MILVECTOR AI logo"
                 width={56}
                 height={56}
-                className="rounded-xl object-contain ring-1 ring-[var(--line)]"
+                className="object-contain"
               />
               <p className="inline-flex rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold tracking-wide text-[var(--accent)]">
-                THE NEXT MISSION
+                MILVECTOR AI
               </p>
             </div>
             <h1 className="text-4xl font-extrabold tracking-tight text-balance md:text-5xl">
-              Turn military experience into interview-ready civilian resumes.
+              Find the vector to your next career.
             </h1>
             <p className="max-w-2xl text-lg text-[var(--muted)]">
-              Upload your records once, then build a master resume and role-specific versions in minutes.
-              Designed for veterans, optimized for ATS, and free to start with your email.
+              AI tools designed to help service members translate their military experience into civilian careers.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link href="/login" className="btn btn-primary">
                 Start Free
               </Link>
               <Link href="/app" className="btn btn-secondary">
-                View Workspace
+                Learn How It Works
               </Link>
             </div>
           </div>
@@ -84,3 +83,4 @@ export default async function Home({
     </main>
   );
 }
+

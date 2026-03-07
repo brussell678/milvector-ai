@@ -14,7 +14,6 @@ export async function GET() {
     .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
   return NextResponse.json({ profile: data ?? null });
 }
 
@@ -35,7 +34,8 @@ export async function POST(req: Request) {
     .upsert({
       id: userId,
       ...payload,
-      separation_date: payload.separation_date ?? null,
+      eas_date: payload.eas_date ?? null,
+      separation_date: payload.eas_date ?? null,
     })
     .select("*")
     .single();

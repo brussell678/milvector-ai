@@ -6,7 +6,7 @@ type Profile = {
   branch: string;
   mos: string;
   rank: string;
-  separation_date: string;
+  eas_date: string;
   career_interests: string;
   location_pref: string;
   phone_number: string;
@@ -20,7 +20,7 @@ const initialState: Profile = {
   branch: "USMC",
   mos: "",
   rank: "",
-  separation_date: "",
+  eas_date: "",
   career_interests: "",
   location_pref: "",
   phone_number: "",
@@ -45,7 +45,7 @@ export default function ProfilePage() {
         branch: data.profile.branch ?? "USMC",
         mos: data.profile.mos ?? "",
         rank: data.profile.rank ?? "",
-        separation_date: data.profile.separation_date ?? "",
+        eas_date: data.profile.eas_date ?? data.profile.separation_date ?? "",
         career_interests: (data.profile.career_interests ?? []).join(", "),
         location_pref: data.profile.location_pref ?? "",
         phone_number: data.profile.phone_number ?? "",
@@ -67,7 +67,7 @@ export default function ProfilePage() {
       branch: form.branch,
       mos: form.mos || null,
       rank: form.rank || null,
-      separation_date: form.separation_date || null,
+      eas_date: form.eas_date || null,
       career_interests: form.career_interests
         .split(",")
         .map((x) => x.trim())
@@ -99,8 +99,15 @@ export default function ProfilePage() {
     <main className="panel p-6">
       <h1 className="text-2xl font-bold">Profile</h1>
       <p className="mt-2 text-sm text-[var(--muted)]">
-        Used to improve context quality for all tool outputs.
+        Your profile is used to improve context quality for tool outputs and mission timeline planning.
       </p>
+      <section className="mt-4 rounded-md border border-[var(--line)] bg-[var(--accent-soft)] p-4">
+        <p className="text-sm font-semibold text-[var(--accent)]">Privacy Notice</p>
+        <p className="mt-1 text-sm text-[var(--foreground)]">
+          Your profile information is stored securely in your account and is not shared publicly. We use it only to
+          personalize and improve the accuracy of your MilVector AI outputs.
+        </p>
+      </section>
 
       <form className="mt-5 grid gap-4 md:grid-cols-2" onSubmit={onSubmit}>
         <label className="space-y-1">
@@ -129,12 +136,12 @@ export default function ProfilePage() {
           />
         </label>
         <label className="space-y-1">
-          <span className="text-sm font-medium">Separation Date</span>
+          <span className="text-sm font-medium">EAS Date</span>
           <input
             className="input"
             type="date"
-            value={form.separation_date}
-            onChange={(e) => setForm((f) => ({ ...f, separation_date: e.target.value }))}
+            value={form.eas_date}
+            onChange={(e) => setForm((f) => ({ ...f, eas_date: e.target.value }))}
           />
         </label>
         <label className="space-y-1 md:col-span-2">

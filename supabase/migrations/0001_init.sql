@@ -1,4 +1,4 @@
--- The Next Mission MVP schema + RLS
+-- MILVECTOR AI MVP schema + RLS
 -- Run this in Supabase SQL editor or via migration tooling.
 
 create extension if not exists pgcrypto;
@@ -174,4 +174,5 @@ using (
   bucket_id = 'documents'
   and auth.uid()::text = split_part(name, '/', 1)
 );
+
 

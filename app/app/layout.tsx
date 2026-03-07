@@ -14,27 +14,31 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-6 md:px-8">
-      <header className="panel mb-6 flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
+      <header className="panel mb-4 flex items-center justify-between gap-4 p-4">
         <div className="flex items-center gap-3">
           <Image
-            src="/assets/the-next-mission-logo.svg"
-            alt="The Next Mission logo"
+            src="/assets/milvector-ai-logo.svg"
+            alt="MILVECTOR AI logo"
             width={48}
             height={48}
-            className="rounded-xl object-contain ring-1 ring-[var(--line)]"
+            className="object-contain"
           />
           <div>
-          <p className="text-xs font-semibold tracking-wider text-[var(--accent)]">THE NEXT MISSION</p>
-          <p className="text-sm text-[var(--muted)]">{user.email}</p>
+            <p className="text-xs font-semibold tracking-wider text-[var(--accent)]">MILVECTOR AI</p>
+            <p className="text-sm text-[var(--muted)]">{user.email}</p>
           </div>
         </div>
-        <AppNav />
         <form action="/api/auth/signout" method="post">
           <button className="btn btn-secondary text-sm" type="submit">
             Sign Out
           </button>
         </form>
       </header>
+
+      <section className="panel mb-6 p-3">
+        <AppNav />
+      </section>
+
       {children}
     </div>
   );

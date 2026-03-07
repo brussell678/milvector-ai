@@ -1,4 +1,4 @@
-# The Next Mission (MVP)
+# MILVECTOR AI (MVP)
 
 Next.js App Router application for guided military transition workflows with AI tools:
 - Master Resume Builder
@@ -52,3 +52,4 @@ npm run build
 - Text extraction supports PDF, DOCX, TXT, and MD (legacy DOC upload allowed, but extraction requires conversion).
 - Tool runs are logged without raw document text.
 - PRD traceability: [PRD_CHECKLIST.md](PRD_CHECKLIST.md)
+

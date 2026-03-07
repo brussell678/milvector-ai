@@ -1,8 +1,9 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { Barlow, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { PrimaryNav } from "@/components/primary-nav";
 
 const barlow = Barlow({
   variable: "--font-barlow",
@@ -17,8 +18,8 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "The Next Mission",
-  description: "Guided military transition platform",
+  title: "MilVector AI",
+  description: "AI career navigation for service members",
 };
 
 export default function RootLayout({
@@ -39,13 +40,14 @@ export default function RootLayout({
             </Link>
           </p>
         </div>
-        <div className="fixed right-4 top-16 z-50">
+        <PrimaryNav />
+        <div className="fixed right-4 top-24 z-50">
           <ThemeToggle />
         </div>
-        <div className="relative z-10 pb-16 pt-16">{children}</div>
+        <div className="relative z-10 pb-16 pt-10">{children}</div>
         <footer className="site-footer">
           <Link href="https://russell-innovation-group.com/" target="_blank" rel="noopener noreferrer">
-            © 2026 Russell Innovation Group LLC
+            (c) 2026 Russell Innovation Group LLC
           </Link>
         </footer>
       </body>

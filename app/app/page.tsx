@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
+import { monthsUntilDate, phaseAnchorMonth, phaseFromMonths, TIMELINE_MARKERS } from "@/lib/timeline";
+import { TransitionTaskList } from "@/components/transition-task-list";
 
 function nextStep(profileExists: boolean, hasMasterResume: boolean, hasTargetedResume: boolean) {
   if (!profileExists) return { href: "/app/profile", label: "Complete profile" };
@@ -7,6 +9,14 @@ function nextStep(profileExists: boolean, hasMasterResume: boolean, hasTargetedR
   if (!hasTargetedResume) return { href: "/app/tools/resume-targeter", label: "Create targeted resume" };
   return { href: "/app/library", label: "Review your library" };
 }
+
+type TransitionTaskRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  tool_link: string | null;
+  knowledge_article: string | null;
+};
 
 export default async function DashboardPage() {
   const supabase = await supabaseServer();
@@ -17,13 +27,30 @@ export default async function DashboardPage() {
   if (!user) return null;
 
   const [profileRes, artifactsRes, docsCountRes, toolRunsCountRes, toolSuccessCountRes, toolErrorCountRes] = await Promise.all([
-    supabase.from("profiles").select("id").eq("id", user.id).maybeSingle(),
+    supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
     supabase.from("resume_artifacts").select("artifact_type").eq("user_id", user.id),
     supabase.from("documents").select("*", { count: "exact", head: true }).eq("user_id", user.id),
     supabase.from("tool_runs").select("*", { count: "exact", head: true }).eq("user_id", user.id),
     supabase.from("tool_runs").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "success"),
     supabase.from("tool_runs").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "error"),
   ]);
+
+  const easDate = profileRes.data?.eas_date ?? profileRes.data?.separation_date ?? null;
+  const monthsUntilEas = monthsUntilDate(easDate);
+  const currentPhase = phaseFromMonths(monthsUntilEas);
+  const currentPhaseAnchor = phaseAnchorMonth(currentPhase);
+
+  const [tasksRes, completedRes] = await Promise.all([
+    supabase
+      .from("transition_tasks")
+      .select("id,title,description,tool_link,knowledge_article")
+      .eq("phase_month", currentPhaseAnchor)
+      .order("title", { ascending: true }),
+    supabase.from("transition_task_completions").select("task_id").eq("user_id", user.id),
+  ]);
+
+  const tasks = (tasksRes.data ?? []) as TransitionTaskRow[];
+  const completedTaskIds = (completedRes.data ?? []).map((x) => x.task_id);
 
   const artifactTypes = new Set((artifactsRes.data ?? []).map((row) => row.artifact_type));
   const hasMasterResume = artifactTypes.has("master_resume") || artifactTypes.has("master_bullets");
@@ -39,13 +66,33 @@ export default async function DashboardPage() {
   return (
     <main className="space-y-4">
       <section className="panel p-6">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <p className="text-xs font-semibold tracking-widest text-[var(--accent)]">MISSION</p>
+        <h1 className="mt-1 text-2xl font-bold">Translate your military experience into a civilian career before EAS.</h1>
         <p className="mt-2 text-[var(--muted)]">
-          Follow the guided sequence to move from military record to targeted civilian resume.
+          Current Phase: <span className="font-semibold text-[var(--fg)]">{currentPhase}</span>
+          {monthsUntilEas === null ? " - set your EAS date in profile to activate timeline guidance." : ` - ${monthsUntilEas} months until EAS`}
         </p>
         <Link className="btn btn-primary mt-4 inline-flex" href={step.href}>
-          Next Step: {step.label}
+          Next Objective: {step.label}
         </Link>
+      </section>
+
+      <section className="panel p-5">
+        <h2 className="font-bold">Transition Timeline</h2>
+        <div className="mt-3 grid gap-2 sm:grid-cols-7">
+          {TIMELINE_MARKERS.map((marker) => {
+            const active = monthsUntilEas !== null && monthsUntilEas <= marker;
+            return (
+              <article
+                key={marker}
+                className={`rounded-md border p-3 text-center ${active ? "border-[var(--accent)] bg-[var(--accent-soft)]" : "border-[var(--line)]"}`}
+              >
+                <p className="text-lg font-bold">{marker}</p>
+                <p className="text-xs text-[var(--muted)]">Months</p>
+              </article>
+            );
+          })}
+        </div>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -76,23 +123,22 @@ export default async function DashboardPage() {
       </section>
 
       <section className="grid gap-4 md:grid-cols-2">
+        <TransitionTaskList tasks={tasks} initialCompletedTaskIds={completedTaskIds} />
         <article className="panel p-5">
           <h2 className="font-bold">Core Workflow</h2>
           <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-[var(--muted)]">
-            <li>Complete profile</li>
+            <li>Complete profile with EAS date</li>
             <li>Upload/extract military source documents</li>
             <li>Build master resume</li>
-            <li>Paste job description</li>
+            <li>Analyze job descriptions</li>
             <li>Create targeted resume</li>
           </ol>
-        </article>
-        <article className="panel p-5">
-          <h2 className="font-bold">Tools</h2>
+          <h2 className="mt-5 font-bold">Tools</h2>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Link className="btn btn-secondary text-sm" href="/app/tools/fitrep-bullets">Master Resume Builder</Link>
+            <Link className="btn btn-secondary text-sm" href="/app/tools/fitrep-bullets">FITREP Resume Generator</Link>
             <Link className="btn btn-secondary text-sm" href="/app/tools/mos-translator">MOS Translator</Link>
             <Link className="btn btn-secondary text-sm" href="/app/tools/jd-decoder">Job Description Decoder</Link>
-            <Link className="btn btn-secondary text-sm" href="/app/tools/resume-targeter">Targeted Resume Builder</Link>
+            <Link className="btn btn-secondary text-sm" href="/app/tools/resume-targeter">Resume Targeting Engine</Link>
           </div>
         </article>
       </section>

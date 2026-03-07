@@ -78,13 +78,13 @@ export function LoginForm({ error }: { error?: string }) {
     <section className="panel w-full p-8 md:p-10">
       <div className="flex items-center gap-3">
         <Image
-          src="/assets/the-next-mission-logo.svg"
-          alt="The Next Mission logo"
+          src="/assets/milvector-ai-logo.svg"
+          alt="MILVECTOR AI logo"
           width={56}
           height={56}
-          className="rounded-xl object-contain ring-1 ring-[var(--line)]"
+          className="object-contain"
         />
-        <p className="text-xs font-semibold tracking-wider text-[var(--accent)]">THE NEXT MISSION</p>
+        <p className="text-xs font-semibold tracking-wider text-[var(--accent)]">MILVECTOR AI</p>
       </div>
       <h1 className="mt-3 text-3xl font-extrabold tracking-tight">Sign in to your workspace</h1>
       <p className="mt-2 text-sm text-[var(--muted)]">
@@ -120,3 +120,4 @@ export function LoginForm({ error }: { error?: string }) {
     </section>
   );
 }
+

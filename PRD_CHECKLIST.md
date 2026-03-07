@@ -1,6 +1,6 @@
-# PRD Closure Checklist - The Next Mission MVP
+# PRD Closure Checklist - MILVECTOR AI MVP
 
-Source PRD: `The Next Mission PRD.md`
+Source PRD: `MILVECTOR AI PRD.md`
 
 ## Objective
 - [x] Authenticated web app implemented
@@ -57,4 +57,5 @@ Source PRD: `The Next Mission PRD.md`
 - Add qualitative feedback capture (thumbs-up/down + free text) after tool outputs
 - Add admin-only analytics endpoint for cohort-level percentages
 - Add automated tests for key API routes and UI smoke flow
+
 
