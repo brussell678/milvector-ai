@@ -8,6 +8,8 @@ const PublicEnvSchema = z.object({
 const ServerEnvSchema = PublicEnvSchema.extend({
   OPENAI_API_KEY: z.string().min(1).optional(),
   OPENAI_MODEL: z.string().min(1).default("gpt-4o-mini"),
+  MASTER_RESUME_MODEL: z.string().min(1).optional(),
+  TARGETED_RESUME_MODEL: z.string().min(1).optional(),
   OPENAI_BASE_URL: z.string().url().optional(),
   LLM_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120000).default(30000),
 });

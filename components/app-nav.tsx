@@ -6,6 +6,7 @@ const links = [
   { href: "/app/documents", label: "Documents" },
   { href: "/app/tools", label: "Tools" },
   { href: "/app/library", label: "Library" },
+  { href: "/app/metrics", label: "Metrics" },
 ];
 
 export function AppNav() {
@@ -19,4 +20,3 @@ export function AppNav() {
     </nav>
   );
 }
-

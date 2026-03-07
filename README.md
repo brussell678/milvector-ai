@@ -1,10 +1,10 @@
 # The Next Mission (MVP)
 
 Next.js App Router application for guided military transition workflows with AI tools:
-- FITREP/EVAL -> master bullets
+- Master Resume Builder
 - MOS translator
-- JD decoder
-- Resume targeter
+- Job Description Decoder
+- Targeted Resume Builder
 
 ## Prerequisites
 - Node.js 20+
@@ -28,7 +28,8 @@ LLM_TIMEOUT_MS=30000
 ## Database + RLS Setup
 1. Open Supabase SQL Editor.
 2. Run: [supabase/migrations/0001_init.sql](supabase/migrations/0001_init.sql)
-3. Verify bucket `documents` exists and RLS policies are created.
+3. Run hardening: [supabase/migrations/0002_security_and_metrics.sql](supabase/migrations/0002_security_and_metrics.sql)
+4. Verify bucket `documents` exists and RLS policies are created.
 
 ## Local Run
 ```bash
@@ -38,6 +39,7 @@ npm run dev
 
 Health check:
 - `GET /api/health`
+- `GET /api/metrics` (authenticated)
 
 ## Quality Checks
 ```bash
@@ -47,6 +49,6 @@ npm run build
 
 ## Notes
 - `node_modules` is intentionally not committed to Git.
-- PDF extraction is best-effort text extraction only (no OCR in MVP).
+- Text extraction supports PDF, DOCX, TXT, and MD (legacy DOC upload allowed, but extraction requires conversion).
 - Tool runs are logged without raw document text.
-
+- PRD traceability: [PRD_CHECKLIST.md](PRD_CHECKLIST.md)

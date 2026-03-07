@@ -1,6 +1,8 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Barlow, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+import Link from "next/link";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const barlow = Barlow({
   variable: "--font-barlow",
@@ -27,7 +29,25 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${barlow.variable} ${plexMono.variable} antialiased`}>
-        {children}
+        <div className="site-watermark" aria-hidden="true" />
+        <div className="site-top-banner">
+          <p>
+            Built by Marines to help service members transition, please donate to keep it free for everyone. It
+            will hopefully cover API fees.{" "}
+            <Link href="https://russell-innovation-group.com/" target="_blank" rel="noopener noreferrer">
+              Donate
+            </Link>
+          </p>
+        </div>
+        <div className="fixed right-4 top-16 z-50">
+          <ThemeToggle />
+        </div>
+        <div className="relative z-10 pb-16 pt-16">{children}</div>
+        <footer className="site-footer">
+          <Link href="https://russell-innovation-group.com/" target="_blank" rel="noopener noreferrer">
+            © 2026 Russell Innovation Group LLC
+          </Link>
+        </footer>
       </body>
     </html>
   );

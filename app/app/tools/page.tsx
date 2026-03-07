@@ -3,8 +3,8 @@ import Link from "next/link";
 const tools = [
   {
     href: "/app/tools/fitrep-bullets",
-    title: "FITREP/EVAL -> Bullets",
-    desc: "Generate ATS-ready master bullets and save artifact.",
+    title: "Master Resume Builder",
+    desc: "Build a high-fidelity master resume from your uploaded military records.",
   },
   {
     href: "/app/tools/mos-translator",
@@ -13,13 +13,13 @@ const tools = [
   },
   {
     href: "/app/tools/jd-decoder",
-    title: "JD Decoder",
-    desc: "Translate job postings into must-haves and prep prompts.",
+    title: "Job Description Decoder",
+    desc: "Deeply analyze a job posting into requirements, signals, and interview focus areas.",
   },
   {
     href: "/app/tools/resume-targeter",
-    title: "Resume Targeter",
-    desc: "Generate targeted resume content from bullets + job description.",
+    title: "Targeted Resume Builder",
+    desc: "Generate a role-specific resume from your master resume + job description.",
   },
 ];
 
@@ -44,4 +44,3 @@ export default function ToolsPage() {
     </main>
   );
 }
-

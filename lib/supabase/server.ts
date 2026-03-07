@@ -13,9 +13,14 @@ export async function supabaseServer() {
       cookies: {
         getAll: () => cookieStore.getAll(),
         setAll: (cookiesToSet) => {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch {
+            // In Server Components, cookie mutation is not allowed.
+            // Route Handlers and Server Actions can still set cookies.
+          }
         },
       },
     }

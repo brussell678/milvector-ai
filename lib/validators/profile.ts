@@ -7,4 +7,9 @@ export const ProfileUpsertSchema = z.object({
   separation_date: z.string().optional().nullable(), // ISO date
   career_interests: z.array(z.string()).optional().nullable(),
   location_pref: z.string().optional().nullable(),
+  phone_number: z.string().optional().nullable(),
+  professional_email: z.string().email().optional().nullable(),
+  linkedin_url: z.string().optional().nullable(),
+  location: z.string().optional().nullable(),
+  security_clearance: z.string().optional().nullable(),
 });

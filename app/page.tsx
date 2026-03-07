@@ -1,10 +1,11 @@
 import Link from "next/link";
+import Image from "next/image";
 
 const features = [
-  "FITREP/EVAL to ATS-ready bullet library",
+  "Master Resume Builder from VMET, JST, and FITREPs/EVALs",
   "MOS translator for role mapping and cert paths",
-  "JD decoder for must-haves and interview prep",
-  "Resume targeter for job-specific alignment",
+  "Job Description Decoder for must-haves and interview prep",
+  "Targeted Resume Builder for job-specific alignment",
 ];
 
 export default function Home() {
@@ -13,9 +14,18 @@ export default function Home() {
       <section className="panel overflow-hidden">
         <div className="grid gap-8 p-8 md:grid-cols-[1.2fr_0.8fr] md:p-12">
           <div className="space-y-6">
-            <p className="inline-flex rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold tracking-wide text-[var(--accent)]">
-              THE NEXT MISSION
-            </p>
+            <div className="flex items-center gap-3">
+              <Image
+                src="/assets/the-next-mission-logo.svg"
+                alt="The Next Mission logo"
+                width={56}
+                height={56}
+                className="rounded-xl object-contain ring-1 ring-[var(--line)]"
+              />
+              <p className="inline-flex rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold tracking-wide text-[var(--accent)]">
+                THE NEXT MISSION
+              </p>
+            </div>
             <h1 className="text-4xl font-extrabold tracking-tight text-balance md:text-5xl">
               Transition support that turns military performance into civilian results.
             </h1>
@@ -54,4 +64,3 @@ export default function Home() {
     </main>
   );
 }
-

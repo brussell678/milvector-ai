@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
-import { extractTextFromPdfBuffer } from "@/lib/pdf";
+import { extractTextFromDocumentBuffer } from "@/lib/documents";
 
 export async function POST(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { userId } = await requireUser();
@@ -28,7 +28,23 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
   const arrayBuffer = await download.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
-  const extracted = await extractTextFromPdfBuffer(buffer);
+  let extracted = "";
+  try {
+    extracted = await extractTextFromDocumentBuffer({
+      buffer,
+      filename: doc.filename,
+      mimeType: doc.mime_type,
+    });
+  } catch (error) {
+    await supabase
+      .from("documents")
+      .update({ text_extracted: false, extracted_text: null })
+      .eq("id", documentId)
+      .eq("user_id", userId);
+
+    const message = error instanceof Error ? error.message : "Could not extract text from this file type.";
+    return NextResponse.json({ ok: false, error: message }, { status: 200 });
+  }
 
   if (!extracted || extracted.trim().length < 50) {
     // MVP: no OCR fallback; guide the user
@@ -40,7 +56,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
 
     return NextResponse.json({
       ok: false,
-      error: "Could not extract text. Please upload a text-based PDF or paste the content into the tool.",
+      error: "Could not extract text. Upload a text-based file (.pdf, .docx, .txt, .md) or paste content manually.",
     }, { status: 200 });
   }
 
