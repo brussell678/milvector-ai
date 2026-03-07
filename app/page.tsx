@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { redirect } from "next/navigation";
 
 const features = [
   "Master Resume Builder from VMET, JST, and FITREPs/EVALs",
@@ -8,7 +9,26 @@ const features = [
   "Targeted Resume Builder for job-specific alignment",
 ];
 
-export default function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ code?: string; token_hash?: string; type?: string; next?: string }>;
+}) {
+  const params = await searchParams;
+  const code = params.code;
+  const tokenHash = params.token_hash;
+  const type = params.type;
+  const next = params.next ?? "/app";
+
+  if (code || (tokenHash && type)) {
+    const query = new URLSearchParams();
+    if (code) query.set("code", code);
+    if (tokenHash) query.set("token_hash", tokenHash);
+    if (type) query.set("type", type);
+    query.set("next", next);
+    redirect(`/auth/confirm?${query.toString()}`);
+  }
+
   return (
     <main className="mx-auto max-w-6xl px-6 py-10 md:px-8">
       <section className="panel overflow-hidden">
@@ -42,8 +62,8 @@ export default function Home() {
               </Link>
             </div>
           </div>
-          <div className="panel bg-[#0f6d53] p-6 text-white">
-            <p className="text-xs font-semibold tracking-widest text-[#d2efe5]">WHAT YOU GET</p>
+          <div className="panel hero-outcomes p-6">
+            <p className="hero-outcomes-title text-xs font-semibold tracking-widest">WHAT YOU GET</p>
             <ul className="mt-4 space-y-3 text-sm">
               <li>Actionable first output in under 10 minutes</li>
               <li>Master resume generated from your source records</li>

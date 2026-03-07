@@ -164,3 +164,13 @@ body {
   font-weight: 700;
   text-decoration: underline;
 }
+
+.panel.hero-outcomes {
+  background: #0f6d53;
+  border-color: #0d5a45;
+  color: #ffffff;
+}
+
+.panel.hero-outcomes .hero-outcomes-title {
+  color: #d2efe5;
+}
