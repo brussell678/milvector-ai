@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
-import { monthsUntilDate, phaseAnchorMonth, phaseFromMonths, TIMELINE_MARKERS } from "@/lib/timeline";
-import { TransitionTaskList } from "@/components/transition-task-list";
+import { daysUntilDate, phaseFromDays, phaseMonthFromDays, TIMELINE_MARKERS } from "@/lib/timeline";
+import { PhaseObjectives } from "@/components/dashboard/PhaseObjectives";
+import type { DashboardLink, DashboardTask } from "@/components/dashboard/types";
 
 function nextStep(profileExists: boolean, hasMasterResume: boolean, hasTargetedResume: boolean) {
   if (!profileExists) return { href: "/app/profile", label: "Complete profile" };
@@ -9,25 +9,6 @@ function nextStep(profileExists: boolean, hasMasterResume: boolean, hasTargetedR
   if (!hasTargetedResume) return { href: "/app/tools/resume-targeter", label: "Create targeted resume" };
   return { href: "/app/library", label: "Review your library" };
 }
-
-type SupportingTaskRow = {
-  id: string;
-  title: string;
-  description: string | null;
-  order_index: number;
-};
-
-type TransitionTaskRow = {
-  id: string;
-  title: string;
-  description: string | null;
-  tool_link: string | null;
-  knowledge_article: string | null;
-  assistance_type: "tool" | "doc" | "none";
-  assistance_ref: string | null;
-  assistance_notes: string | null;
-  transition_supporting_tasks: SupportingTaskRow[];
-};
 
 export default async function DashboardPage() {
   const supabase = await supabaseServer();
@@ -47,28 +28,34 @@ export default async function DashboardPage() {
   ]);
 
   const easDate = profileRes.data?.eas_date ?? profileRes.data?.separation_date ?? null;
-  const monthsUntilEas = monthsUntilDate(easDate);
-  const currentPhase = phaseFromMonths(monthsUntilEas);
-  const currentPhaseAnchor = phaseAnchorMonth(currentPhase);
+  const daysUntilEas = daysUntilDate(easDate);
+  const currentPhase = phaseFromDays(daysUntilEas);
+  const currentPhaseMonth = phaseMonthFromDays(daysUntilEas);
 
-  const [tasksRes, completedRes] = await Promise.all([
+  const [tasksRes, completedRes, linksRes] = await Promise.all([
     supabase
       .from("transition_tasks")
       .select(
-        "id,title,description,tool_link,knowledge_article,assistance_type,assistance_ref,assistance_notes,transition_supporting_tasks(id,title,description,order_index)"
+        "id,title,description,category,phase_month,tool_link,knowledge_article,assistance_type,assistance_ref,assistance_notes,transition_supporting_tasks(id,title,description,order_index)"
       )
-      .eq("phase_month", currentPhaseAnchor)
       .eq("task_type", "milestone")
-      .order("title", { ascending: true }),
+      .order("days_before_event", { ascending: false, nullsFirst: false }),
     supabase.from("transition_task_completions").select("task_id").eq("user_id", user.id),
+    supabase.from("library_links").select("id,title,category,description,url").eq("review_status", "ready").order("title", { ascending: true }),
   ]);
 
-  const tasks = (tasksRes.data ?? []) as TransitionTaskRow[];
+  const allMilestoneTasks = (tasksRes.data ?? []) as DashboardTask[];
+  const phaseTasks = allMilestoneTasks.filter((task) => task.phase_month === currentPhaseMonth);
   const completedTaskIds = (completedRes.data ?? []).map((x) => x.task_id);
+  const links = (linksRes.data ?? []) as DashboardLink[];
 
   const artifactTypes = new Set((artifactsRes.data ?? []).map((row) => row.artifact_type));
   const hasMasterResume = artifactTypes.has("master_resume") || artifactTypes.has("master_bullets");
   const step = nextStep(!!profileRes.data, hasMasterResume, artifactTypes.has("targeted_resume"));
+  const educationProfileSignals =
+    (profileRes.data?.off_duty_education?.length ?? 0) +
+    (profileRes.data?.civilian_certifications?.length ?? 0) +
+    (profileRes.data?.additional_training?.length ?? 0);
   const artifactRows = artifactsRes.data ?? [];
   const masterResumeCount = artifactRows.filter((x) => x.artifact_type === "master_resume").length;
   const targetedResumesCount = artifactRows.filter((x) => x.artifact_type === "targeted_resume").length;
@@ -79,35 +66,34 @@ export default async function DashboardPage() {
 
   return (
     <main className="space-y-4">
-      <section className="panel p-6">
-        <p className="text-xs font-semibold tracking-widest text-[var(--accent)]">MISSION</p>
-        <h1 className="mt-1 text-2xl font-bold">Translate your military experience into a civilian career before EAS.</h1>
-        <p className="mt-2 text-[var(--muted)]">
-          Current Phase: <span className="font-semibold text-[var(--fg)]">{currentPhase}</span>
-          {monthsUntilEas === null ? " - set your EAS date in profile to activate timeline guidance." : ` - ${monthsUntilEas} months until EAS`}
-        </p>
-        <Link className="btn btn-primary mt-4 inline-flex" href={step.href}>
-          Next Objective: {step.label}
-        </Link>
-      </section>
-
       <section className="panel p-5">
         <h2 className="font-bold">Transition Timeline</h2>
         <div className="mt-3 grid gap-2 sm:grid-cols-7">
           {TIMELINE_MARKERS.map((marker) => {
-            const active = monthsUntilEas !== null && monthsUntilEas <= marker;
+            const active = daysUntilEas !== null && daysUntilEas <= marker * 30;
             return (
               <article
                 key={marker}
                 className={`rounded-md border p-3 text-center ${active ? "border-[var(--accent)] bg-[var(--accent-soft)]" : "border-[var(--line)]"}`}
               >
-                <p className="text-lg font-bold">{marker}</p>
-                <p className="text-xs text-[var(--muted)]">Months</p>
+                <p className="text-lg font-bold">{marker === 0 ? "Final" : `${marker}m`}</p>
+                <p className="text-xs text-[var(--muted)]">Checkpoint</p>
               </article>
             );
           })}
         </div>
       </section>
+
+      <PhaseObjectives
+        currentPhase={currentPhase}
+        daysUntilEas={daysUntilEas}
+        nextObjective={step}
+        phaseTasks={phaseTasks}
+        allMilestoneTasks={allMilestoneTasks}
+        initialCompletedTaskIds={completedTaskIds}
+        links={links}
+        educationProfileSignals={educationProfileSignals}
+      />
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <article className="panel p-5">
@@ -133,27 +119,6 @@ export default async function DashboardPage() {
         <article className="panel p-5">
           <p className="text-xs font-semibold tracking-wide text-[var(--muted)]">Tool Errors</p>
           <p className="mt-2 text-3xl font-extrabold text-[#a33b3b]">{toolErrorCount}</p>
-        </article>
-      </section>
-
-      <section className="grid gap-4 md:grid-cols-2">
-        <TransitionTaskList tasks={tasks} initialCompletedTaskIds={completedTaskIds} />
-        <article className="panel p-5">
-          <h2 className="font-bold">Core Workflow</h2>
-          <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-[var(--muted)]">
-            <li>Complete profile with EAS date</li>
-            <li>Upload/extract military source documents</li>
-            <li>Build master resume</li>
-            <li>Analyze job descriptions</li>
-            <li>Create targeted resume</li>
-          </ol>
-          <h2 className="mt-5 font-bold">Tools</h2>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Link className="btn btn-secondary text-sm" href="/app/tools/fitrep-bullets">Master Resume Generator</Link>
-            <Link className="btn btn-secondary text-sm" href="/app/tools/mos-translator">MOS Translator</Link>
-            <Link className="btn btn-secondary text-sm" href="/app/tools/jd-decoder">Job Description Decoder</Link>
-            <Link className="btn btn-secondary text-sm" href="/app/tools/resume-targeter">Targeted Resume Engine</Link>
-          </div>
         </article>
       </section>
     </main>
