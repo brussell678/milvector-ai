@@ -11,6 +11,7 @@ export type DashboardTask = {
   description: string | null;
   category: string | null;
   phase_month: number;
+  days_before_event: number | null;
   tool_link: string | null;
   knowledge_article: string | null;
   assistance_type: "tool" | "doc" | "none";
