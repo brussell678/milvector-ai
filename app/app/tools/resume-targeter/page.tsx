@@ -257,6 +257,14 @@ export default function ResumeTargeterPage() {
         <p className="mt-2 text-sm text-[var(--muted)]">
           Step-driven workflow with deeper analysis and explicit go/no-go checkpoint.
         </p>
+        <section className="mt-4 rounded-md border border-[var(--line)] bg-[var(--accent-soft)] p-4">
+          <p className="text-sm font-semibold text-[var(--accent)]">Tool Notice</p>
+          <p className="mt-1 text-sm text-[var(--foreground)]">
+            This tool generates a targeted draft, not a final application resume. Review and edit wording, ensure each
+            claim is accurate, and tailor details before submitting. Save your finalized version to Documents so it can
+            be reused for future applications.
+          </p>
+        </section>
       </section>
 
       {loading && (

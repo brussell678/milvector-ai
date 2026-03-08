@@ -30,8 +30,11 @@ export default function DocumentsPage() {
   const [loadingList, setLoadingList] = useState(true);
   const [busyUpload, setBusyUpload] = useState(false);
   const [extractingId, setExtractingId] = useState<string | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, { filename: string }>>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const selectedFilename = useMemo(() => file?.name ?? "No file selected", [file]);
@@ -45,7 +48,13 @@ export default function DocumentsPage() {
         setError(data.error ?? "Failed to load documents");
         return;
       }
-      setDocuments(data.documents ?? []);
+      const nextDocs = data.documents ?? [];
+      setDocuments(nextDocs);
+      setDrafts(
+        Object.fromEntries(
+          nextDocs.map((doc: DocumentRow) => [doc.id, { filename: doc.filename }])
+        )
+      );
     } catch {
       setError("Network error while loading documents.");
     } finally {
@@ -104,6 +113,58 @@ export default function DocumentsPage() {
       setError("Network error while extracting text.");
     } finally {
       setExtractingId(null);
+    }
+  }
+
+  async function saveMetadata(documentId: string) {
+    const draft = drafts[documentId];
+    const original = documents.find((d) => d.id === documentId);
+    if (!draft || !original) return;
+    if (draft.filename.trim() === original.filename) return;
+
+    setSavingId(documentId);
+    setStatus(null);
+    setError(null);
+    try {
+      const res = await fetch(`/api/documents/${documentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: draft.filename.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) {
+        setError(data.error ?? "Failed to update document");
+        return;
+      }
+      setStatus("Document details updated.");
+      await loadDocuments();
+    } catch {
+      setError("Network error while updating document.");
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  async function removeDocument(documentId: string) {
+    const confirmed = window.confirm("Delete this document? This cannot be undone.");
+    if (!confirmed) return;
+
+    setDeletingId(documentId);
+    setStatus(null);
+    setError(null);
+    try {
+      const res = await fetch(`/api/documents/${documentId}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.ok === false) {
+        setError(data.error ?? "Failed to delete document");
+        return;
+      }
+      setStatus("Document deleted.");
+      await loadDocuments();
+    } catch {
+      setError("Network error while deleting document.");
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -179,25 +240,56 @@ export default function DocumentsPage() {
               <tbody>
                 {documents.map((doc) => {
                   const isExtracting = extractingId === doc.id;
+                  const isSaving = savingId === doc.id;
+                  const isDeleting = deletingId === doc.id;
                   const extractedClass = doc.text_extracted ? "btn btn-primary" : "btn btn-secondary";
+                  const draft = drafts[doc.id] ?? { filename: doc.filename };
+                  const isDirty = draft.filename.trim() !== doc.filename;
                   return (
                     <tr key={doc.id} className="border-b border-[var(--line)] last:border-b-0">
                       <td className="px-2 py-3">
-                        <p className="font-medium">{doc.filename}</p>
+                        <input
+                          className="input h-9 text-sm"
+                          value={draft.filename}
+                          onChange={(e) =>
+                            setDrafts((prev) => ({
+                              ...prev,
+                              [doc.id]: { ...draft, filename: e.target.value },
+                            }))
+                          }
+                        />
                         <p className="text-xs text-[var(--muted)]">{(doc.size_bytes / 1024).toFixed(0)} KB</p>
                       </td>
                       <td className="px-2 py-3">{doc.doc_type}</td>
                       <td className="px-2 py-3">{new Date(doc.created_at).toLocaleDateString()}</td>
                       <td className="px-2 py-3">{doc.text_extracted ? "Yes" : "No"}</td>
                       <td className="px-2 py-3">
-                        <button
-                          className={extractedClass}
-                          type="button"
-                          onClick={() => extract(doc.id)}
-                          disabled={isExtracting}
-                        >
-                          {isExtracting ? "Extracting..." : doc.text_extracted ? "Extracted" : "Extract Text"}
-                        </button>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            className="btn btn-secondary"
+                            type="button"
+                            onClick={() => saveMetadata(doc.id)}
+                            disabled={!isDirty || isSaving || isDeleting}
+                          >
+                            {isSaving ? "Saving..." : "Save"}
+                          </button>
+                          <button
+                            className={extractedClass}
+                            type="button"
+                            onClick={() => extract(doc.id)}
+                            disabled={isExtracting || isSaving || isDeleting}
+                          >
+                            {isExtracting ? "Extracting..." : doc.text_extracted ? "Re-Extract" : "Extract Text"}
+                          </button>
+                          <button
+                            className="btn btn-secondary"
+                            type="button"
+                            onClick={() => removeDocument(doc.id)}
+                            disabled={isDeleting || isSaving || isExtracting}
+                          >
+                            {isDeleting ? "Deleting..." : "Delete"}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

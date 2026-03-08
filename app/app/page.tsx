@@ -10,12 +10,23 @@ function nextStep(profileExists: boolean, hasMasterResume: boolean, hasTargetedR
   return { href: "/app/library", label: "Review your library" };
 }
 
+type SupportingTaskRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  order_index: number;
+};
+
 type TransitionTaskRow = {
   id: string;
   title: string;
   description: string | null;
   tool_link: string | null;
   knowledge_article: string | null;
+  assistance_type: "tool" | "doc" | "none";
+  assistance_ref: string | null;
+  assistance_notes: string | null;
+  transition_supporting_tasks: SupportingTaskRow[];
 };
 
 export default async function DashboardPage() {
@@ -43,8 +54,11 @@ export default async function DashboardPage() {
   const [tasksRes, completedRes] = await Promise.all([
     supabase
       .from("transition_tasks")
-      .select("id,title,description,tool_link,knowledge_article")
+      .select(
+        "id,title,description,tool_link,knowledge_article,assistance_type,assistance_ref,assistance_notes,transition_supporting_tasks(id,title,description,order_index)"
+      )
       .eq("phase_month", currentPhaseAnchor)
+      .eq("task_type", "milestone")
       .order("title", { ascending: true }),
     supabase.from("transition_task_completions").select("task_id").eq("user_id", user.id),
   ]);
@@ -135,10 +149,10 @@ export default async function DashboardPage() {
           </ol>
           <h2 className="mt-5 font-bold">Tools</h2>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Link className="btn btn-secondary text-sm" href="/app/tools/fitrep-bullets">FITREP Resume Generator</Link>
+            <Link className="btn btn-secondary text-sm" href="/app/tools/fitrep-bullets">Master Resume Generator</Link>
             <Link className="btn btn-secondary text-sm" href="/app/tools/mos-translator">MOS Translator</Link>
             <Link className="btn btn-secondary text-sm" href="/app/tools/jd-decoder">Job Description Decoder</Link>
-            <Link className="btn btn-secondary text-sm" href="/app/tools/resume-targeter">Resume Targeting Engine</Link>
+            <Link className="btn btn-secondary text-sm" href="/app/tools/resume-targeter">Targeted Resume Engine</Link>
           </div>
         </article>
       </section>

@@ -38,6 +38,11 @@ export function promptMasterResumeFromMilitaryDocs(args: {
   mos?: string | null;
   rank?: string | null;
   targetRole?: string | null;
+  serviceComponent?: string | null;
+  yearsServiceAtEas?: number | null;
+  offDutyEducation?: string[] | null;
+  civilianCertifications?: string[] | null;
+  additionalTraining?: string[] | null;
 }) {
   return `
 You are a senior military-to-civilian career transition analyst and former military recruiter.
@@ -53,8 +58,11 @@ Authority hierarchy and truth rules:
 - FITREP/EVAL observed periods are the only authoritative accomplishment windows.
 - VMET is context + role translation only. VMET cannot create accomplishments or dates.
 - JST is the authoritative training/certification source only. JST cannot create performance accomplishments.
+- User-provided Off-Duty Education / Civilian Certifications / Additional Training are authoritative for those specific items.
+- Service component and years of service at EAS are authoritative context for tenure framing.
 - RS/RO language is credibility/impact framing for accomplishments already grounded in observed periods.
 - If information is missing or ambiguous, do NOT assume. Add it to validation_questions.
+- Do not imply retirement eligibility unless evidence supports it (for example, yearsServiceAtEas >= 20).
 
 Resume quality bar:
 - Civilian language only. Translate military jargon/acronyms to plain English.
@@ -100,6 +108,8 @@ Master resume construction requirements:
   Certifications
   Additional Qualifications
 - Under Professional Experience, roles must be in reverse chronological order (most recent first, then older roles).
+- If the same role title + organization appears in multiple adjacent periods, merge them into one entry.
+- For merged entries, use one heading with the full combined date range and include all distinct bullets from those periods.
 - Format rules inside master_resume:
   - Plain text only
   - No markdown tables
@@ -119,6 +129,11 @@ branch=${args.branch ?? "USMC"}
 mos=${args.mos ?? ""}
 rank=${args.rank ?? ""}
 targetRole=${args.targetRole ?? ""}
+serviceComponent=${args.serviceComponent ?? ""}
+yearsServiceAtEas=${args.yearsServiceAtEas ?? ""}
+offDutyEducation=${(args.offDutyEducation ?? []).join("; ")}
+civilianCertifications=${(args.civilianCertifications ?? []).join("; ")}
+additionalTraining=${(args.additionalTraining ?? []).join("; ")}
 
 VMET:
 ${args.vmetText}
@@ -335,6 +350,8 @@ Resume formatting rules inside targeted_resume:
 - One blank line between sections
 - Hyphen bullets only
 - Professional Experience must be reverse chronological (most recent first)
+- Convert military billet/position titles into civilian-equivalent role titles aligned to the target job and company context.
+- Preserve original military terms only when needed for credibility, and pair them with plain-English civilian wording.
 - Preserve detailed, evidence-rich accomplishments from master resume where relevant
 - Avoid over-compressing; retain enough detail to defend claims in interview
 - Include a contact header at the top using provided profile contact data when available:
@@ -342,6 +359,7 @@ Resume formatting rules inside targeted_resume:
   If any contact field is missing, omit it cleanly without placeholders.
 - If template guidance is provided, mirror its section sequencing and writing style when possible
   while preserving ATS readability and factual integrity.
+- Never fabricate scope, seniority, responsibilities, or employers during title translation.
 
 Company: ${args.company ?? ""}
 Job title: ${args.jobTitle}

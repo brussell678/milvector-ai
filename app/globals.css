@@ -174,3 +174,23 @@ body {
 .panel.hero-outcomes .hero-outcomes-title {
   color: #d2efe5;
 }
+
+.alert-base {
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  padding: 0.55rem 0.75rem;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.alert-success {
+  background: color-mix(in oklab, var(--accent-soft) 78%, var(--panel) 22%);
+  color: var(--foreground);
+  border-color: color-mix(in oklab, var(--accent) 45%, var(--line) 55%);
+}
+
+.alert-error {
+  background: color-mix(in oklab, var(--panel) 72%, #5c2318 28%);
+  color: #ffd8cc;
+  border-color: color-mix(in oklab, #ff8f73 55%, var(--line) 45%);
+}

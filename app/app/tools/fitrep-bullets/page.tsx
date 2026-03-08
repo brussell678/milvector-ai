@@ -11,8 +11,13 @@ type BulletsOutput = {
 
 type MasterResumeOutput = {
   artifactId: string;
+  autosavedDocumentId?: string | null;
+  autosaveWarning?: string | null;
   mode: "master_resume";
   master_resume: string;
+  fitrepDocsDetected?: number;
+  fitrepDocsIncluded?: number;
+  fitrepDocsTruncated?: boolean;
   validation_questions: string[];
   career_timeline: { role_title: string; organization: string; date_range: string }[];
 };
@@ -102,7 +107,16 @@ export default function FitrepBulletsPage() {
         return;
       }
       setResult(data as BulletsOutput | MasterResumeOutput);
-      setNotice(mode === "master_resume" ? "Master resume generated and saved to Library." : "Master bullets generated and saved to Library.");
+      if (mode === "master_resume") {
+        const warning = typeof data.autosaveWarning === "string" ? data.autosaveWarning : null;
+        setNotice(
+          warning
+            ? `Master resume generated and saved to Library. ${warning}`
+            : "Master resume generated and saved to Library + Documents."
+        );
+      } else {
+        setNotice("Master bullets generated and saved to Library.");
+      }
     } catch {
       setError("Network error while running FITREP pipeline.");
     } finally {
@@ -117,6 +131,15 @@ export default function FitrepBulletsPage() {
         <p className="mt-2 text-sm text-[var(--muted)]">
           Build directly from uploaded documents, then export a Word draft for edits.
         </p>
+        <section className="mt-4 rounded-md border border-[var(--line)] bg-[var(--accent-soft)] p-4">
+          <p className="text-sm font-semibold text-[var(--accent)]">Tool Notice</p>
+          <p className="mt-1 text-sm text-[var(--foreground)]">
+            This tool generates a starting-point master resume, not a final version. Download the output and add detail,
+            corrections, and context where needed. Your master resume becomes the base input for targeted resumes, so
+            improving it now will improve every downstream result. The generated draft is auto-saved to Documents; after
+            finalizing your edits, upload the revised version to Documents so your latest version is used by other tools.
+          </p>
+        </section>
       </section>
 
       <section className="panel p-6">
@@ -160,6 +183,10 @@ export default function FitrepBulletsPage() {
                   </ul>
                   <p className="mt-2 text-xs text-[var(--muted)]">
                     Upload and extract documents on the Documents page if any are missing.
+                  </p>
+                  <p className="mt-1 text-xs text-[var(--muted)]">
+                    There is no hard FITREP count cap. If your extracted text exceeds model limits, the system will include as many reports
+                    as possible and prioritize the most recent.
                   </p>
                 </section>
               ) : (
@@ -231,7 +258,15 @@ export default function FitrepBulletsPage() {
             </a>
           </div>
           <h2 className="font-bold">Generated Master Resume</h2>
-          <pre className="overflow-x-auto whitespace-pre-wrap rounded-md bg-[#f5f8f6] p-3 text-sm">{result.master_resume}</pre>
+          {typeof result.fitrepDocsDetected === "number" && typeof result.fitrepDocsIncluded === "number" && (
+            <p className="text-sm text-[var(--muted)]">
+              FITREP/EVAL sources included: {result.fitrepDocsIncluded} of {result.fitrepDocsDetected}
+              {result.fitrepDocsTruncated ? " (truncated by input budget)" : ""}
+            </p>
+          )}
+          <pre className="overflow-x-auto whitespace-pre-wrap rounded-md border border-[var(--line)] bg-[var(--surface)] p-3 text-sm text-[var(--foreground)]">
+            {result.master_resume}
+          </pre>
           {result.validation_questions?.length > 0 && (
             <div>
               <h3 className="font-semibold">Validation Questions</h3>

@@ -20,6 +20,9 @@ const plexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "MilVector AI",
   description: "AI career navigation for service members",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

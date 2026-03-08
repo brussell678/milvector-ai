@@ -1,11 +1,19 @@
 import Link from "next/link";
 
-const tools = [
+const coreTools = [
   {
     href: "/app/tools/fitrep-bullets",
-    title: "Master Resume Builder",
+    title: "Master Resume Generator",
     desc: "Build a high-fidelity master resume from your uploaded military records.",
   },
+  {
+    href: "/app/tools/resume-targeter",
+    title: "Targeted Resume Engine",
+    desc: "Generate a role-specific resume from your master resume + job description.",
+  },
+];
+
+const basicTools = [
   {
     href: "/app/tools/mos-translator",
     title: "MOS Translator",
@@ -16,11 +24,6 @@ const tools = [
     title: "Job Description Decoder",
     desc: "Deeply analyze a job posting into requirements, signals, and interview focus areas.",
   },
-  {
-    href: "/app/tools/resume-targeter",
-    title: "Targeted Resume Builder",
-    desc: "Generate a role-specific resume from your master resume + job description.",
-  },
 ];
 
 export default function ToolsPage() {
@@ -30,16 +33,41 @@ export default function ToolsPage() {
         <h1 className="text-2xl font-bold">Tools</h1>
         <p className="mt-2 text-sm text-[var(--muted)]">Run AI workflows and store outputs for later recall.</p>
       </section>
-      <section className="grid gap-4 md:grid-cols-2">
-        {tools.map((tool) => (
-          <article key={tool.href} className="panel p-5">
-            <h2 className="text-lg font-bold">{tool.title}</h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">{tool.desc}</p>
-            <Link href={tool.href} className="btn btn-secondary mt-4 inline-flex">
-              Open
-            </Link>
-          </article>
-        ))}
+
+      <section className="panel p-6">
+        <h2 className="text-lg font-bold">Core Tools</h2>
+        <p className="mt-1 text-sm text-[var(--muted)]">
+          MilVector core workflows for resume generation and targeting.
+        </p>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          {coreTools.map((tool) => (
+            <article key={tool.href} className="rounded-md border border-[var(--line)] p-5">
+              <h3 className="text-lg font-bold">{tool.title}</h3>
+              <p className="mt-1 text-sm text-[var(--muted)]">{tool.desc}</p>
+              <Link href={tool.href} className="btn btn-secondary mt-4 inline-flex">
+                Open
+              </Link>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="panel p-6">
+        <h2 className="text-lg font-bold">Basic Tools</h2>
+        <p className="mt-1 text-sm text-[var(--muted)]">
+          Standalone utility tools for supporting analysis.
+        </p>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          {basicTools.map((tool) => (
+            <article key={tool.href} className="rounded-md border border-[var(--line)] p-5">
+              <h3 className="text-lg font-bold">{tool.title}</h3>
+              <p className="mt-1 text-sm text-[var(--muted)]">{tool.desc}</p>
+              <Link href={tool.href} className="btn btn-secondary mt-4 inline-flex">
+                Open
+              </Link>
+            </article>
+          ))}
+        </div>
       </section>
     </main>
   );

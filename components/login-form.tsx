@@ -56,23 +56,26 @@ export function LoginForm({ error }: { error?: string }) {
           const ms = getCooldownMsFromRateLimitMessage(authError.message);
           const until = Date.now() + ms;
           setCooldownUntil(until);
-          setMessage(
+          setDisplayError(
             `Email rate limit exceeded. Please wait about ${Math.ceil(ms / 1000)} seconds and try again.`
           );
           return;
         }
-        setMessage(authError.message);
+        setDisplayError(authError.message);
         return;
       }
       setCooldownUntil(Date.now() + 60_000);
       setMessage("Check your email for the sign-in link.");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to send sign-in link";
-      setMessage(message);
+      const errorMessage = error instanceof Error ? error.message : "Failed to send sign-in link";
+      setDisplayError(errorMessage);
     } finally {
       setLoading(false);
     }
   }
+
+  const notificationText = displayError ?? message;
+  const notificationClass = displayError ? "alert-base alert-error" : "alert-base alert-success";
 
   return (
     <section className="panel w-full p-8 md:p-10">
@@ -109,15 +112,10 @@ export function LoginForm({ error }: { error?: string }) {
           {loading ? "Sending..." : cooldownSeconds > 0 ? `Retry in ${cooldownSeconds}s` : "Send magic link"}
         </button>
       </form>
-      {(displayError || message) && (
-        <p className="mt-4 rounded-md bg-[#fff7e6] px-3 py-2 text-sm text-[var(--warn)]">
-          {displayError ?? message}
-        </p>
-      )}
+      {notificationText && <p className={`mt-4 ${notificationClass}`}>{notificationText}</p>}
       <p className="mt-6 text-sm text-[var(--muted)]">
         Need context first? <Link href="/" className="font-semibold text-[var(--accent)]">View overview</Link>
       </p>
     </section>
   );
 }
-

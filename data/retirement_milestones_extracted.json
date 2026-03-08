@@ -1,0 +1,2483 @@
+{
+  "Milestones": [
+    {
+      "rowNumber": 1,
+      "values": [
+        null,
+        "EAS",
+        "EAS",
+        "1/31/27",
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 2,
+      "values": [
+        null,
+        "Start Terminal Leave",
+        "Terminal",
+        "11/22/26",
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 3,
+      "values": [
+        null,
+        "Start PTAD (21 Days)",
+        "PTAD",
+        "11/1/26",
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 4,
+      "values": [
+        null,
+        "Ceremony",
+        "Ceremony",
+        "11/6/26",
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 5,
+      "values": [
+        null,
+        "Days to EAS",
+        null,
+        "347",
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 6,
+      "values": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 7,
+      "values": [
+        "Task",
+        "Task Duration (days)",
+        null,
+        "Lag (days)",
+        "Finish X Days Before",
+        "Event",
+        "Planned Start",
+        "Status",
+        "Comments"
+      ]
+    },
+    {
+      "rowNumber": 8,
+      "values": [
+        "Complete TRS",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "Good idea to complete TRS before submitting Appendix J."
+      ]
+    },
+    {
+      "rowNumber": 9,
+      "values": [
+        "Email Company 1stSgt for TRS Info",
+        "1",
+        null,
+        "14",
+        "540",
+        "EAS",
+        "8/9/25",
+        "Complete",
+        "Company 1stSgt will provide initial TRS info and dates. "
+      ]
+    },
+    {
+      "rowNumber": 10,
+      "values": [
+        "Complete Pre-Counseling Docs",
+        "3",
+        null,
+        null,
+        "525",
+        "EAS",
+        "8/24/25",
+        "Complete",
+        "DD Form 2648, ICITP, JST, VA.gov LogIn, VMET"
+      ]
+    },
+    {
+      "rowNumber": 11,
+      "values": [
+        "Submit TRS Pre-Counseling Docs to Company 1stSgt",
+        "1",
+        null,
+        "14",
+        "522",
+        "EAS",
+        "8/27/25",
+        "Complete",
+        null
+      ]
+    },
+    {
+      "rowNumber": 12,
+      "values": [
+        "Email Confirmation from TRS for Enrollment",
+        "1",
+        null,
+        "14",
+        "507",
+        "EAS",
+        "9/11/25",
+        "Complete",
+        null
+      ]
+    },
+    {
+      "rowNumber": 13,
+      "values": [
+        "TRS Interview",
+        "1",
+        null,
+        "90",
+        "492",
+        "EAS",
+        "9/26/25",
+        "Complete",
+        null
+      ]
+    },
+    {
+      "rowNumber": 14,
+      "values": [
+        "Attend TRS",
+        "5",
+        null,
+        null,
+        "401",
+        "EAS",
+        "12/26/25",
+        "Complete",
+        null
+      ]
+    },
+    {
+      "rowNumber": 15,
+      "values": [
+        "Complete DoDTAP forms 2648 on MilConnect",
+        null,
+        null,
+        null,
+        "295",
+        "EAS",
+        "4/11/26",
+        null,
+        "Requires you to complete capstone and CO verification, both of which are done through MilConnect."
+      ]
+    },
+    {
+      "rowNumber": 16,
+      "values": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 17,
+      "values": [
+        "Submit Appendix J (14 mos from EAS)",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 18,
+      "values": [
+        "Determine Retirement Date",
+        "1",
+        null,
+        null,
+        "450",
+        "EAS",
+        "11/7/25",
+        null,
+        "Factor in SkillBridge timeline, 21 days PTAD, up to 60 days terminal leave"
+      ]
+    },
+    {
+      "rowNumber": 19,
+      "values": [
+        "Route for commander signature",
+        "1",
+        null,
+        "14",
+        "449",
+        "EAS",
+        "11/8/25",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 20,
+      "values": [
+        "Submit Appendix J via EPAR on MOL",
+        "1",
+        null,
+        "45",
+        "434",
+        "EAS",
+        "11/23/25",
+        null,
+        "Cannot submit for retirement more than 14 months out without a waiver. "
+      ]
+    },
+    {
+      "rowNumber": 21,
+      "values": [
+        "Receive confirmation retirement approved",
+        "1",
+        null,
+        null,
+        "388",
+        "EAS",
+        "1/8/26",
+        null,
+        "Will have EAS in MOL"
+      ]
+    },
+    {
+      "rowNumber": 22,
+      "values": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 23,
+      "values": [
+        "Complete VA Disability Claim for BDD (180-90 days from EAS)",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 24,
+      "values": [
+        "Request medical Records ",
+        "1",
+        null,
+        null,
+        "450",
+        "EAS",
+        "11/7/25",
+        null,
+        "Request at Naval Hospital; records will be sent in about a week via DOD SAFE.  Have to do separate request for mental health records. "
+      ]
+    },
+    {
+      "rowNumber": 25,
+      "values": [
+        "Identify list of medical issues ",
+        "1",
+        null,
+        null,
+        "365",
+        "EAS",
+        "1/31/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 26,
+      "values": [
+        "Check Out Dental Records & Make Copies",
+        "1",
+        null,
+        null,
+        "365",
+        "EAS",
+        "1/31/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 27,
+      "values": [
+        "Complete Final PHA in person with the provider",
+        "1",
+        null,
+        null,
+        "365",
+        "EAS",
+        "1/31/26",
+        null,
+        "Schedule appointments as required."
+      ]
+    },
+    {
+      "rowNumber": 28,
+      "values": [
+        "Contact VSO",
+        "1",
+        null,
+        null,
+        "365",
+        "EAS",
+        "1/31/26",
+        null,
+        "Identify what documents are required from VSO to submit disability claim. "
+      ]
+    },
+    {
+      "rowNumber": 29,
+      "values": [
+        "Begin final medical exams / procedures",
+        "1",
+        null,
+        "90",
+        "310",
+        "EAS",
+        "3/27/26",
+        null,
+        "Depending on your situation, this could take several months to schedule appointments and see providers. "
+      ]
+    },
+    {
+      "rowNumber": 30,
+      "values": [
+        "Begin final dental exams / procedures",
+        "1",
+        null,
+        "90",
+        "310",
+        "EAS",
+        "3/27/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 31,
+      "values": [
+        "Request updated medical records",
+        "1",
+        null,
+        "30",
+        "219",
+        "EAS",
+        "6/26/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 32,
+      "values": [
+        "Request updated dental records",
+        "1",
+        null,
+        "30",
+        "219",
+        "EAS",
+        "6/26/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 33,
+      "values": [
+        "Obtain Final Physical Paperwork",
+        "1",
+        null,
+        null,
+        "180",
+        "Ceremony",
+        "5/10/26",
+        null,
+        "Deployment Health at Naval Hospital has this paperwork; having updated medical records will help you complete these documents. "
+      ]
+    },
+    {
+      "rowNumber": 34,
+      "values": [
+        "Complete Final Physical",
+        "1",
+        null,
+        "60",
+        "120",
+        "Ceremony",
+        "7/9/26",
+        null,
+        "Scheduled with Deployment Health; Required for submitting VA disability claim."
+      ]
+    },
+    {
+      "rowNumber": 35,
+      "values": [
+        "Separation Health Assessment (DD Form 2807-1, part of final physical)",
+        "45",
+        null,
+        null,
+        "110",
+        "Ceremony",
+        "7/19/26",
+        null,
+        "Self-assessment which is required for submitting VA disability claim. "
+      ]
+    },
+    {
+      "rowNumber": 36,
+      "values": [
+        "Submit medical records to VSO (electronically preferred)",
+        "1",
+        null,
+        null,
+        "200",
+        "EAS",
+        "7/15/26",
+        null,
+        "Can submit initial pull of records and an update if required to speed up VSO review. "
+      ]
+    },
+    {
+      "rowNumber": 37,
+      "values": [
+        "Submit dental records to VSO (electronically preferred)",
+        "1",
+        null,
+        null,
+        "200",
+        "EAS",
+        "7/15/26",
+        null,
+        "Can submit initial pull of records and an update if required to speed up VSO review. "
+      ]
+    },
+    {
+      "rowNumber": 38,
+      "values": [
+        "Confirm disability claim submitted",
+        "1",
+        null,
+        null,
+        "180",
+        "EAS",
+        "8/4/26",
+        null,
+        "Submit as close to 180 days as possible for BDD | can still send paperwork to VA after the claim begins, but only for pre-existing conditions"
+      ]
+    },
+    {
+      "rowNumber": 39,
+      "values": [
+        "Provide copy of DD 214 to VSO",
+        "1",
+        null,
+        null,
+        "1",
+        "Ceremony",
+        "11/5/26",
+        null,
+        "Need to confirm when I am able to receive this. "
+      ]
+    },
+    {
+      "rowNumber": 40,
+      "values": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 41,
+      "values": [
+        "Transition Planning",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 42,
+      "values": [
+        "Obtain ACP mentor to assist with transition",
+        "1",
+        null,
+        null,
+        "365",
+        "EAS",
+        "1/31/26",
+        null,
+        "Industry leader who will serve as a mentor (12 months) as you transition."
+      ]
+    },
+    {
+      "rowNumber": 43,
+      "values": [
+        "Register on eBenefits",
+        "1",
+        null,
+        null,
+        "365",
+        "EAS",
+        "1/31/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 44,
+      "values": [
+        "Apply for VA Health ",
+        "1",
+        null,
+        null,
+        "365",
+        "EAS",
+        "1/31/26",
+        null,
+        "This is a benefit, not insurance.  Need to add DD-214 after retirement"
+      ]
+    },
+    {
+      "rowNumber": 45,
+      "values": [
+        "Complete Capstone (>120 days from EAS)",
+        "1",
+        null,
+        "30",
+        "325",
+        "EAS",
+        "3/12/26",
+        null,
+        "This is an appointment with your transition advisor scheduled by the UTC."
+      ]
+    },
+    {
+      "rowNumber": 46,
+      "values": [
+        "CO verification (>90 days from EAS)",
+        "1",
+        null,
+        "30",
+        "295",
+        "EAS",
+        "4/11/26",
+        null,
+        "Need to complete Capstone prior to this. "
+      ]
+    },
+    {
+      "rowNumber": 47,
+      "values": [
+        "Complete outbound interview",
+        "1",
+        null,
+        null,
+        "270",
+        "EAS",
+        "5/6/26",
+        null,
+        "Located in \"Travel\" tab in MOL; need TRS-DD Form 2648 in MilConnect (Capstone and CO Verification need to be complete)"
+      ]
+    },
+    {
+      "rowNumber": 48,
+      "values": [
+        "Verify with IPAC they have outbound interview, get retirement checklist",
+        "1",
+        null,
+        null,
+        "180",
+        "EAS",
+        "8/4/26",
+        null,
+        "Recommend sitting down with IPAC to review outbound interview"
+      ]
+    },
+    {
+      "rowNumber": 49,
+      "values": [
+        "Enroll in retiree medical plan (retired Prime or Select)",
+        "1",
+        null,
+        null,
+        "30",
+        "EAS",
+        "1/1/27",
+        null,
+        "Need retirement orders in DEERS"
+      ]
+    },
+    {
+      "rowNumber": 50,
+      "values": [
+        "Enroll in Federal Employees Dental and Vision Insurance Program ",
+        "1",
+        null,
+        null,
+        "30",
+        "EAS",
+        "1/1/27",
+        null,
+        "Need retirement orders in DEERS"
+      ]
+    },
+    {
+      "rowNumber": 51,
+      "values": [
+        "Pay tricare pay premium (if required)",
+        "1",
+        null,
+        null,
+        "30",
+        "EAS",
+        "1/1/27",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 52,
+      "values": [
+        "Review / update OMPF",
+        "5",
+        null,
+        null,
+        "180",
+        "Ceremony",
+        "5/10/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 53,
+      "values": [
+        "Review retiree medical and dental plans",
+        "5",
+        null,
+        null,
+        "180",
+        "Ceremony",
+        "5/10/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 54,
+      "values": [
+        "Complete DD Form 2807-1 and 2697 (medical history)",
+        "1",
+        null,
+        null,
+        "120",
+        "Ceremony",
+        "7/9/26",
+        null,
+        "See Section E, Retirement Physical, for links to forms "
+      ]
+    },
+    {
+      "rowNumber": 55,
+      "values": [
+        "Make (3) hard copies of medical and dental records",
+        "1",
+        null,
+        null,
+        "120",
+        "Ceremony",
+        "7/9/26",
+        null,
+        "May not need hard copies since a lot of agencies are going paperless."
+      ]
+    },
+    {
+      "rowNumber": 56,
+      "values": [
+        "Review / validate DD-214 for accuracy with IPAC",
+        "1",
+        null,
+        null,
+        "180",
+        "Ceremony",
+        "5/10/26",
+        null,
+        "Need to confirm, IPAC stated you can'd do this until 14 days prior to EAS"
+      ]
+    },
+    {
+      "rowNumber": 57,
+      "values": [
+        "Plan / finalize terminal leave ",
+        "1",
+        null,
+        null,
+        "180",
+        "Ceremony",
+        "5/10/26",
+        null,
+        "Done via MOL / outbound interview; retirement request must be approved to proceed"
+      ]
+    },
+    {
+      "rowNumber": 58,
+      "values": [
+        "Plan / finalize PTAD",
+        "1",
+        null,
+        null,
+        "180",
+        "Ceremony",
+        "5/10/26",
+        null,
+        "Done via MOL / outbound interview; retirement request must be approved to proceed"
+      ]
+    },
+    {
+      "rowNumber": 59,
+      "values": [
+        "Turn in original copy of medical and dental record to IPAC",
+        "1",
+        null,
+        null,
+        "90",
+        "Ceremony",
+        "8/8/26",
+        null,
+        "Retain dental x-rays, they will be discarded otherwise. "
+      ]
+    },
+    {
+      "rowNumber": 60,
+      "values": [
+        "Finalize allotment changes for retired pay in DFAS myPay",
+        "1",
+        null,
+        null,
+        "90",
+        "Ceremony",
+        "8/8/26",
+        null,
+        "Maintain myPay for account access, pay verification, manage allotment and taxes"
+      ]
+    },
+    {
+      "rowNumber": 61,
+      "values": [
+        "Complete \"I love me book\"",
+        "1",
+        null,
+        null,
+        "60",
+        "Ceremony",
+        "9/7/26",
+        null,
+        "VMET, last LES, OMPF docs, retirement letter from VA, last FitRep, last set of orders, awards, security clearance questionaire"
+      ]
+    },
+    {
+      "rowNumber": 62,
+      "values": [
+        "Transfer electronic files via DOD Safe",
+        "1",
+        null,
+        null,
+        "30",
+        "Ceremony",
+        "10/7/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 63,
+      "values": [
+        "Review / sign DD 214",
+        "1",
+        null,
+        null,
+        "30",
+        "Ceremony",
+        "10/7/26",
+        null,
+        "Need to confirm when I can review this"
+      ]
+    },
+    {
+      "rowNumber": 64,
+      "values": [
+        "Conduct turnover as required",
+        "1",
+        null,
+        null,
+        "30",
+        "Ceremony",
+        "10/7/26",
+        null,
+        "Have deliberate plan for turning over responsibilities so that you can focus on your transition."
+      ]
+    },
+    {
+      "rowNumber": 65,
+      "values": [
+        "Check out of USMC ",
+        "1",
+        null,
+        null,
+        "30",
+        "Ceremony",
+        "10/7/26",
+        null,
+        "Base, Unit, CIF"
+      ]
+    },
+    {
+      "rowNumber": 66,
+      "values": [
+        "Turn in computer",
+        "1",
+        null,
+        null,
+        "1",
+        "Ceremony",
+        "11/5/26",
+        null,
+        "Make sure you have military records from MOL / OMPF, you will not have access after you retire. "
+      ]
+    },
+    {
+      "rowNumber": 67,
+      "values": [
+        "Receive certified true copies of DD 214",
+        "1",
+        null,
+        null,
+        "0",
+        "EAS",
+        "1/31/27",
+        null,
+        "Pick up on EAS | Ensure you have enough certified true copies (VA, employer, records, etc.)."
+      ]
+    },
+    {
+      "rowNumber": 68,
+      "values": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 69,
+      "values": [
+        "Onward to Opportunity or SkillBridge (180 days from EAS)",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 70,
+      "values": [
+        "Identify if you want to do SkillBridge",
+        "1",
+        null,
+        null,
+        "365",
+        "EAS",
+        "1/31/26",
+        null,
+        "Need to have TRS complete to apply for SkillBridge."
+      ]
+    },
+    {
+      "rowNumber": 71,
+      "values": [
+        "Reach out to SkillBridge POCs 12 mos from EAS for rqts of the program",
+        "1",
+        null,
+        "5",
+        "365",
+        "EAS",
+        "1/31/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 72,
+      "values": [
+        "Receive command endorsement ",
+        "5",
+        null,
+        null,
+        "359",
+        "EAS",
+        "2/6/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 73,
+      "values": [
+        "Apply for SkillBridge",
+        "1",
+        null,
+        null,
+        "354",
+        "EAS",
+        "2/11/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 74,
+      "values": [
+        "Eligible to start SkillBridge",
+        "1",
+        null,
+        null,
+        "180",
+        "EAS",
+        "8/4/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 75,
+      "values": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 76,
+      "values": [
+        "Job Seeking",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 77,
+      "values": [
+        "Complete Resume",
+        "5",
+        null,
+        null,
+        "270",
+        "Terminal",
+        "2/25/26",
+        null,
+        "Full resume and targeted resume; will adjust resume for each interview. Print off on resume paper (white or ivory). "
+      ]
+    },
+    {
+      "rowNumber": 78,
+      "values": [
+        "Complete References",
+        "5",
+        null,
+        null,
+        "270",
+        "Terminal",
+        "2/25/26",
+        null,
+        "Will only provide to potential employer if they ask for it. Recommend 5 references, 2 personal and 3 professional."
+      ]
+    },
+    {
+      "rowNumber": 79,
+      "values": [
+        "Conduct gap analysis / financial assessment",
+        "1",
+        null,
+        null,
+        "270",
+        "Terminal",
+        "2/25/26",
+        null,
+        "Need to understand how much you need to maintain same standard of living. Consider property and state taxes. "
+      ]
+    },
+    {
+      "rowNumber": 80,
+      "values": [
+        "Sign up for LinkedIn Premiere (1 year free)",
+        "1",
+        null,
+        null,
+        "270",
+        "Terminal",
+        "2/25/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 81,
+      "values": [
+        "Get professional photo taken ",
+        "1",
+        null,
+        null,
+        "270",
+        "Terminal",
+        "2/25/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 82,
+      "values": [
+        "Update LinkedIn profile",
+        "1",
+        null,
+        null,
+        "270",
+        "Terminal",
+        "2/25/26",
+        null,
+        "Current position in present tense, previous positions in past tense."
+      ]
+    },
+    {
+      "rowNumber": 83,
+      "values": [
+        "Network - tell folks you are retiring",
+        "1",
+        null,
+        null,
+        "270",
+        "Terminal",
+        "2/25/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 84,
+      "values": [
+        "Research jobs in the market",
+        "1",
+        null,
+        null,
+        "270",
+        "Terminal",
+        "2/25/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 85,
+      "values": [
+        "Make transition business card with skills",
+        "1",
+        null,
+        null,
+        "240",
+        "Terminal",
+        "3/27/26",
+        null,
+        "QR code with resume and LinkedIn profile (Linq is a great resource for this)"
+      ]
+    },
+    {
+      "rowNumber": 86,
+      "values": [
+        "Attend job fairs",
+        "1",
+        null,
+        null,
+        "180",
+        "Terminal",
+        "5/26/26",
+        null,
+        "These reveal the \"hidden job market\""
+      ]
+    },
+    {
+      "rowNumber": 87,
+      "values": [
+        "Obtain SF-15 for veteran's preference for hiring",
+        "1",
+        null,
+        null,
+        "150",
+        "Terminal",
+        "6/25/26",
+        null,
+        "In lieu of DD-214."
+      ]
+    },
+    {
+      "rowNumber": 88,
+      "values": [
+        "Update profile on USA jobs if desire to work for the government",
+        "1",
+        null,
+        null,
+        "150",
+        "Terminal",
+        "6/25/26",
+        null,
+        "Can have 10 supporting documents with USA jobs resume."
+      ]
+    },
+    {
+      "rowNumber": 89,
+      "values": [
+        "Submit resume to interested companies",
+        "1",
+        null,
+        null,
+        "120",
+        "Terminal",
+        "7/25/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 90,
+      "values": [
+        "Attend interviews",
+        "1",
+        null,
+        null,
+        "120",
+        "Terminal",
+        "7/25/26",
+        null,
+        "Interview suit, let interviewee know you are interested in the job, send thank you note"
+      ]
+    },
+    {
+      "rowNumber": 91,
+      "values": [
+        "Get hired for civilian position",
+        "1",
+        null,
+        null,
+        "30",
+        "Terminal",
+        "10/23/26",
+        null,
+        "GET OFFER IN WRITING!"
+      ]
+    },
+    {
+      "rowNumber": 92,
+      "values": [
+        "Reach out to \"Boots to Suits\"",
+        "1",
+        null,
+        null,
+        "60",
+        "EAS",
+        "12/2/26",
+        null,
+        "Can get 2 free suits"
+      ]
+    },
+    {
+      "rowNumber": 93,
+      "values": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 94,
+      "values": [
+        "Estate Planning",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "Base legal is a retirement benefit."
+      ]
+    },
+    {
+      "rowNumber": 95,
+      "values": [
+        "Lay out all insurance and life insurance plans with log in information",
+        "1",
+        null,
+        null,
+        "150",
+        "Ceremony",
+        "6/9/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 96,
+      "values": [
+        "Living Will",
+        "1",
+        null,
+        null,
+        "150",
+        "Ceremony",
+        "6/9/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 97,
+      "values": [
+        "Durable POA",
+        "1",
+        null,
+        null,
+        "150",
+        "Ceremony",
+        "6/9/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 98,
+      "values": [
+        "Medical POA",
+        "1",
+        null,
+        null,
+        "150",
+        "Ceremony",
+        "6/9/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 99,
+      "values": [
+        "Determine what to do with TSP",
+        "1",
+        null,
+        null,
+        "150",
+        "Ceremony",
+        "6/9/26",
+        null,
+        "Cash out (be aware of taxes / penalties), roll over to IRA, roll over to new retirement account, nothing"
+      ]
+    },
+    {
+      "rowNumber": 100,
+      "values": [
+        "Lay out burial and memorial plan (wishes upon death)",
+        "1",
+        null,
+        null,
+        "150",
+        "Ceremony",
+        "6/9/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 101,
+      "values": [
+        "Make determination for survivor benefit plan via DD Form 2656",
+        "1",
+        null,
+        null,
+        "90",
+        "Ceremony",
+        "8/8/26",
+        null,
+        "MarineNet course #SBPFORRETO required."
+      ]
+    },
+    {
+      "rowNumber": 102,
+      "values": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 103,
+      "values": [
+        "Retirement Ceremony",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 104,
+      "values": [
+        "Identify / schedule date of ceremony",
+        "1",
+        null,
+        null,
+        "180",
+        "Ceremony",
+        "5/10/26",
+        null,
+        "16 May, 1300-1430"
+      ]
+    },
+    {
+      "rowNumber": 105,
+      "values": [
+        "Identify / schedule retirement ceremony",
+        "1",
+        null,
+        null,
+        "180",
+        "Ceremony",
+        "5/10/26",
+        null,
+        "14 May, 1300-1330"
+      ]
+    },
+    {
+      "rowNumber": 106,
+      "values": [
+        "Identify retiring officer",
+        "1",
+        null,
+        null,
+        "180",
+        "Ceremony",
+        "5/10/26",
+        null,
+        "Col Andrew Konicki "
+      ]
+    },
+    {
+      "rowNumber": 107,
+      "values": [
+        "Identify if / where you want a flag flown",
+        "1",
+        null,
+        null,
+        "180",
+        "Ceremony",
+        "5/10/26",
+        null,
+        "Iwo Jima War Memorial"
+      ]
+    },
+    {
+      "rowNumber": 108,
+      "values": [
+        "Identify ceremony attendee list - send out e-Invite",
+        "10",
+        null,
+        null,
+        "150",
+        "Ceremony",
+        "6/9/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 109,
+      "values": [
+        "Identify key individuals for retirement ceremony",
+        "1",
+        null,
+        null,
+        "150",
+        "Ceremony",
+        "6/9/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 110,
+      "values": [
+        "Identify retirement venue",
+        "1",
+        null,
+        null,
+        "150",
+        "Ceremony",
+        "6/9/26",
+        null,
+        "National Museum of Marine Corps | Colors, podium, chairs & sound equipment, speakers, and microphone. "
+      ]
+    },
+    {
+      "rowNumber": 111,
+      "values": [
+        "Send out invitations",
+        "1",
+        null,
+        null,
+        "150",
+        "Ceremony",
+        "6/9/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 112,
+      "values": [
+        "Coordinate with Marine Corps Band",
+        "1",
+        null,
+        null,
+        "90",
+        "Ceremony",
+        "8/8/26",
+        null,
+        "Cannot reserve more than 90 days out."
+      ]
+    },
+    {
+      "rowNumber": 113,
+      "values": [
+        "Pick up retirement certificates from MMSR-20",
+        "1",
+        null,
+        null,
+        "90",
+        "Ceremony",
+        "8/8/26",
+        null,
+        "Outbound interview triggers this action; retirement certificate, letter from POTUS, letter from CMC, and lapel pin will be sent to MMSR-20"
+      ]
+    },
+    {
+      "rowNumber": 114,
+      "values": [
+        "Design retirement brochure",
+        "1",
+        null,
+        null,
+        "90",
+        "Ceremony",
+        "8/8/26",
+        null,
+        "MCSC Visual Information team can assist with retirement brochures / QR code for ceremony."
+      ]
+    },
+    {
+      "rowNumber": 115,
+      "values": [
+        "Finalize ceremony sequence of events",
+        "1",
+        null,
+        null,
+        "90",
+        "Ceremony",
+        "8/8/26",
+        null,
+        "Coordinate with SgtMaj to get SOE; update as required. "
+      ]
+    },
+    {
+      "rowNumber": 116,
+      "values": [
+        "Identify / purchase gifts for family members",
+        "1",
+        null,
+        null,
+        "60",
+        "Ceremony",
+        "9/7/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 117,
+      "values": [
+        "Prepare speech",
+        "1",
+        null,
+        null,
+        "30",
+        "Ceremony",
+        "10/7/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 118,
+      "values": [
+        "Finalize speech",
+        "1",
+        null,
+        null,
+        "15",
+        "Ceremony",
+        "10/22/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 119,
+      "values": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 120,
+      "values": [
+        "Post Retirement Actions",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 121,
+      "values": [
+        "Schedule date for Family ID Cards",
+        "1",
+        null,
+        null,
+        "90",
+        "EAS",
+        "11/2/26",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 122,
+      "values": [
+        "Retiree Family ID Cards",
+        "1",
+        null,
+        null,
+        "1",
+        "EAS",
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 123,
+      "values": [
+        "Veteran Health ID Card",
+        "1",
+        null,
+        null,
+        "1",
+        "EAS",
+        "1/30/27",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 124,
+      "values": [
+        "Veteran ID Card",
+        "1",
+        null,
+        null,
+        "1",
+        "EAS",
+        "1/30/27",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 125,
+      "values": [
+        "FSGLI conversion (<120 days from EAS) if desired",
+        "1",
+        null,
+        null,
+        "1",
+        "EAS",
+        "1/30/27",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 126,
+      "values": [
+        "Convert SGLI to VGLI (<120 days from EAS) if desired",
+        "1",
+        null,
+        null,
+        "90",
+        "EAS",
+        "11/2/26",
+        null,
+        "$500K whole life"
+      ]
+    },
+    {
+      "rowNumber": 127,
+      "values": [
+        "Update DEERS as required for life events",
+        null,
+        null,
+        null,
+        null,
+        "EAS",
+        "1/31/27",
+        null,
+        "MilConnect is the easiest way to update.  Keep in active status until EAS.  "
+      ]
+    },
+    {
+      "rowNumber": 128,
+      "values": [
+        "Research GI Bill comparison tool for college info",
+        null,
+        null,
+        null,
+        null,
+        "EAS",
+        "1/31/27",
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 129,
+      "values": [
+        "Research yellow ribbon for college info",
+        null,
+        null,
+        null,
+        null,
+        "EAS",
+        "1/31/27",
+        null,
+        null
+      ]
+    }
+  ],
+  "Websites": [
+    {
+      "rowNumber": 1,
+      "values": [
+        "Category",
+        "Description",
+        "Reference",
+        "Column1"
+      ]
+    },
+    {
+      "rowNumber": 2,
+      "values": [
+        "Registration ",
+        "Register for VA website",
+        "https://va.gov",
+        null
+      ]
+    },
+    {
+      "rowNumber": 3,
+      "values": [
+        "Registration ",
+        "Register for login.gov - will need this to access sites after retirement",
+        "https://login.gov",
+        "Registered"
+      ]
+    },
+    {
+      "rowNumber": 4,
+      "values": [
+        "Registration ",
+        "eBenefits",
+        "https://eauth.va.gov/ebenefits/profilepostauth",
+        null
+      ]
+    },
+    {
+      "rowNumber": 5,
+      "values": [
+        "TRS",
+        "TRS Transition Guide",
+        "https://ppr-quantico.libguides.com/MCCSQuantico/",
+        null
+      ]
+    },
+    {
+      "rowNumber": 6,
+      "values": [
+        "TRS",
+        "TRS Readiness",
+        "https://quantico.usmc-mccs.org/marine-family-support/transition-readiness",
+        null
+      ]
+    },
+    {
+      "rowNumber": 7,
+      "values": [
+        "TRS",
+        "Marine For Life Cycle",
+        "Marine For Life Cycle (usmc-mccs.org)",
+        null
+      ]
+    },
+    {
+      "rowNumber": 8,
+      "values": [
+        "TRS",
+        "DoD Transition Assistance Program",
+        "https://www.dodtap.mil/dodtap/app/home",
+        null
+      ]
+    },
+    {
+      "rowNumber": 9,
+      "values": [
+        "TRS",
+        "DoD Transition Assistance Products",
+        "https://www.dvidshub.net/unit/DoDTAP",
+        null
+      ]
+    },
+    {
+      "rowNumber": 10,
+      "values": [
+        "TRS",
+        "US Army Transition resources",
+        "MyArmyBenefits | The Official Army Benefits Website",
+        null
+      ]
+    },
+    {
+      "rowNumber": 11,
+      "values": [
+        "Appendix J Submission",
+        "M&RA Separation & Retirement Branch",
+        "https://www.manpower.usmc.mil/webcenter/portal/MMSR",
+        null
+      ]
+    },
+    {
+      "rowNumber": 12,
+      "values": [
+        "Appendix J Submission",
+        "M&RA Retired Services",
+        "M&RA Separation & Retirement Branch",
+        null
+      ]
+    },
+    {
+      "rowNumber": 13,
+      "values": [
+        "Medical",
+        "Tricare",
+        "https://www.tricare.mil/",
+        null
+      ]
+    },
+    {
+      "rowNumber": 14,
+      "values": [
+        "Medical",
+        "Retiree Dental & Vision Plans",
+        "Programs We Administer | BENEFEDS",
+        null
+      ]
+    },
+    {
+      "rowNumber": 15,
+      "values": [
+        "VA Reference",
+        "Veterans Benefits",
+        "Veterans Benefits Administration Home (va.gov)",
+        null
+      ]
+    },
+    {
+      "rowNumber": 16,
+      "values": [
+        "VA Reference",
+        "38 CFR - VA Rating Scale",
+        "38 CFR Book C, Schedule for Rating Disabilities - Web Automated Reference Material System (va.gov)",
+        null
+      ]
+    },
+    {
+      "rowNumber": 17,
+      "values": [
+        "VA Reference",
+        "Benefits Delivery at Discharge Info",
+        "Benefits Delivery at Discharge Program - Veterans Benefits Administration (va.gov)",
+        null
+      ]
+    },
+    {
+      "rowNumber": 18,
+      "values": [
+        "VA Reference",
+        "Veterans Homes Info",
+        "https://www.nasvh.org/",
+        null
+      ]
+    },
+    {
+      "rowNumber": 19,
+      "values": [
+        "VA Reference",
+        "Help understand VA benefits",
+        "Military Disability Made Easy Home • Military Disability Made Easy",
+        null
+      ]
+    },
+    {
+      "rowNumber": 20,
+      "values": [
+        "VA Reference",
+        "Manage VA Health",
+        "Home - My HealtheVet - My HealtheVet (va.gov)",
+        null
+      ]
+    },
+    {
+      "rowNumber": 21,
+      "values": [
+        "Retiree Pay",
+        "Retired Pay Calculator",
+        "Military Compensation (defense.gov)",
+        null
+      ]
+    },
+    {
+      "rowNumber": 22,
+      "values": [
+        "Transition Planning",
+        "ACP Mentorship",
+        "https://www.acp-usa.org/",
+        null
+      ]
+    },
+    {
+      "rowNumber": 23,
+      "values": [
+        "Transition Planning",
+        "Financial Management resource",
+        "https://smartasset.com/",
+        null
+      ]
+    },
+    {
+      "rowNumber": 24,
+      "values": [
+        "Transition Planning",
+        "National Resource Directory",
+        "https://www.nrd.gov/",
+        null
+      ]
+    },
+    {
+      "rowNumber": 25,
+      "values": [
+        "Transition Planning",
+        "Retirement Benefit info",
+        "MOAA - MOAA Home Page",
+        null
+      ]
+    },
+    {
+      "rowNumber": 26,
+      "values": [
+        "Transition Planning",
+        "Boots to Suits - Get 2 free suits",
+        "https://bootstosuits.org/",
+        null
+      ]
+    },
+    {
+      "rowNumber": 27,
+      "values": [
+        "SkillBridge",
+        "USMC SkillBridge Policy",
+        "USMC Skillbridge Policy Letter",
+        null
+      ]
+    },
+    {
+      "rowNumber": 28,
+      "values": [
+        "SkillBridge",
+        "DoD SkillBridge Program",
+        "DOD SkillBridge Program (osd.mil)",
+        null
+      ]
+    },
+    {
+      "rowNumber": 29,
+      "values": [
+        "SkillBridge",
+        "Onward to Opportunity",
+        "Home - D'Aniello Institute for Veterans and Military Families (syracuse.edu)",
+        null
+      ]
+    },
+    {
+      "rowNumber": 30,
+      "values": [
+        "Job Seeking",
+        "Help ",
+        "https://www.onetonline.org/",
+        null
+      ]
+    },
+    {
+      "rowNumber": 31,
+      "values": [
+        "Job Seeking",
+        "Help decide what you want to do for a living",
+        "My Next Move for Veterans",
+        null
+      ]
+    },
+    {
+      "rowNumber": 32,
+      "values": [
+        "Job Seeking",
+        "Salary research",
+        "https://www.bls.gov/oes",
+        null
+      ]
+    },
+    {
+      "rowNumber": 33,
+      "values": [
+        "Job Seeking",
+        "Salary research",
+        "https://www.salary.com",
+        null
+      ]
+    },
+    {
+      "rowNumber": 34,
+      "values": [
+        "Job Seeking",
+        "Salary research",
+        "https://www.glassdoor.com/Salaries/know-your-worth.htm",
+        null
+      ]
+    },
+    {
+      "rowNumber": 35,
+      "values": [
+        "Job Seeking",
+        "Salary research",
+        "https://www.calculator.net/salary-calculator.html",
+        null
+      ]
+    },
+    {
+      "rowNumber": 36,
+      "values": [
+        "Job Seeking",
+        "Salary research",
+        "https://mil2fedjobs",
+        null
+      ]
+    },
+    {
+      "rowNumber": 37,
+      "values": [
+        "Job Seeking",
+        "Take keywords from job announcement and put in this site",
+        "https://tagcrowd.com",
+        null
+      ]
+    },
+    {
+      "rowNumber": 38,
+      "values": [
+        "Job Seeking",
+        "Career exploration",
+        "https://www.careeronestop.org/",
+        null
+      ]
+    },
+    {
+      "rowNumber": 39,
+      "values": [
+        "Job Seeking",
+        "1 free photo",
+        "https://www.portraitsforpatriots.org/",
+        null
+      ]
+    },
+    {
+      "rowNumber": 40,
+      "values": [
+        "Job Seeking",
+        "Connects employers with veterans | job fair opportunities",
+        "Corporate Gray Military to Civilian Career Transition Website",
+        null
+      ]
+    },
+    {
+      "rowNumber": 41,
+      "values": [
+        "Job Seeking",
+        "Apprenticeship resources",
+        "https://www.apprenticeship.gov/",
+        null
+      ]
+    },
+    {
+      "rowNumber": 42,
+      "values": [
+        "Job Seeking",
+        "Job seeking site",
+        "https://www.theladders.com",
+        null
+      ]
+    },
+    {
+      "rowNumber": 43,
+      "values": [
+        "Job Seeking",
+        "Federal Jobs",
+        "https://federalgovernmentjobs.us",
+        null
+      ]
+    },
+    {
+      "rowNumber": 44,
+      "values": [
+        "Job Seeking",
+        "Military to federal jobs",
+        "https://www.dllr.state.md.us/mil2fedjobs",
+        null
+      ]
+    },
+    {
+      "rowNumber": 45,
+      "values": [
+        "Estate Planning",
+        "Survivor Benefit Program",
+        "Navy Mutual Aid Association",
+        null
+      ]
+    }
+  ],
+  "Leave Planning": [
+    {
+      "rowNumber": 1,
+      "values": [
+        "Description",
+        "Leave Amt",
+        null,
+        null,
+        null,
+        "Start Date",
+        "Retire Date"
+      ]
+    },
+    {
+      "rowNumber": 2,
+      "values": [
+        "Beginning Balance (12/1/2024)",
+        "48.0",
+        null,
+        null,
+        null,
+        "12/1/24",
+        "1/31/26"
+      ]
+    },
+    {
+      "rowNumber": 3,
+      "values": [
+        "Accrued Leave through retirement",
+        "32.5",
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 4,
+      "values": [
+        "Terminal Leave",
+        "60.0",
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 5,
+      "values": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 6,
+      "values": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 7,
+      "values": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 8,
+      "values": [
+        "Leave Days Remaining",
+        "20.5",
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 9,
+      "values": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 10,
+      "values": [
+        "Months of Service Remaining",
+        "13.0",
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 11,
+      "values": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 12,
+      "values": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 13,
+      "values": [
+        "Event",
+        "Date",
+        "#Days",
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 14,
+      "values": [
+        "Ceremony",
+        "11/6/26",
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 15,
+      "values": [
+        "Start PTAD (actual 20 days, not incl wknd)",
+        "1/1/27",
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 16,
+      "values": [
+        "Start Terminal Leave (actual 60 days)",
+        "10/1/26",
+        "122",
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 17,
+      "values": [
+        "EAS",
+        "1/31/27",
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 18,
+      "values": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 19,
+      "values": [
+        "Submitted Leave ",
+        "Amt",
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 20,
+      "values": [
+        "PTAD Plan Before Ceremony",
+        "0",
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 21,
+      "values": [
+        "PTAD Plan Post Ceremony",
+        "20",
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "rowNumber": 22,
+      "values": [
+        "Terminal Leave Requested",
+        "60",
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    }
+  ]
+}

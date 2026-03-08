@@ -36,6 +36,13 @@ type MasterResumeOutput = {
   validation_questions: string[];
 };
 
+type ExperienceEntry = {
+  role: string;
+  organization: string;
+  dateRange: string;
+  bullets: string[];
+};
+
 function normalizeText(text: string) {
   return text.replace(/\r\n/g, "\n").replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
 }
@@ -76,26 +83,161 @@ function compactTextByPriority(text: string, maxChars: number, priorityPattern: 
 }
 
 function buildFitrepCorpus(
-  docs: Array<{ doc_type: string; filename: string; extracted_text: string | null }>,
+  docs: Array<{ doc_type: string; filename: string; extracted_text: string | null; created_at: string }>,
   maxTotalChars: number
 ) {
   const linePriority =
     /(led|managed|oversaw|directed|improved|reduced|increased|trained|developed|implemented|readiness|maintenance|operations|logistics|budget|cost|savings|award|inspection|compliance|mission|deploy|%|\$|\d)/i;
-  const perDocCap = 5000;
-  const chunks: string[] = [];
+  const docsByRecency = [...docs].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+  const perDocCap = Math.max(1400, Math.min(5000, Math.floor(maxTotalChars / Math.max(docsByRecency.length, 1)) - 120));
+  const chosen: Array<{ created_at: string; block: string }> = [];
   let used = 0;
 
-  for (const doc of docs) {
+  for (const doc of docsByRecency) {
     const raw = doc.extracted_text ?? "";
     if (!raw.trim()) continue;
-    const compact = compactTextByPriority(raw, perDocCap, linePriority);
-    const block = `### ${doc.doc_type}: ${doc.filename}\n${compact}\n`;
-    if (used + block.length > maxTotalChars) break;
-    chunks.push(block);
+    const header = `### ${doc.doc_type}: ${doc.filename}\n`;
+    const remaining = maxTotalChars - used;
+    if (remaining <= header.length + 200) continue;
+    const compact = compactTextByPriority(raw, Math.min(perDocCap, remaining - header.length), linePriority);
+    const block = `${header}${compact}\n`;
+    if (used + block.length > maxTotalChars) continue;
+    chosen.push({ created_at: doc.created_at, block });
     used += block.length;
   }
 
-  return chunks.join("\n");
+  const chunks = chosen
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    .map((x) => x.block);
+
+  return {
+    text: chunks.join("\n"),
+    includedDocCount: chosen.length,
+    detectedDocCount: docs.length,
+  };
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function parseMonthYear(value: string) {
+  const match = value.trim().match(/^([A-Za-z]{3,9})\s+(\d{4})$/);
+  if (!match) return null;
+  const monthIdx = MONTHS.findIndex((m) => m.toLowerCase() === match[1].slice(0, 3).toLowerCase());
+  if (monthIdx < 0) return null;
+  return { month: monthIdx, year: Number(match[2]) };
+}
+
+function compareMonthYear(a: { month: number; year: number }, b: { month: number; year: number }) {
+  if (a.year !== b.year) return a.year - b.year;
+  return a.month - b.month;
+}
+
+function formatMonthYear(value: { month: number; year: number }) {
+  return `${MONTHS[value.month]} ${value.year}`;
+}
+
+function mergeDateRanges(existing: string, incoming: string) {
+  const parseRange = (range: string) => {
+    const [leftRaw, rightRaw] = range.split(/\s*-\s*/);
+    if (!leftRaw || !rightRaw) return null;
+    const left = parseMonthYear(leftRaw);
+    const rightIsPresent = /^present$/i.test(rightRaw.trim());
+    const right = rightIsPresent ? null : parseMonthYear(rightRaw);
+    if (!left || (!rightIsPresent && !right)) return null;
+    return { start: left, end: right, present: rightIsPresent };
+  };
+
+  const one = parseRange(existing);
+  const two = parseRange(incoming);
+  if (!one || !two) return existing === incoming ? existing : `${existing} / ${incoming}`;
+
+  const earliestStart = compareMonthYear(one.start, two.start) <= 0 ? one.start : two.start;
+  const endIsPresent = one.present || two.present;
+  let latestEnd: { month: number; year: number } | null = null;
+
+  if (!endIsPresent) {
+    if (one.end && two.end) latestEnd = compareMonthYear(one.end, two.end) >= 0 ? one.end : two.end;
+    else latestEnd = one.end ?? two.end;
+  }
+
+  return `${formatMonthYear(earliestStart)} - ${endIsPresent ? "Present" : formatMonthYear(latestEnd!)}`;
+}
+
+function mergeProfessionalExperience(masterResume: string) {
+  const lines = masterResume.replace(/\r\n/g, "\n").split("\n");
+  const profIdx = lines.findIndex((l) => l.trim() === "Professional Experience");
+  if (profIdx < 0) return masterResume;
+  const afterProf = lines.slice(profIdx + 1);
+  const endOffset = afterProf.findIndex((l) => l.trim() === "Education & Training");
+  const endIdx = endOffset >= 0 ? profIdx + 1 + endOffset : lines.length;
+
+  const before = lines.slice(0, profIdx + 1);
+  const expLines = lines.slice(profIdx + 1, endIdx);
+  const after = lines.slice(endIdx);
+
+  const entries: ExperienceEntry[] = [];
+  let current: ExperienceEntry | null = null;
+
+  const flush = () => {
+    if (!current) return;
+    entries.push(current);
+    current = null;
+  };
+
+  for (const rawLine of expLines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    if (line.startsWith("- ")) {
+      if (!current) continue;
+      current.bullets.push(line);
+      continue;
+    }
+
+    flush();
+    const parts = line.split(" | ").map((p) => p.trim());
+    if (parts.length < 3) continue;
+    current = {
+      role: parts[0],
+      organization: parts[1],
+      dateRange: parts.slice(2).join(" | "),
+      bullets: [],
+    };
+  }
+  flush();
+  if (entries.length === 0) return masterResume;
+
+  const merged: ExperienceEntry[] = [];
+  for (const entry of entries) {
+    const prev = merged.at(-1);
+    if (!prev) {
+      merged.push({ ...entry });
+      continue;
+    }
+    if (
+      prev.role.trim().toLowerCase() === entry.role.trim().toLowerCase() &&
+      prev.organization.trim().toLowerCase() === entry.organization.trim().toLowerCase()
+    ) {
+      prev.dateRange = mergeDateRanges(prev.dateRange, entry.dateRange);
+      for (const bullet of entry.bullets) {
+        if (!prev.bullets.includes(bullet)) prev.bullets.push(bullet);
+      }
+      continue;
+    }
+    merged.push({ ...entry });
+  }
+
+  const rebuilt: string[] = [];
+  rebuilt.push("");
+  for (const entry of merged) {
+    rebuilt.push(`${entry.role} | ${entry.organization} | ${entry.dateRange}`);
+    for (const bullet of entry.bullets) rebuilt.push(bullet);
+    rebuilt.push("");
+  }
+  if (rebuilt.at(-1) === "") rebuilt.pop();
+
+  return [...before, ...rebuilt, ...after].join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 export async function POST(req: Request) {
@@ -140,6 +282,14 @@ export async function POST(req: Request) {
     mos: profile?.mos ?? null,
     rank: profile?.rank ?? null,
     targetRole: targetRole ?? null,
+    serviceComponent: profile?.service_component ?? null,
+    yearsServiceAtEas:
+      profile?.years_service_at_eas === null || profile?.years_service_at_eas === undefined
+        ? null
+        : Number(profile.years_service_at_eas),
+    offDutyEducation: profile?.off_duty_education ?? [],
+    civilianCertifications: profile?.civilian_certifications ?? [],
+    additionalTraining: profile?.additional_training ?? [],
   };
 
   if (mode === "master_resume") {
@@ -147,6 +297,8 @@ export async function POST(req: Request) {
     let resolvedJstText = jstText ?? "";
     let resolvedFitrepsText = fitrepsText ?? "";
     let sourceDocumentIdFromSet: string | null = null;
+    let fitrepDocsDetected = 0;
+    let fitrepDocsIncluded = 0;
 
     if (!resolvedVmetText || !resolvedJstText || !resolvedFitrepsText) {
       const { data: docs, error: docsErr } = await supabase
@@ -165,13 +317,19 @@ export async function POST(req: Request) {
       const vmetDoc = docs?.find((d) => d.doc_type === "VMET");
       const jstDoc = docs?.find((d) => d.doc_type === "JST");
       const fitrepDocs = docs?.filter((d) => d.doc_type === "FITREP" || d.doc_type === "EVAL") ?? [];
+      fitrepDocsDetected = fitrepDocs.length;
 
       if (!resolvedVmetText && vmetDoc?.extracted_text) resolvedVmetText = vmetDoc.extracted_text;
       if (!resolvedJstText && jstDoc?.extracted_text) resolvedJstText = jstDoc.extracted_text;
       if (!resolvedFitrepsText) {
-        resolvedFitrepsText = buildFitrepCorpus(fitrepDocs, 60000);
+        const corpus = buildFitrepCorpus(fitrepDocs, 60000);
+        resolvedFitrepsText = corpus.text;
+        fitrepDocsIncluded = corpus.includedDocCount;
       }
       sourceDocumentIdFromSet = fitrepDocs.at(-1)?.id ?? vmetDoc?.id ?? jstDoc?.id ?? null;
+    } else {
+      fitrepDocsDetected = 0;
+      fitrepDocsIncluded = 0;
     }
 
     const credentialPriority =
@@ -240,6 +398,7 @@ export async function POST(req: Request) {
       tokens_out: llm.tokensOut ?? null,
     });
 
+    const normalizedMasterResume = mergeProfessionalExperience(llm.data.master_resume);
     const title = `Master resume (${new Date().toISOString().slice(0, 10)})`;
     const { data: artifact, error: artErr } = await supabase
       .from("resume_artifacts")
@@ -247,7 +406,7 @@ export async function POST(req: Request) {
         user_id: userId,
         artifact_type: "master_resume",
         title,
-        content: llm.data.master_resume,
+        content: normalizedMasterResume,
         source_document_id: sourceDocumentId ?? sourceDocumentIdFromSet,
       })
       .select("id")
@@ -255,7 +414,60 @@ export async function POST(req: Request) {
 
     if (artErr) return NextResponse.json({ error: artErr.message }, { status: 500 });
 
-    return NextResponse.json({ artifactId: artifact.id, mode, ...llm.data });
+    let autosavedDocumentId: string | null = null;
+    let autosaveWarning: string | null = null;
+    try {
+      const documentId = crypto.randomUUID();
+      const filename = `master_resume_${new Date().toISOString().slice(0, 10)}_${artifact.id.slice(0, 8)}.txt`;
+      const storagePath = `${userId}/${documentId}/${filename}`;
+      const buffer = Buffer.from(normalizedMasterResume, "utf8");
+
+      const { error: uploadError } = await supabase.storage
+        .from("documents")
+        .upload(storagePath, buffer, { contentType: "text/plain; charset=utf-8", upsert: false });
+
+      if (uploadError) {
+        autosaveWarning = `Master resume generated, but auto-save to Documents failed: ${uploadError.message}`;
+      } else {
+        const { data: insertedDoc, error: insertDocError } = await supabase
+          .from("documents")
+          .insert({
+            id: documentId,
+            user_id: userId,
+            doc_type: "MASTER_RESUME",
+            filename,
+            storage_path: storagePath,
+            mime_type: "text/plain",
+            size_bytes: buffer.byteLength,
+            text_extracted: true,
+            extracted_text: normalizedMasterResume,
+          })
+          .select("id")
+          .single();
+
+        if (insertDocError) {
+          autosaveWarning = `Master resume generated, but auto-save metadata failed: ${insertDocError.message}`;
+        } else {
+          autosavedDocumentId = insertedDoc.id;
+        }
+      }
+    } catch (error) {
+      autosaveWarning = error instanceof Error
+        ? `Master resume generated, but auto-save encountered an error: ${error.message}`
+        : "Master resume generated, but auto-save encountered an unknown error.";
+    }
+
+    return NextResponse.json({
+      artifactId: artifact.id,
+      autosavedDocumentId,
+      autosaveWarning,
+      mode,
+      fitrepDocsDetected,
+      fitrepDocsIncluded,
+      fitrepDocsTruncated: fitrepDocsDetected > 0 && fitrepDocsIncluded < fitrepDocsDetected,
+      ...llm.data,
+      master_resume: normalizedMasterResume,
+    });
   }
 
   const prompt = promptFitrepBullets({

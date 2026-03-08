@@ -12,7 +12,8 @@ export async function GET() {
       .order("created_at", { ascending: false }),
     supabase
       .from("library_links")
-      .select("id,title,description,category,url,created_at")
+      .select("id,title,description,category,url,source,review_status,created_at")
+      .eq("review_status", "ready")
       .order("created_at", { ascending: false }),
   ]);
 

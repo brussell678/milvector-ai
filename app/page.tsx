@@ -12,13 +12,23 @@ const features = [
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ code?: string; token_hash?: string; type?: string; next?: string }>;
+  searchParams: Promise<{ code?: string; token_hash?: string; type?: string; next?: string; error?: string; error_code?: string; error_description?: string }>;
 }) {
   const params = await searchParams;
   const code = params.code;
   const tokenHash = params.token_hash;
   const type = params.type;
   const next = params.next ?? "/app";
+  const authError = params.error;
+  const authErrorCode = params.error_code;
+  const authErrorDescription = params.error_description;
+
+  if (authError || authErrorCode || authErrorDescription) {
+    const query = new URLSearchParams();
+    const message = authErrorDescription ?? authErrorCode ?? authError ?? "Authentication link is invalid or expired. Request a new magic link.";
+    query.set("error", message);
+    redirect(`/login?${query.toString()}`);
+  }
 
   if (code || (tokenHash && type)) {
     const query = new URLSearchParams();

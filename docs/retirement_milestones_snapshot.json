@@ -1,0 +1,220 @@
+{
+  "sheets": [
+    {
+      "name": "READ FIRST",
+      "rowCount": 22,
+      "headers": [
+        "Disclaimer: This tool was designed to assist Marines with planning retirement dates and milestones.  Each individual's path to retirement / EAS will be different.  Feel free to update the tool to best suit your situation.  I hope this helps with your transition. "
+      ],
+      "sample": [
+        {
+          "Disclaimer: This tool was designed to assist Marines with planning retirement dates and milestones.  Each individual's path to retirement / EAS will be different.  Feel free to update the tool to best suit your situation.  I hope this helps with your transition. ": "- Tool designed so that you only need to input dates for EAS, Start Terminal Leave, Start PTAD, and Ceremony; the model will auto populate."
+        },
+        {
+          "Disclaimer: This tool was designed to assist Marines with planning retirement dates and milestones.  Each individual's path to retirement / EAS will be different.  Feel free to update the tool to best suit your situation.  I hope this helps with your transition. ": "- If dates are populated in the planned start date column as #######, you need to enter a date for the event at the top of the model. "
+        },
+        {
+          "Disclaimer: This tool was designed to assist Marines with planning retirement dates and milestones.  Each individual's path to retirement / EAS will be different.  Feel free to update the tool to best suit your situation.  I hope this helps with your transition. ": "- If you enter EAS, Start Terminal Leave, Start PTAD, and Ceremony and planned start dates are red, consider adjusting EAS to a later date. "
+        },
+        {
+          "Disclaimer: This tool was designed to assist Marines with planning retirement dates and milestones.  Each individual's path to retirement / EAS will be different.  Feel free to update the tool to best suit your situation.  I hope this helps with your transition. ": "- Tool designed to assist with management of retirement actions / planning."
+        },
+        {
+          "Disclaimer: This tool was designed to assist Marines with planning retirement dates and milestones.  Each individual's path to retirement / EAS will be different.  Feel free to update the tool to best suit your situation.  I hope this helps with your transition. ": "- Tool uses the following information for consolidation: Individual TRS notes, Retirement Timeline Checklist (updated Apr 2019), and lessons learned from retired Marines. "
+        }
+      ]
+    },
+    {
+      "name": "Milestones",
+      "rowCount": 119,
+      "headers": [
+        "__EMPTY",
+        "EAS",
+        "EAS_1",
+        "1/31/27",
+        "__EMPTY_1",
+        "__EMPTY_2",
+        "__EMPTY_3",
+        "__EMPTY_4",
+        "__EMPTY_5"
+      ],
+      "sample": [
+        {
+          "__EMPTY": null,
+          "EAS": "Start Terminal Leave",
+          "EAS_1": "Terminal",
+          "1/31/27": "11/22/26",
+          "__EMPTY_1": null,
+          "__EMPTY_2": null,
+          "__EMPTY_3": null,
+          "__EMPTY_4": null,
+          "__EMPTY_5": null
+        },
+        {
+          "__EMPTY": null,
+          "EAS": "Start PTAD (21 Days)",
+          "EAS_1": "PTAD",
+          "1/31/27": "11/1/26",
+          "__EMPTY_1": null,
+          "__EMPTY_2": null,
+          "__EMPTY_3": null,
+          "__EMPTY_4": null,
+          "__EMPTY_5": null
+        },
+        {
+          "__EMPTY": null,
+          "EAS": "Ceremony",
+          "EAS_1": "Ceremony",
+          "1/31/27": "11/6/26",
+          "__EMPTY_1": null,
+          "__EMPTY_2": null,
+          "__EMPTY_3": null,
+          "__EMPTY_4": null,
+          "__EMPTY_5": null
+        },
+        {
+          "__EMPTY": null,
+          "EAS": "Days to EAS",
+          "EAS_1": null,
+          "1/31/27": "347",
+          "__EMPTY_1": null,
+          "__EMPTY_2": null,
+          "__EMPTY_3": null,
+          "__EMPTY_4": null,
+          "__EMPTY_5": null
+        },
+        {
+          "__EMPTY": "Task",
+          "EAS": "Task Duration (days)",
+          "EAS_1": null,
+          "1/31/27": "Lag (days)",
+          "__EMPTY_1": "Finish X Days Before",
+          "__EMPTY_2": "Event",
+          "__EMPTY_3": "Planned Start",
+          "__EMPTY_4": "Status",
+          "__EMPTY_5": "Comments"
+        }
+      ]
+    },
+    {
+      "name": "Leave Planning",
+      "rowCount": 14,
+      "headers": [
+        "Description",
+        "Leave Amt",
+        "__EMPTY",
+        "__EMPTY_1",
+        "__EMPTY_2",
+        "Start Date",
+        "Retire Date"
+      ],
+      "sample": [
+        {
+          "Description": "Beginning Balance (12/1/2024)",
+          "Leave Amt": "48.0",
+          "__EMPTY": null,
+          "__EMPTY_1": null,
+          "__EMPTY_2": null,
+          "Start Date": "12/1/24",
+          "Retire Date": "1/31/26"
+        },
+        {
+          "Description": "Accrued Leave through retirement",
+          "Leave Amt": "32.5",
+          "__EMPTY": null,
+          "__EMPTY_1": null,
+          "__EMPTY_2": null,
+          "Start Date": null,
+          "Retire Date": null
+        },
+        {
+          "Description": "Terminal Leave",
+          "Leave Amt": "60.0",
+          "__EMPTY": null,
+          "__EMPTY_1": null,
+          "__EMPTY_2": null,
+          "Start Date": null,
+          "Retire Date": null
+        },
+        {
+          "Description": "Leave Days Remaining",
+          "Leave Amt": "20.5",
+          "__EMPTY": null,
+          "__EMPTY_1": null,
+          "__EMPTY_2": null,
+          "Start Date": null,
+          "Retire Date": null
+        },
+        {
+          "Description": "Months of Service Remaining",
+          "Leave Amt": "13.0",
+          "__EMPTY": null,
+          "__EMPTY_1": null,
+          "__EMPTY_2": null,
+          "Start Date": null,
+          "Retire Date": null
+        }
+      ]
+    },
+    {
+      "name": "Websites",
+      "rowCount": 44,
+      "headers": [
+        "Category",
+        "Description",
+        "Reference",
+        "Column1"
+      ],
+      "sample": [
+        {
+          "Category": "Registration ",
+          "Description": "Register for VA website",
+          "Reference": "https://va.gov",
+          "Column1": null
+        },
+        {
+          "Category": "Registration ",
+          "Description": "Register for login.gov - will need this to access sites after retirement",
+          "Reference": "https://login.gov",
+          "Column1": "Registered"
+        },
+        {
+          "Category": "Registration ",
+          "Description": "eBenefits",
+          "Reference": "https://eauth.va.gov/ebenefits/profilepostauth",
+          "Column1": null
+        },
+        {
+          "Category": "TRS",
+          "Description": "TRS Transition Guide",
+          "Reference": "https://ppr-quantico.libguides.com/MCCSQuantico/",
+          "Column1": null
+        },
+        {
+          "Category": "TRS",
+          "Description": "TRS Readiness",
+          "Reference": "https://quantico.usmc-mccs.org/marine-family-support/transition-readiness",
+          "Column1": null
+        }
+      ]
+    },
+    {
+      "name": "Reference",
+      "rowCount": 2,
+      "headers": [
+        "Complete",
+        "Ceremony"
+      ],
+      "sample": [
+        {
+          "Complete": "In Progress",
+          "Ceremony": "Terminal"
+        },
+        {
+          "Complete": null,
+          "Ceremony": "EAS"
+        }
+      ]
+    }
+  ]
+}

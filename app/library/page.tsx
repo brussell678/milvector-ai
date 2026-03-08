@@ -15,6 +15,8 @@ type LibraryLink = {
   description: string | null;
   category: string;
   url: string;
+  source: string | null;
+  review_status: "ready" | "needs_review";
 };
 
 export default async function LibraryPage() {
@@ -31,7 +33,8 @@ export default async function LibraryPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("library_links")
-      .select("id,title,description,category,url")
+      .select("id,title,description,category,url,source,review_status")
+      .eq("review_status", "ready")
       .order("created_at", { ascending: false }),
   ]);
 
@@ -74,6 +77,7 @@ export default async function LibraryPage() {
                 <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">{link.category}</p>
                 <h3 className="font-semibold">{link.title}</h3>
                 {link.description && <p className="mt-1 text-sm text-[var(--muted)]">{link.description}</p>}
+                {link.source && <p className="mt-1 text-xs text-[var(--muted)]">Source: {link.source}</p>}
                 <a className="btn btn-secondary mt-2 text-sm" href={link.url} target="_blank" rel="noopener noreferrer">
                   Visit Link
                 </a>
