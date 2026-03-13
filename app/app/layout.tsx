@@ -17,7 +17,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <header className="panel mb-4 flex items-center justify-between gap-4 p-4">
         <div className="flex items-center gap-3">
           <Image
-            src="/assets/milvector-ai-logo.svg"
+            src="/assets/milvector-ai-logo-transparent.png"
             alt="MILVECTOR AI logo"
             width={48}
             height={48}

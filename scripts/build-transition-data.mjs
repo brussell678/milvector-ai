@@ -147,6 +147,20 @@ function normalizeUrl(value) {
   return `https://${input}`;
 }
 
+function fallbackLinkUrl(title, referenceDisplay) {
+  const normalizedTitle = String(title || "").trim().toLowerCase();
+  const normalizedReference = String(referenceDisplay || "").trim().toLowerCase();
+
+  if (
+    normalizedTitle === "m&ra retired services" &&
+    normalizedReference === "m&ra separation & retirement branch"
+  ) {
+    return "https://www.manpower.marines.mil/Manpower-Management/Separation-and-Retirement/";
+  }
+
+  return null;
+}
+
 function buildTasks(wb) {
   const ws = wb.Sheets["Milestones"];
   const rows = xlsx.utils.sheet_to_json(ws, { header: 1, defval: null, raw: false });
@@ -267,10 +281,16 @@ function buildLinks(wb) {
     const row = rows[i];
     const category = String(row[0] ?? "").trim();
     const title = String(row[1] ?? "").trim();
-    const reference = String(row[2] ?? "").trim();
-    if (!category || !title || !reference) continue;
+    const referenceDisplay = String(row[2] ?? "").trim();
+    if (!category || !title || !referenceDisplay) continue;
 
-    const url = isLikelyUrl(reference) ? normalizeUrl(reference) : null;
+    const cellRef = xlsx.utils.encode_cell({ r: i, c: 2 });
+    const cell = ws[cellRef];
+    const hyperlinkTarget = cell?.l?.Target ? String(cell.l.Target).trim() : "";
+    const reference = hyperlinkTarget || referenceDisplay;
+    const fallbackUrl = fallbackLinkUrl(title, referenceDisplay);
+
+    const url = fallbackUrl ?? (isLikelyUrl(reference) ? normalizeUrl(reference) : null);
     links.push({
       external_id: `link-${String(counter).padStart(4, "0")}`,
       title,
@@ -281,7 +301,7 @@ function buildLinks(wb) {
       source_sheet: "Websites",
       source_row: i + 1,
       review_status: url ? "ready" : "needs_review",
-      raw_reference: reference,
+      raw_reference: referenceDisplay,
     });
     counter += 1;
   }

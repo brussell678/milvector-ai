@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-08T00:37:14.424Z",
+  "generated_at": "2026-03-13T15:53:22.297Z",
   "source_workbook": "C:\\Users\\b_rus\\Downloads\\Retirement Milestones_20270131 Russell.xlsx",
   "links": [
     {
@@ -7,7 +7,7 @@
       "title": "Register for VA website",
       "category": "Registration",
       "description": null,
-      "url": "https://va.gov",
+      "url": "https://va.gov/",
       "source": "Retirement Milestones Workbook",
       "source_sheet": "Websites",
       "source_row": 2,
@@ -19,7 +19,7 @@
       "title": "Register for login.gov - will need this to access sites after retirement",
       "category": "Registration",
       "description": null,
-      "url": "https://login.gov",
+      "url": "https://login.gov/",
       "source": "Retirement Milestones Workbook",
       "source_sheet": "Websites",
       "source_row": 3,
@@ -67,11 +67,11 @@
       "title": "Marine For Life Cycle",
       "category": "TRS",
       "description": null,
-      "url": null,
+      "url": "https://quantico.usmc-mccs.org/about/marine-for-life-cycle",
       "source": "Retirement Milestones Workbook",
       "source_sheet": "Websites",
       "source_row": 7,
-      "review_status": "needs_review",
+      "review_status": "ready",
       "raw_reference": "Marine For Life Cycle (usmc-mccs.org)"
     },
     {
@@ -103,11 +103,11 @@
       "title": "US Army Transition resources",
       "category": "TRS",
       "description": null,
-      "url": null,
+      "url": "https://myarmybenefits.us.army.mil/",
       "source": "Retirement Milestones Workbook",
       "source_sheet": "Websites",
       "source_row": 10,
-      "review_status": "needs_review",
+      "review_status": "ready",
       "raw_reference": "MyArmyBenefits | The Official Army Benefits Website"
     },
     {
@@ -127,11 +127,11 @@
       "title": "M&RA Retired Services",
       "category": "Appendix J Submission",
       "description": null,
-      "url": null,
+      "url": "https://www.manpower.marines.mil/Manpower-Management/Separation-and-Retirement/",
       "source": "Retirement Milestones Workbook",
       "source_sheet": "Websites",
       "source_row": 12,
-      "review_status": "needs_review",
+      "review_status": "ready",
       "raw_reference": "M&RA Separation & Retirement Branch"
     },
     {
@@ -151,11 +151,11 @@
       "title": "Retiree Dental & Vision Plans",
       "category": "Medical",
       "description": null,
-      "url": null,
+      "url": "https://www.benefeds.com/programs",
       "source": "Retirement Milestones Workbook",
       "source_sheet": "Websites",
       "source_row": 14,
-      "review_status": "needs_review",
+      "review_status": "ready",
       "raw_reference": "Programs We Administer | BENEFEDS"
     },
     {
@@ -163,11 +163,11 @@
       "title": "Veterans Benefits",
       "category": "VA Reference",
       "description": null,
-      "url": null,
+      "url": "https://benefits.va.gov/benefits/",
       "source": "Retirement Milestones Workbook",
       "source_sheet": "Websites",
       "source_row": 15,
-      "review_status": "needs_review",
+      "review_status": "ready",
       "raw_reference": "Veterans Benefits Administration Home (va.gov)"
     },
     {
@@ -175,11 +175,11 @@
       "title": "38 CFR - VA Rating Scale",
       "category": "VA Reference",
       "description": null,
-      "url": null,
+      "url": "https://www.benefits.va.gov/WARMS/bookc.asp",
       "source": "Retirement Milestones Workbook",
       "source_sheet": "Websites",
       "source_row": 16,
-      "review_status": "needs_review",
+      "review_status": "ready",
       "raw_reference": "38 CFR Book C, Schedule for Rating Disabilities - Web Automated Reference Material System (va.gov)"
     },
     {
@@ -187,11 +187,11 @@
       "title": "Benefits Delivery at Discharge Info",
       "category": "VA Reference",
       "description": null,
-      "url": null,
+      "url": "https://error.vba.va.gov/BENEFITS/benefits-delivery-discharge-program.asp#:~:text=The%20BDD%20program%20allows%20Service,evaluate%20the%20claim%20before%20separation",
       "source": "Retirement Milestones Workbook",
       "source_sheet": "Websites",
       "source_row": 17,
-      "review_status": "needs_review",
+      "review_status": "ready",
       "raw_reference": "Benefits Delivery at Discharge Program - Veterans Benefits Administration (va.gov)"
     },
     {
@@ -211,11 +211,11 @@
       "title": "Help understand VA benefits",
       "category": "VA Reference",
       "description": null,
-      "url": null,
+      "url": "https://militarydisabilitymadeeasy.com/",
       "source": "Retirement Milestones Workbook",
       "source_sheet": "Websites",
       "source_row": 19,
-      "review_status": "needs_review",
+      "review_status": "ready",
       "raw_reference": "Military Disability Made Easy Home • Military Disability Made Easy"
     },
     {
@@ -223,11 +223,11 @@
       "title": "Manage VA Health",
       "category": "VA Reference",
       "description": null,
-      "url": null,
+      "url": "https://www.myhealth.va.gov/mhv-portal-web/home",
       "source": "Retirement Milestones Workbook",
       "source_sheet": "Websites",
       "source_row": 20,
-      "review_status": "needs_review",
+      "review_status": "ready",
       "raw_reference": "Home - My HealtheVet - My HealtheVet (va.gov)"
     },
     {
@@ -235,11 +235,11 @@
       "title": "Retired Pay Calculator",
       "category": "Retiree Pay",
       "description": null,
-      "url": null,
+      "url": "https://militarypay.defense.gov/",
       "source": "Retirement Milestones Workbook",
       "source_sheet": "Websites",
       "source_row": 21,
-      "review_status": "needs_review",
+      "review_status": "ready",
       "raw_reference": "Military Compensation (defense.gov)"
     },
     {
@@ -283,11 +283,11 @@
       "title": "Retirement Benefit info",
       "category": "Transition Planning",
       "description": null,
-      "url": null,
+      "url": "https://www.moaa.org/",
       "source": "Retirement Milestones Workbook",
       "source_sheet": "Websites",
       "source_row": 25,
-      "review_status": "needs_review",
+      "review_status": "ready",
       "raw_reference": "MOAA - MOAA Home Page"
     },
     {
@@ -307,11 +307,11 @@
       "title": "USMC SkillBridge Policy",
       "category": "SkillBridge",
       "description": null,
-      "url": null,
+      "url": "https://www.marines.mil/News/Publications/MCPEL/Electronic-Library-Display/Article/3251254/navmc-17002a/",
       "source": "Retirement Milestones Workbook",
       "source_sheet": "Websites",
       "source_row": 27,
-      "review_status": "needs_review",
+      "review_status": "ready",
       "raw_reference": "USMC Skillbridge Policy Letter"
     },
     {
@@ -319,11 +319,11 @@
       "title": "DoD SkillBridge Program",
       "category": "SkillBridge",
       "description": null,
-      "url": null,
+      "url": "https://skillbridge.osd.mil/",
       "source": "Retirement Milestones Workbook",
       "source_sheet": "Websites",
       "source_row": 28,
-      "review_status": "needs_review",
+      "review_status": "ready",
       "raw_reference": "DOD SkillBridge Program (osd.mil)"
     },
     {
@@ -331,11 +331,11 @@
       "title": "Onward to Opportunity",
       "category": "SkillBridge",
       "description": null,
-      "url": null,
+      "url": "https://ivmf.syracuse.edu/",
       "source": "Retirement Milestones Workbook",
       "source_sheet": "Websites",
       "source_row": 29,
-      "review_status": "needs_review",
+      "review_status": "ready",
       "raw_reference": "Home - D'Aniello Institute for Veterans and Military Families (syracuse.edu)"
     },
     {
@@ -355,11 +355,11 @@
       "title": "Help decide what you want to do for a living",
       "category": "Job Seeking",
       "description": null,
-      "url": null,
+      "url": "https://www.mynextmove.org/vets/",
       "source": "Retirement Milestones Workbook",
       "source_sheet": "Websites",
       "source_row": 31,
-      "review_status": "needs_review",
+      "review_status": "ready",
       "raw_reference": "My Next Move for Veterans"
     },
     {
@@ -379,7 +379,7 @@
       "title": "Salary research",
       "category": "Job Seeking",
       "description": null,
-      "url": "https://www.salary.com",
+      "url": "https://www.salary.com/",
       "source": "Retirement Milestones Workbook",
       "source_sheet": "Websites",
       "source_row": 33,
@@ -415,7 +415,7 @@
       "title": "Salary research",
       "category": "Job Seeking",
       "description": null,
-      "url": "https://mil2fedjobs",
+      "url": "https://mil2fedjobs/",
       "source": "Retirement Milestones Workbook",
       "source_sheet": "Websites",
       "source_row": 36,
@@ -427,7 +427,7 @@
       "title": "Take keywords from job announcement and put in this site",
       "category": "Job Seeking",
       "description": null,
-      "url": "https://tagcrowd.com",
+      "url": "https://tagcrowd.com/",
       "source": "Retirement Milestones Workbook",
       "source_sheet": "Websites",
       "source_row": 37,
@@ -463,11 +463,11 @@
       "title": "Connects employers with veterans | job fair opportunities",
       "category": "Job Seeking",
       "description": null,
-      "url": null,
+      "url": "https://www.corporategray.com/",
       "source": "Retirement Milestones Workbook",
       "source_sheet": "Websites",
       "source_row": 40,
-      "review_status": "needs_review",
+      "review_status": "ready",
       "raw_reference": "Corporate Gray Military to Civilian Career Transition Website"
     },
     {
@@ -487,7 +487,7 @@
       "title": "Job seeking site",
       "category": "Job Seeking",
       "description": null,
-      "url": "https://www.theladders.com",
+      "url": "https://www.theladders.com/",
       "source": "Retirement Milestones Workbook",
       "source_sheet": "Websites",
       "source_row": 42,
@@ -499,7 +499,7 @@
       "title": "Federal Jobs",
       "category": "Job Seeking",
       "description": null,
-      "url": "https://federalgovernmentjobs.us",
+      "url": "https://federalgovernmentjobs.us/",
       "source": "Retirement Milestones Workbook",
       "source_sheet": "Websites",
       "source_row": 43,
@@ -523,11 +523,11 @@
       "title": "Survivor Benefit Program",
       "category": "Estate Planning",
       "description": null,
-      "url": null,
+      "url": "https://calculators.navymutual.org/default.aspx",
       "source": "Retirement Milestones Workbook",
       "source_sheet": "Websites",
       "source_row": 45,
-      "review_status": "needs_review",
+      "review_status": "ready",
       "raw_reference": "Navy Mutual Aid Association"
     }
   ]

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import path from "node:path";
-import { readdir, stat } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { supabaseServer } from "@/lib/supabase/server";
 
 type PersonalDocument = {
@@ -38,6 +38,20 @@ type LibraryLink = {
   url: string;
   source: string | null;
   review_status: "ready" | "needs_review";
+  raw_reference?: string | null;
+};
+
+type WorkbookLinksPayload = {
+  links: Array<{
+    external_id: string;
+    title: string;
+    category: string;
+    description: string | null;
+    url: string | null;
+    source: string;
+    review_status: "ready" | "needs_review";
+    raw_reference?: string;
+  }>;
 };
 
 async function getPublicDocs(): Promise<PublicDoc[]> {
@@ -64,6 +78,38 @@ async function getPublicDocs(): Promise<PublicDoc[]> {
   }
 }
 
+async function getWorkbookLinksFallback(): Promise<LibraryLink[]> {
+  const dataFile = path.join(process.cwd(), "data", "milvector_library_links.json");
+  try {
+    const raw = await readFile(dataFile, "utf8");
+    const parsed = JSON.parse(raw) as WorkbookLinksPayload;
+    return (parsed.links ?? []).map((link) => ({
+      id: link.external_id,
+      title: link.title,
+      description: link.description,
+      category: link.category,
+      url: link.url ?? "",
+      source: link.source,
+      review_status: link.review_status,
+      raw_reference: link.raw_reference ?? null,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+function mergeLinks(primary: LibraryLink[], fallback: LibraryLink[]) {
+  const byKey = new Map<string, LibraryLink>();
+  for (const link of primary) {
+    byKey.set(`${link.title.toLowerCase()}|${link.category.toLowerCase()}`, link);
+  }
+  for (const link of fallback) {
+    const key = `${link.title.toLowerCase()}|${link.category.toLowerCase()}`;
+    if (!byKey.has(key)) byKey.set(key, link);
+  }
+  return [...byKey.values()].sort((a, b) => a.title.localeCompare(b.title));
+}
+
 function formatBytes(value: number) {
   if (value < 1024) return `${value} B`;
   const kb = value / 1024;
@@ -80,7 +126,7 @@ export default async function LibraryPage() {
 
   if (!user) return null;
 
-  const [personalRes, artifactRes, knowledgeRes, linksRes, publicDocs] = await Promise.all([
+  const [personalRes, artifactRes, knowledgeRes, linksRes, publicDocs, workbookFallbackLinks] = await Promise.all([
     supabase
       .from("documents")
       .select("id,doc_type,filename,created_at")
@@ -98,15 +144,17 @@ export default async function LibraryPage() {
     supabase
       .from("library_links")
       .select("id,title,description,category,url,source,review_status")
-      .eq("review_status", "ready")
       .order("created_at", { ascending: false }),
     getPublicDocs(),
+    getWorkbookLinksFallback(),
   ]);
 
   const personalDocuments = (personalRes.data ?? []) as PersonalDocument[];
   const resumeArtifacts = (artifactRes.data ?? []) as ResumeArtifact[];
   const knowledgeArticles = (knowledgeRes.data ?? []) as KnowledgeArticle[];
-  const links = (linksRes.data ?? []) as LibraryLink[];
+  const dbLinks = (linksRes.data ?? []) as LibraryLink[];
+  const links = mergeLinks(dbLinks, workbookFallbackLinks);
+  const linkCategories = [...new Set(links.map((link) => link.category))].sort((a, b) => a.localeCompare(b));
 
   return (
     <main className="space-y-4">
@@ -207,17 +255,32 @@ export default async function LibraryPage() {
         <p className="mt-2 text-sm text-[var(--muted)]">External tools and reference sites.</p>
         <div className="mt-3 space-y-3">
           {links.length === 0 && <p className="text-sm text-[var(--muted)]">No links yet.</p>}
-          {links.map((link) => (
-            <article key={link.id} className="rounded-md border border-[var(--line)] p-3">
-              <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">{link.category}</p>
-              <h3 className="font-semibold">{link.title}</h3>
-              {link.description && <p className="mt-1 text-sm text-[var(--muted)]">{link.description}</p>}
-              {link.source && <p className="mt-1 text-xs text-[var(--muted)]">Source: {link.source}</p>}
-              <a href={link.url} className="btn btn-secondary mt-2 inline-flex text-sm" target="_blank" rel="noopener noreferrer">
-                Visit Link
-              </a>
-            </article>
-          ))}
+          {linkCategories.map((category) => {
+            const categoryLinks = links.filter((link) => link.category === category);
+            return (
+              <details key={category} className="rounded-md border border-[var(--line)] p-3">
+                <summary className="cursor-pointer font-semibold">
+                  {category} <span className="text-xs text-[var(--muted)]">({categoryLinks.length})</span>
+                </summary>
+                <div className="mt-3 space-y-3">
+                  {categoryLinks.map((link) => (
+                    <article key={link.id} className="rounded-md border border-[var(--line)] p-3">
+                      <h3 className="font-semibold">{link.title}</h3>
+                      {link.description && <p className="mt-1 text-sm text-[var(--muted)]">{link.description}</p>}
+                      {link.source && <p className="mt-1 text-xs text-[var(--muted)]">Source: {link.source}</p>}
+                      {link.url ? (
+                        <a href={link.url} className="btn btn-secondary mt-2 inline-flex text-sm" target="_blank" rel="noopener noreferrer">
+                          Visit Link
+                        </a>
+                      ) : (
+                        <p className="mt-2 text-xs text-[var(--muted)]">Reference: {link.raw_reference ?? "Needs manual URL review"}</p>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              </details>
+            );
+          })}
         </div>
       </details>
     </main>

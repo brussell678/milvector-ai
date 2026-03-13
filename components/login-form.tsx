@@ -81,7 +81,7 @@ export function LoginForm({ error }: { error?: string }) {
     <section className="panel w-full p-8 md:p-10">
       <div className="flex items-center gap-3">
         <Image
-          src="/assets/milvector-ai-logo.svg"
+          src="/assets/milvector-ai-logo-transparent.png"
           alt="MILVECTOR AI logo"
           width={56}
           height={56}

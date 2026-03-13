@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   title: "MilVector AI",
   description: "AI career navigation for service members",
   icons: {
-    icon: "/icon.svg",
+    icon: "/assets/milvector-ai-logo-transparent.png",
   },
 };
 
