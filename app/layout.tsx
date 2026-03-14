@@ -43,11 +43,13 @@ export default function RootLayout({
             </Link>
           </p>
         </div>
-        <PrimaryNav />
-        <div className="fixed right-4 top-24 z-50">
+        <div className="hidden md:block">
+          <PrimaryNav />
+        </div>
+        <div className="fixed right-4 top-32 z-50 md:top-24">
           <ThemeToggle />
         </div>
-        <div className="relative z-10 pb-16 pt-10">{children}</div>
+        <div className="relative z-10 pb-16 pt-16 md:pt-10">{children}</div>
         <footer className="site-footer">
           <Link href="https://russell-innovation-group.com/" target="_blank" rel="noopener noreferrer">
             (c) 2026 Russell Innovation Group LLC
