@@ -82,7 +82,7 @@ function buildOrgLine(experience: StructuredExperience) {
 }
 
 function blankParagraph() {
-  return new Paragraph({ spacing: { after: 60 } });
+  return new Paragraph({ spacing: { after: 40 } });
 }
 
 function sectionRule() {
@@ -95,7 +95,7 @@ function sectionRule() {
         size: 6,
       },
     },
-    spacing: { after: 60 },
+    spacing: { after: 40 },
   });
 }
 
@@ -109,7 +109,7 @@ function sectionHeading(text: string) {
         size: 28,
       }),
     ],
-    spacing: { after: 40 },
+    spacing: { after: 20 },
   });
 }
 
@@ -125,7 +125,7 @@ function bodyParagraph(text: string, options?: { italics?: boolean; bold?: boole
       }),
     ],
     alignment: options?.centered ? AlignmentType.CENTER : undefined,
-    spacing: { after: 60 },
+    spacing: { after: 40 },
   });
 }
 
@@ -138,7 +138,7 @@ function bulletParagraph(text: string) {
         size: 22,
       }),
     ],
-    spacing: { after: 40 },
+    spacing: { after: 20 },
     indent: { left: 180, hanging: 120 },
   });
 }
@@ -155,7 +155,7 @@ function experienceHeadingParagraph(entry: StructuredExperience) {
         new TextRun({ text: orgLine, italics: true, font: "Times New Roman", size: 22 }),
       ],
       tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
-      spacing: { after: 50 },
+      spacing: { after: 30 },
     });
   }
 
@@ -164,6 +164,11 @@ function experienceHeadingParagraph(entry: StructuredExperience) {
 
 function compactCoreSkills(skills: string[]) {
   return uniqueItems(skills).join(` ${String.fromCodePoint(0x2022)} `);
+}
+
+function compactEducationLine(label: string, items: string[]) {
+  const compact = uniqueItems(items).join("; ");
+  return compact ? `${label}: ${compact}` : "";
 }
 
 function pushEducationSection(paragraphs: Paragraph[], resume: StructuredTargetedResume) {
@@ -176,19 +181,14 @@ function pushEducationSection(paragraphs: Paragraph[], resume: StructuredTargete
   paragraphs.push(sectionRule());
   paragraphs.push(sectionHeading("EDUCATION & PROFESSIONAL DEVELOPMENT"));
 
-  if (education.length > 0) {
-    paragraphs.push(bodyParagraph("Education", { bold: true }));
-    for (const item of education) paragraphs.push(bulletParagraph(item));
-  }
+  const compactLines = [
+    compactEducationLine("Education", education),
+    compactEducationLine("Certifications", certifications),
+    compactEducationLine("Training", training),
+  ].filter(Boolean);
 
-  if (certifications.length > 0) {
-    paragraphs.push(bodyParagraph("Certifications", { bold: true }));
-    for (const item of certifications) paragraphs.push(bulletParagraph(item));
-  }
-
-  if (training.length > 0) {
-    paragraphs.push(bodyParagraph("Training", { bold: true }));
-    for (const item of training) paragraphs.push(bulletParagraph(item));
+  for (const line of compactLines) {
+    paragraphs.push(bodyParagraph(line));
   }
 }
 
@@ -236,24 +236,15 @@ export function buildTargetedResumeText(args: {
     }
   }
 
-  const education = uniqueItems((resume.off_duty_education ?? []).map((item) => item.trim()).filter(Boolean));
-  const certifications = uniqueItems((resume.civilian_certifications ?? []).map((item) => item.trim()).filter(Boolean));
-  const training = uniqueItems((resume.additional_training ?? []).map((item) => item.trim()).filter(Boolean));
+  const compactLines = [
+    compactEducationLine("Education", resume.off_duty_education ?? []),
+    compactEducationLine("Certifications", resume.civilian_certifications ?? []),
+    compactEducationLine("Training", resume.additional_training ?? []),
+  ].filter(Boolean);
 
-  if (education.length > 0 || certifications.length > 0 || training.length > 0) {
+  if (compactLines.length > 0) {
     lines.push("EDUCATION & PROFESSIONAL DEVELOPMENT");
-    if (education.length > 0) {
-      lines.push("Education");
-      for (const item of education) lines.push(`- ${item}`);
-    }
-    if (certifications.length > 0) {
-      lines.push("Certifications");
-      for (const item of certifications) lines.push(`- ${item}`);
-    }
-    if (training.length > 0) {
-      lines.push("Training");
-      for (const item of training) lines.push(`- ${item}`);
-    }
+    lines.push(...compactLines);
   }
 
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
@@ -314,7 +305,7 @@ export async function renderTargetedResumeDocx(args: {
       new Paragraph({
         children: [new TextRun({ text: contactLine, font: "Times New Roman", size: 22 })],
         alignment: AlignmentType.CENTER,
-        spacing: { after: 80 },
+        spacing: { after: 60 },
       })
     );
   }
@@ -362,7 +353,7 @@ export async function renderTargetedResumeDocx(args: {
           },
           paragraph: {
             spacing: {
-              line: 276,
+              line: 240,
               after: 0,
             },
           },

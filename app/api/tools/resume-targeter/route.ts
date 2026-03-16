@@ -111,6 +111,10 @@ function normalizeStructuredResume(value: StructuredTargetedResumeOutput): Struc
   };
 }
 
+function cleanText(value?: string | null) {
+  return (value ?? "").trim();
+}
+
 function uniqueTrimmed(items: string[]) {
   const seen = new Set<string>();
   const out: string[] = [];
@@ -158,6 +162,59 @@ function extractSectionLines(text: string, headings: string[]) {
   }
 
   return uniqueTrimmed(collected);
+}
+
+function classifyProfessionalDevelopment(items: string[]) {
+  const education: string[] = [];
+  const certifications: string[] = [];
+  const training: string[] = [];
+
+  for (const item of uniqueTrimmed(items)) {
+    const lower = item.toLowerCase();
+    if (/(b\.?s\.?|bachelor|master|m\.?s\.?|mba|degree|university|college|associate|education)/i.test(lower)) {
+      education.push(item);
+      continue;
+    }
+    if (/(cert|certificate|certification|license|belt|pmp|scrum|security\+|itil|six sigma)/i.test(lower)) {
+      certifications.push(item);
+      continue;
+    }
+    training.push(item);
+  }
+
+  return {
+    off_duty_education: uniqueTrimmed(education),
+    civilian_certifications: uniqueTrimmed(certifications),
+    additional_training: uniqueTrimmed(training),
+  };
+}
+
+function mergeProfessionalDevelopment(
+  resume: StructuredTargetedResumeOutput,
+  extras: { off_duty_education: string[]; civilian_certifications: string[]; additional_training: string[] }
+) {
+  return {
+    ...resume,
+    off_duty_education: uniqueTrimmed([...resume.off_duty_education, ...extras.off_duty_education]),
+    civilian_certifications: uniqueTrimmed([...resume.civilian_certifications, ...extras.civilian_certifications]),
+    additional_training: uniqueTrimmed([...resume.additional_training, ...extras.additional_training]),
+  };
+}
+
+function sanitizeExperienceLocations(resume: StructuredTargetedResumeOutput, currentLocation?: string | null) {
+  const normalizedCurrent = cleanText(currentLocation).toLowerCase();
+  if (!normalizedCurrent) return resume;
+
+  const populated = resume.experience.filter((row) => cleanText(row.location));
+  if (populated.length === 0) return resume;
+
+  const allMatchCurrent = populated.every((row) => cleanText(row.location).toLowerCase() === normalizedCurrent);
+  if (!allMatchCurrent) return resume;
+
+  return {
+    ...resume,
+    experience: resume.experience.map((row) => ({ ...row, location: "" })),
+  };
 }
 
 function buildSupplementalSourceContext(args: {
@@ -426,7 +483,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: llm.error }, { status: 500 });
     }
 
-    const structuredResume = normalizeStructuredResume(llm.data);
+    const extractedProfessionalDevelopment = classifyProfessionalDevelopment(
+      extractSectionLines(masterText, ["Education & Training", "Education and Training", "Education & Professional Development"])
+    );
+
+    const structuredResume = sanitizeExperienceLocations(
+      mergeProfessionalDevelopment(normalizeStructuredResume(llm.data), extractedProfessionalDevelopment),
+      profile?.location ?? profile?.location_pref ?? null
+    );
     const previewText = buildTargetedResumeText({
       contact: {
         full_name: profile?.full_name ?? null,

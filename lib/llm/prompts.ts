@@ -365,8 +365,11 @@ Generation rules:
 - executive_summary must be 3-5 lines of civilian, ATS-readable prose.
 - core_skills must contain 8-16 targeted skills or keywords, one per item.
 - experience must be reverse chronological.
+- Only include an experience location when it is explicitly supported by source material. Never infer or copy the current profile/contact location into every role.
+- If location is unknown for a role, leave the location field empty.
 - For each experience item, preserve factual evidence from the master resume while translating military language into civilian language.
 - bullets must be achievement-oriented, interview-defensible, and specific.
+- Aim for a resume that is either one strong full page or nearly fills two full pages; avoid leaving a second page with only a tiny trailing education section.
 - Do not fabricate scope, employers, dates, metrics, certifications, education, or clearances.
 - Use profile supplement context plus supplemental source evidence from master resume/JST/VMET/FITREP/EVAL to populate off-duty education, civilian certifications, and additional training when defensible.
 - Prefer richer factual source evidence over leaving education/professional development under-filled, but never invent credentials or dates.

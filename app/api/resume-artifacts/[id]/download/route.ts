@@ -46,29 +46,6 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   const baseName = slugify(data.title || `artifact-${data.id}`) || `artifact-${data.id}`;
 
   if (format === "docx") {
-    if (data.rendered_document_id) {
-      const { data: doc, error: docError } = await supabase
-        .from("documents")
-        .select("filename,mime_type,storage_path")
-        .eq("id", data.rendered_document_id)
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      if (!docError && doc) {
-        const { data: file, error: downloadError } = await supabase.storage.from("documents").download(doc.storage_path);
-        if (!downloadError && file) {
-          const bytes = new Uint8Array(await file.arrayBuffer());
-          return new NextResponse(bytes, {
-            headers: {
-              "Content-Type": doc.mime_type || "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-              "Content-Disposition": `attachment; filename="${doc.filename}"`,
-              "Cache-Control": "no-store",
-            },
-          });
-        }
-      }
-    }
-
     if (data.artifact_type === "targeted_resume" && data.structured_output) {
       const { data: profile } = await supabase
         .from("profiles")
