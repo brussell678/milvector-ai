@@ -11,6 +11,11 @@ const coreTools = [
     title: "Targeted Resume Engine",
     desc: "Generate a role-specific resume from your master resume + job description.",
   },
+  {
+    href: "https://chatgpt.com/g/g-69b6925c39308191b477586de0b7e6ac-va-c-p-rating-navigator-gpt",
+    title: "VA C&P Rating Navigator GPT",
+    desc: "Open the VA C&P Rating Navigator GPT for guided disability rating walkthroughs.",
+  },
 ];
 
 const basicTools = [
@@ -44,9 +49,20 @@ export default function ToolsPage() {
             <article key={tool.href} className="rounded-md border border-[var(--line)] p-5">
               <h3 className="text-lg font-bold">{tool.title}</h3>
               <p className="mt-1 text-sm text-[var(--muted)]">{tool.desc}</p>
-              <Link href={tool.href} className="btn btn-secondary mt-4 inline-flex">
-                Open
-              </Link>
+              {tool.href.startsWith("http") ? (
+                <a
+                  href={tool.href}
+                  className="btn btn-secondary mt-4 inline-flex"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Open
+                </a>
+              ) : (
+                <Link href={tool.href} className="btn btn-secondary mt-4 inline-flex">
+                  Open
+                </Link>
+              )}
             </article>
           ))}
         </div>
@@ -72,3 +88,4 @@ export default function ToolsPage() {
     </main>
   );
 }
+
