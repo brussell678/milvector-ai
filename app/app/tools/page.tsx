@@ -4,12 +4,12 @@ const coreTools = [
   {
     href: "/app/tools/fitrep-bullets",
     title: "Master Resume Generator",
-    desc: "Build a high-fidelity master resume from your uploaded military records.",
+    desc: "Turn uploaded military records into a reusable civilian career foundation for applications and planning.",
   },
   {
     href: "/app/tools/resume-targeter",
     title: "Targeted Resume Engine",
-    desc: "Generate a role-specific resume from your master resume + job description.",
+    desc: "Generate a role-specific resume and supporting application output from your career foundation + job description.",
   },
   {
     href: "https://chatgpt.com/g/g-69b6925c39308191b477586de0b7e6ac-va-c-p-rating-navigator-gpt",
@@ -27,12 +27,12 @@ const basicTools = [
   {
     href: "/app/tools/mos-translator",
     title: "MOS Translator",
-    desc: "Map MOS experience to civilian roles and keywords.",
+    desc: "Map MOS experience to civilian roles, language, and next-step career pathways.",
   },
   {
     href: "/app/tools/jd-decoder",
     title: "Job Description Decoder",
-    desc: "Deeply analyze a job posting into requirements, signals, and interview focus areas.",
+    desc: "Break a job posting into requirements, signals, decision points, and interview focus areas.",
   },
 ];
 
@@ -41,13 +41,13 @@ export default function ToolsPage() {
     <main className="space-y-4">
       <section className="panel p-6">
         <h1 className="text-2xl font-bold">Tools</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">Run AI workflows and store outputs for later recall.</p>
+        <p className="mt-2 text-sm text-[var(--muted)]">Run transition workflows, generate decision support, and store outputs for later reuse.</p>
       </section>
 
       <section className="panel p-6">
         <h2 className="text-lg font-bold">Core Tools</h2>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          MilVector core workflows for resume generation and targeting.
+          MilVector core workflows for military-to-civilian transition support, including career translation, applications, and decision tools.
         </p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           {coreTools.map((tool) => (
@@ -76,7 +76,7 @@ export default function ToolsPage() {
       <section className="panel p-6">
         <h2 className="text-lg font-bold">Basic Tools</h2>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Standalone utility tools for supporting analysis.
+          Supporting tools for role analysis, translation, and transition planning.
         </p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           {basicTools.map((tool) => (

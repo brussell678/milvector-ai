@@ -3,10 +3,10 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 
 const features = [
-  "Master Resume Builder from VMET, JST, and FITREPs/EVALs",
-  "MOS Translator for role mapping and credential pathways",
-  "Job Description Decoder for must-haves, risks, and interview prep",
-  "Targeted Resume Builder for job-specific alignment",
+  "Transition planning tools built for military-to-civilian moves",
+  "MOS Translator for role mapping and civilian career pathways",
+  "Job Description Decoder for must-haves, risks, and application prep",
+  "Resume, document, and decision-support workflows in one place",
 ];
 
 export default async function Home({
@@ -60,7 +60,7 @@ export default async function Home({
               Find the vector to your next career.
             </h1>
             <p className="max-w-2xl text-lg text-[var(--muted)]">
-              AI tools designed to help service members translate their military experience into civilian careers.
+              AI tools designed to help service members navigate the full transition to civilian life and work, from career translation and job targeting to documents, planning, and decision support.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link href="/login" className="btn btn-primary">
@@ -74,10 +74,10 @@ export default async function Home({
           <div className="panel hero-outcomes p-6">
             <p className="hero-outcomes-title text-xs font-semibold tracking-widest">WHAT YOU GET</p>
             <ul className="mt-4 space-y-3 text-sm">
-              <li>Actionable first output in under 10 minutes</li>
-              <li>Master resume generated from your source records</li>
-              <li>Targeted resume per job posting</li>
-              <li>Saved document and resume library for reuse</li>
+              <li>Actionable transition support in under 10 minutes</li>
+              <li>Career translation tools built from your service records</li>
+              <li>Job-targeting workflows for resumes and applications</li>
+              <li>Saved documents, outputs, and support tools in one library</li>
             </ul>
           </div>
         </div>

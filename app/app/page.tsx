@@ -5,8 +5,8 @@ import type { DashboardLink, DashboardTask } from "@/components/dashboard/types"
 
 function nextStep(profileExists: boolean, hasMasterResume: boolean, hasTargetedResume: boolean) {
   if (!profileExists) return { href: "/app/profile", label: "Complete profile" };
-  if (!hasMasterResume) return { href: "/app/tools/fitrep-bullets", label: "Build master resume" };
-  if (!hasTargetedResume) return { href: "/app/tools/resume-targeter", label: "Create targeted resume" };
+  if (!hasMasterResume) return { href: "/app/tools/fitrep-bullets", label: "Build career foundation" };
+  if (!hasTargetedResume) return { href: "/app/tools/resume-targeter", label: "Build job-targeted application" };
   return { href: "/app/library", label: "Review your library" };
 }
 
