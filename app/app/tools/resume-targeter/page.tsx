@@ -17,6 +17,13 @@ type MasterResumeDocument = {
   text_extracted: boolean;
 };
 
+type MasterResumeOption = {
+  value: string;
+  label: string;
+  sourceType: "artifact" | "document";
+  id: string;
+};
+
 type Stage1Output = {
   workflowStage: "title_research";
   role_summary: string;
@@ -76,10 +83,8 @@ function renderList(items?: string[]) {
 }
 
 export default function ResumeTargeterPage() {
-  const [masterResumeArtifactId, setMasterResumeArtifactId] = useState("");
-  const [artifacts, setArtifacts] = useState<Artifact[]>([]);
-  const [masterResumeDocumentId, setMasterResumeDocumentId] = useState("");
-  const [masterResumeDocs, setMasterResumeDocs] = useState<MasterResumeDocument[]>([]);
+  const [masterResumeSelection, setMasterResumeSelection] = useState("");
+  const [masterResumeOptions, setMasterResumeOptions] = useState<MasterResumeOption[]>([]);
   const [pastedResumeText, setPastedResumeText] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [company, setCompany] = useState("");
@@ -102,16 +107,36 @@ export default function ResumeTargeterPage() {
         ]);
         const artifactData = await artifactRes.json().catch(() => ({}));
         const docsData = await docsRes.json().catch(() => ({}));
+        const nextOptions: MasterResumeOption[] = [];
+
         if (artifactRes.ok) {
           const rows = (artifactData.artifacts ?? []) as Artifact[];
-          setArtifacts(rows);
-          if (rows.length > 0) setMasterResumeArtifactId((v) => v || rows[0].id);
+          nextOptions.push(
+            ...rows.map((artifact) => ({
+              value: `artifact:${artifact.id}`,
+              id: artifact.id,
+              sourceType: "artifact" as const,
+              label: `${artifact.title} (${new Date(artifact.created_at).toLocaleDateString()}) - Saved master resume`,
+            }))
+          );
         }
+
         if (docsRes.ok) {
           const docs = (docsData.documents ?? []) as MasterResumeDocument[];
           const masterDocs = docs.filter((d) => d.doc_type === "MASTER_RESUME");
-          setMasterResumeDocs(masterDocs);
-          if (masterDocs.length > 0) setMasterResumeDocumentId((v) => v || masterDocs[0].id);
+          nextOptions.push(
+            ...masterDocs.map((doc) => ({
+              value: `document:${doc.id}`,
+              id: doc.id,
+              sourceType: "document" as const,
+              label: `${doc.filename} (${new Date(doc.created_at).toLocaleDateString()})${doc.text_extracted ? "" : " - not extracted"} - Uploaded master resume`,
+            }))
+          );
+        }
+
+        setMasterResumeOptions(nextOptions);
+        if (nextOptions.length > 0) {
+          setMasterResumeSelection((current) => current || nextOptions[0].value);
         }
       } catch {
         // Keep manual path.
@@ -121,6 +146,18 @@ export default function ResumeTargeterPage() {
   }, []);
 
   const recommendedDecision = useMemo(() => stage2?.recommended_decision ?? null, [stage2]);
+  const selectedMasterResume = useMemo(
+    () => masterResumeOptions.find((option) => option.value === masterResumeSelection) ?? null,
+    [masterResumeOptions, masterResumeSelection]
+  );
+
+  function buildSourcePayload() {
+    return {
+      masterResumeArtifactId: selectedMasterResume?.sourceType === "artifact" ? selectedMasterResume.id : undefined,
+      masterResumeDocumentId: selectedMasterResume?.sourceType === "document" ? selectedMasterResume.id : undefined,
+      pastedResumeText: pastedResumeText || undefined,
+    };
+  }
 
   async function runStage1(e: FormEvent) {
     e.preventDefault();
@@ -168,9 +205,7 @@ export default function ResumeTargeterPage() {
           jobTitle,
           company: company || null,
           jobDescriptionText,
-          masterResumeArtifactId: masterResumeArtifactId || undefined,
-          masterResumeDocumentId: masterResumeDocumentId || undefined,
-          pastedResumeText: pastedResumeText || undefined,
+          ...buildSourcePayload(),
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -218,9 +253,7 @@ export default function ResumeTargeterPage() {
           jobTitle,
           company: company || null,
           jobDescriptionText,
-          masterResumeArtifactId: masterResumeArtifactId || undefined,
-          masterResumeDocumentId: masterResumeDocumentId || undefined,
-          pastedResumeText: pastedResumeText || undefined,
+          ...buildSourcePayload(),
           stage1Context: stage1 ?? undefined,
           stage2Context: stage2 ?? undefined,
         }),
@@ -280,23 +313,12 @@ export default function ResumeTargeterPage() {
               <button className="btn btn-primary" type="submit" disabled={loading}>Run Step 1</button>
             </form>
             <label className="space-y-1 block">
-              <span className="text-sm font-medium">Master Resume Artifact</span>
-              <select className="input" value={masterResumeArtifactId} onChange={(e) => setMasterResumeArtifactId(e.target.value)}>
-                <option value="">Select saved master resume artifact</option>
-                {artifacts.map((artifact) => (
-                  <option key={artifact.id} value={artifact.id}>
-                    {artifact.title} ({new Date(artifact.created_at).toLocaleDateString()})
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="space-y-1 block">
-              <span className="text-sm font-medium">Uploaded Master Resume Document (optional)</span>
-              <select className="input" value={masterResumeDocumentId} onChange={(e) => setMasterResumeDocumentId(e.target.value)}>
-                <option value="">Select uploaded MASTER_RESUME document</option>
-                {masterResumeDocs.map((doc) => (
-                  <option key={doc.id} value={doc.id}>
-                    {doc.filename} ({new Date(doc.created_at).toLocaleDateString()}) {doc.text_extracted ? "" : "- not extracted"}
+              <span className="text-sm font-medium">Master Resume</span>
+              <select className="input" value={masterResumeSelection} onChange={(e) => setMasterResumeSelection(e.target.value)}>
+                <option value="">Select a master resume</option>
+                {masterResumeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
                   </option>
                 ))}
               </select>
@@ -317,7 +339,7 @@ export default function ResumeTargeterPage() {
 
             <section className="panel p-4 space-y-3">
               <h3 className="font-bold">Step 3: Decision Checkpoint</h3>
-              <select className="input" value={decision} onChange={(e) => setDecision(e.target.value as "A" | "B" | "C")}>
+              <select className="input" value={decision} onChange={(e) => setDecision(e.target.value as "A" | "B" | "C") }>
                 <option value="A">A) Generate targeted, ATS-optimized resume</option>
                 <option value="B">B) Adjust assumptions before generating</option>
                 <option value="C">C) Stop / do not apply now</option>
@@ -359,48 +381,53 @@ export default function ResumeTargeterPage() {
               <h3 className="font-bold">Step 1 Output</h3>
               <p className="text-sm">{stage1.role_summary}</p>
               <p className="text-sm"><span className="font-semibold">Market outlook:</span> {stage1.market_outlook}</p>
-              {stage1.compensation_signal && <p className="text-sm"><span className="font-semibold">Comp signal:</span> {stage1.compensation_signal}</p>}
-              <p className="text-sm font-semibold">Hard skills</p>
-              {renderList(stage1.typical_hard_skills)}
-              <p className="text-sm font-semibold">Soft skills</p>
-              {renderList(stage1.typical_soft_skills)}
-              <p className="text-sm font-semibold">Employer pain points</p>
-              {renderList(stage1.employer_pain_points)}
+              <p className="text-sm"><span className="font-semibold">Comp signal:</span> {stage1.compensation_signal ?? "Not provided."}</p>
+              <div>
+                <p className="text-sm font-semibold">Hard skills</p>
+                {renderList(stage1.typical_hard_skills)}
+              </div>
+              <div>
+                <p className="text-sm font-semibold">Soft skills</p>
+                {renderList(stage1.typical_soft_skills)}
+              </div>
             </section>
           )}
 
           {stage2 && (
             <section className="panel p-6 space-y-3">
               <h3 className="font-bold">Step 2 Output</h3>
-              <p className="text-sm"><span className="font-semibold">Company context:</span> {stage2.company_context_summary}</p>
-              <p className="text-sm font-semibold">Top must-have signals</p>
-              {renderList(stage2.top_must_have_signals)}
-              <p className="text-sm font-semibold">ATS keyword priority</p>
-              {renderList(stage2.ats_keywords_priority)}
-              <p className="text-sm font-semibold">Alignment strengths</p>
-              {renderList(stage2.alignment_strengths)}
-              <p className="text-sm font-semibold">Hard gaps</p>
-              {renderList(stage2.hard_gaps)}
-              <p className="text-sm font-semibold">Soft gaps</p>
-              {renderList(stage2.soft_gaps)}
-              <p className="text-sm font-semibold">Advisory notes</p>
-              {renderList(stage2.advisory_notes)}
+              <div>
+                <p className="text-sm font-semibold">Hard requirements</p>
+                {renderList(stage2.hard_requirements)}
+              </div>
+              <div>
+                <p className="text-sm font-semibold">Alignment strengths</p>
+                {renderList(stage2.alignment_strengths)}
+              </div>
+              <div>
+                <p className="text-sm font-semibold">Hard gaps</p>
+                {renderList(stage2.hard_gaps)}
+              </div>
             </section>
           )}
 
           {stage3 && (
             <section className="panel p-6 space-y-3">
-              <p className="text-sm font-semibold text-[var(--accent)]">Artifact ID: {stage3.artifactId}</p>
-              <h3 className="font-bold">Targeted Resume</h3>
-              <pre className="overflow-x-auto whitespace-pre-wrap rounded-md bg-[#f5f8f6] p-3 text-sm">{stage3.targeted_resume}</pre>
-              <p className="text-sm"><span className="font-semibold">Keywords added:</span> {stage3.keywords_added.join(", ")}</p>
-              <p className="text-sm"><span className="font-semibold">Changes made:</span> {stage3.changes_made.join(", ")}</p>
-              {stage3.targeting_critique && <p className="text-sm"><span className="font-semibold">Targeting critique:</span> {stage3.targeting_critique}</p>}
-              {stage3.documentId && (
-                <a className="btn btn-secondary inline-flex text-sm" href={`/api/documents/${stage3.documentId}/download`}>
-                  Download Saved Word (.docx)
+              <h3 className="font-bold">Step 4 Output</h3>
+              <pre className="whitespace-pre-wrap text-sm leading-6">{stage3.targeted_resume}</pre>
+              <div className="flex flex-wrap gap-2 pt-2">
+                <a className="btn btn-secondary text-sm" href={`/api/resume-artifacts/${stage3.artifactId}/download`}>
+                  Export Text (.txt)
                 </a>
-              )}
+                <a className="btn btn-secondary text-sm" href={`/api/resume-artifacts/${stage3.artifactId}/download?format=docx`}>
+                  Export Word (.docx)
+                </a>
+                {stage3.documentId && (
+                  <a className="btn btn-secondary text-sm" href={`/api/documents/${stage3.documentId}/download`}>
+                    Download Saved Word (.docx)
+                  </a>
+                )}
+              </div>
             </section>
           )}
         </section>
