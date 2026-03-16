@@ -11,7 +11,7 @@ type Artifact = {
 
 type MasterResumeDocument = {
   id: string;
-  doc_type: "MASTER_RESUME" | "RESUME_TEMPLATE";
+  doc_type: "MASTER_RESUME";
   filename: string;
   created_at: string;
   text_extracted: boolean;
@@ -80,8 +80,6 @@ export default function ResumeTargeterPage() {
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [masterResumeDocumentId, setMasterResumeDocumentId] = useState("");
   const [masterResumeDocs, setMasterResumeDocs] = useState<MasterResumeDocument[]>([]);
-  const [resumeTemplateDocumentId, setResumeTemplateDocumentId] = useState("");
-  const [templateDocs, setTemplateDocs] = useState<MasterResumeDocument[]>([]);
   const [pastedResumeText, setPastedResumeText] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [company, setCompany] = useState("");
@@ -112,11 +110,8 @@ export default function ResumeTargeterPage() {
         if (docsRes.ok) {
           const docs = (docsData.documents ?? []) as MasterResumeDocument[];
           const masterDocs = docs.filter((d) => d.doc_type === "MASTER_RESUME");
-          const tmplDocs = docs.filter((d) => d.doc_type === "RESUME_TEMPLATE");
           setMasterResumeDocs(masterDocs);
-          setTemplateDocs(tmplDocs);
           if (masterDocs.length > 0) setMasterResumeDocumentId((v) => v || masterDocs[0].id);
-          if (tmplDocs.length > 0) setResumeTemplateDocumentId((v) => v || tmplDocs[0].id);
         }
       } catch {
         // Keep manual path.
@@ -175,7 +170,6 @@ export default function ResumeTargeterPage() {
           jobDescriptionText,
           masterResumeArtifactId: masterResumeArtifactId || undefined,
           masterResumeDocumentId: masterResumeDocumentId || undefined,
-          resumeTemplateDocumentId: resumeTemplateDocumentId || undefined,
           pastedResumeText: pastedResumeText || undefined,
         }),
       });
@@ -226,7 +220,6 @@ export default function ResumeTargeterPage() {
           jobDescriptionText,
           masterResumeArtifactId: masterResumeArtifactId || undefined,
           masterResumeDocumentId: masterResumeDocumentId || undefined,
-          resumeTemplateDocumentId: resumeTemplateDocumentId || undefined,
           pastedResumeText: pastedResumeText || undefined,
           stage1Context: stage1 ?? undefined,
           stage2Context: stage2 ?? undefined,
@@ -302,17 +295,6 @@ export default function ResumeTargeterPage() {
               <select className="input" value={masterResumeDocumentId} onChange={(e) => setMasterResumeDocumentId(e.target.value)}>
                 <option value="">Select uploaded MASTER_RESUME document</option>
                 {masterResumeDocs.map((doc) => (
-                  <option key={doc.id} value={doc.id}>
-                    {doc.filename} ({new Date(doc.created_at).toLocaleDateString()}) {doc.text_extracted ? "" : "- not extracted"}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="space-y-1 block">
-              <span className="text-sm font-medium">Resume Template Document (optional)</span>
-              <select className="input" value={resumeTemplateDocumentId} onChange={(e) => setResumeTemplateDocumentId(e.target.value)}>
-                <option value="">Select uploaded RESUME_TEMPLATE document</option>
-                {templateDocs.map((doc) => (
                   <option key={doc.id} value={doc.id}>
                     {doc.filename} ({new Date(doc.created_at).toLocaleDateString()}) {doc.text_extracted ? "" : "- not extracted"}
                   </option>

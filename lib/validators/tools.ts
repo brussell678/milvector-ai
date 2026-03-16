@@ -17,7 +17,6 @@ export const ResumeTargeterInputSchema = z.object({
   masterResumeArtifactId: z.string().uuid().optional(),
   masterBulletsArtifactId: z.string().uuid().optional(),
   masterResumeDocumentId: z.string().uuid().optional(),
-  resumeTemplateDocumentId: z.string().uuid().optional(),
   pastedResumeText: z.string().min(100).optional(),
   stage1Context: z.record(z.any()).optional(),
   stage2Context: z.record(z.any()).optional(),

@@ -127,7 +127,6 @@ export async function POST(req: Request) {
     masterResumeArtifactId,
     masterBulletsArtifactId,
     masterResumeDocumentId,
-    resumeTemplateDocumentId,
     pastedResumeText,
     stage1Context,
     stage2Context,
@@ -208,24 +207,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Provide a master resume source (artifact/document) or pasted resume text." }, { status: 400 });
   }
 
-  let templateGuideText = "";
-  if (resumeTemplateDocumentId) {
-    const { data: templateDoc, error: templateErr } = await supabase
-      .from("documents")
-      .select("id,doc_type,text_extracted,extracted_text")
-      .eq("id", resumeTemplateDocumentId)
-      .eq("user_id", userId)
-      .single();
-
-    if (templateErr) return NextResponse.json({ error: "Resume template document not found" }, { status: 404 });
-    if (templateDoc.doc_type !== "RESUME_TEMPLATE") {
-      return NextResponse.json({ error: "Selected template must be a RESUME_TEMPLATE document." }, { status: 400 });
-    }
-    if (!templateDoc.text_extracted || !templateDoc.extracted_text) {
-      return NextResponse.json({ error: "Selected template is not extracted yet." }, { status: 400 });
-    }
-    templateGuideText = templateDoc.extracted_text.slice(0, 12000);
-  }
+  const templateGuideText = "";
 
   if ((stage === "posting_analysis" || stage === "generate_resume" || stage === "quick_generate") && (!jobDescriptionText || jobDescriptionText.length < 100)) {
     return NextResponse.json({ error: "Job description text is required for this stage." }, { status: 400 });
@@ -256,7 +238,6 @@ export async function POST(req: Request) {
         workflowStage: stage,
         masterResumeArtifactId: selectedArtifactId ?? null,
         masterResumeDocumentId: masterResumeDocumentId ?? null,
-        resumeTemplateDocumentId: resumeTemplateDocumentId ?? null,
         jdLen: jdText.length,
         company,
         jobTitle,
@@ -326,7 +307,6 @@ export async function POST(req: Request) {
         workflowStage: stage,
         masterResumeArtifactId: selectedArtifactId ?? null,
         masterResumeDocumentId: masterResumeDocumentId ?? null,
-        resumeTemplateDocumentId: resumeTemplateDocumentId ?? null,
         jdLen: jdText.length,
         company,
         jobTitle,
@@ -466,7 +446,6 @@ export async function POST(req: Request) {
       workflowStage: stage,
       masterResumeArtifactId: selectedArtifactId ?? null,
       masterResumeDocumentId: masterResumeDocumentId ?? null,
-      resumeTemplateDocumentId: resumeTemplateDocumentId ?? null,
       jdLen: jdText.length,
       company,
       jobTitle,
