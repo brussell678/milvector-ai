@@ -325,6 +325,7 @@ export function promptTargetedResumeGenerationV22(args: {
   stage2ContextJson?: string;
   profileContactJson?: string;
   profileSupplementJson?: string;
+  supplementalSourceContextText?: string;
   templateGuideText?: string;
 }) {
   return `
@@ -367,7 +368,8 @@ Generation rules:
 - For each experience item, preserve factual evidence from the master resume while translating military language into civilian language.
 - bullets must be achievement-oriented, interview-defensible, and specific.
 - Do not fabricate scope, employers, dates, metrics, certifications, education, or clearances.
-- Use profile supplement context as authoritative for off-duty education, civilian certifications, and additional training when provided.
+- Use profile supplement context plus supplemental source evidence from master resume/JST/VMET/FITREP/EVAL to populate off-duty education, civilian certifications, and additional training when defensible.
+- Prefer richer factual source evidence over leaving education/professional development under-filled, but never invent credentials or dates.
 - If a section would be empty, return an empty array rather than filler text.
 - If template guidance is provided, mirror its sequencing and tone when possible while preserving ATS readability.
 - Never include placeholder tokens or markdown.
@@ -392,6 +394,9 @@ ${args.profileContactJson ?? "{}"}
 
 Profile supplement context:
 ${args.profileSupplementJson ?? "{}"}
+
+Supplemental source evidence:
+${args.supplementalSourceContextText ?? ""}
 
 Optional resume template guidance text:
 ${args.templateGuideText ?? ""}

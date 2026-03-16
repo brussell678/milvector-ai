@@ -111,6 +111,96 @@ function normalizeStructuredResume(value: StructuredTargetedResumeOutput): Struc
   };
 }
 
+function uniqueTrimmed(items: string[]) {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of items.map((value) => value.trim()).filter(Boolean)) {
+    const key = item.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(item);
+  }
+  return out;
+}
+
+function compactTextByPriority(raw: string, maxChars: number, priorityRegex: RegExp) {
+  const lines = raw.replace(/\r\n/g, "\n").split("\n");
+  const chosen: string[] = [];
+  let used = 0;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || !priorityRegex.test(trimmed)) continue;
+    if (used + trimmed.length + 1 > maxChars) break;
+    chosen.push(trimmed);
+    used += trimmed.length + 1;
+  }
+
+  if (chosen.length === 0) {
+    return raw.slice(0, maxChars);
+  }
+
+  return chosen.join("\n");
+}
+
+function extractSectionLines(text: string, headings: string[]) {
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  const normalizedHeadings = headings.map((heading) => heading.trim().toLowerCase());
+  const start = lines.findIndex((line) => normalizedHeadings.includes(line.trim().toLowerCase()));
+  if (start < 0) return [] as string[];
+
+  const collected: string[] = [];
+  for (const line of lines.slice(start + 1)) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (/^[A-Z][A-Z &\/]{4,}$/.test(trimmed)) break;
+    collected.push(trimmed.replace(/^[-*]\s*/, ""));
+  }
+
+  return uniqueTrimmed(collected);
+}
+
+function buildSupplementalSourceContext(args: {
+  masterResumeText: string;
+  docs: Array<{ doc_type: string; filename: string; extracted_text: string | null; created_at: string }>;
+}) {
+  const masterEducation = extractSectionLines(args.masterResumeText, ["Education & Training", "Education and Training", "Education & Professional Development"]);
+  const credentialPriority = /(cert|certificate|course|training|education|degree|diploma|qualification|license|pme|school|completed|awarded|clearance|security|program|seminar|workshop|academy|university|college)/i;
+  const fitrepPriority = /(course|training|qualification|cert|education|school|pme|degree|award|completed|instructor)/i;
+  const docsByType = {
+    jst: args.docs.filter((doc) => doc.doc_type === "JST"),
+    vmet: args.docs.filter((doc) => doc.doc_type === "VMET"),
+    fitrep: args.docs.filter((doc) => doc.doc_type === "FITREP" || doc.doc_type === "EVAL"),
+    master: args.docs.filter((doc) => doc.doc_type === "MASTER_RESUME"),
+  };
+
+  const sections: string[] = [];
+
+  if (masterEducation.length > 0) {
+    sections.push(`Master resume education/training section:\n${masterEducation.map((line) => `- ${line}`).join("\n")}`);
+  }
+
+  const pushDocSection = (label: string, docs: Array<{ extracted_text: string | null; filename: string }>, maxChars: number, priority: RegExp) => {
+    const blocks = docs
+      .map((doc) => {
+        const raw = (doc.extracted_text ?? "").trim();
+        if (!raw) return "";
+        return `### ${doc.filename}\n${compactTextByPriority(raw, maxChars, priority)}`;
+      })
+      .filter(Boolean);
+
+    if (blocks.length > 0) {
+      sections.push(`${label}:\n${blocks.join("\n\n")}`);
+    }
+  };
+
+  pushDocSection("JST credential evidence", docsByType.jst, 5000, credentialPriority);
+  pushDocSection("VMET training evidence", docsByType.vmet, 5000, credentialPriority);
+  pushDocSection("FITREP/EVAL training and qualification evidence", docsByType.fitrep, 6000, fitrepPriority);
+  pushDocSection("Additional master resume evidence", docsByType.master, 4000, credentialPriority);
+
+  return sections.join("\n\n").slice(0, 20000);
+}
 export async function POST(req: Request) {
   const env = getEnv();
   const { userId } = await requireUser();
@@ -269,6 +359,19 @@ export async function POST(req: Request) {
   }
 
   if (stage === "generate_resume") {
+    const { data: sourceDocs, error: sourceDocsError } = await supabase
+      .from("documents")
+      .select("doc_type,filename,created_at,extracted_text")
+      .eq("user_id", userId)
+      .eq("text_extracted", true)
+      .not("extracted_text", "is", null)
+      .in("doc_type", ["JST", "VMET", "FITREP", "EVAL", "MASTER_RESUME"])
+      .order("created_at", { ascending: true });
+
+    if (sourceDocsError) {
+      return NextResponse.json({ error: sourceDocsError.message }, { status: 500 });
+    }
+
     const prompt = promptTargetedResumeGenerationV22({
       masterResumeText: masterText,
       jobDescriptionText: jdText,
@@ -285,9 +388,13 @@ export async function POST(req: Request) {
         security_clearance: profile?.security_clearance ?? null,
       }),
       profileSupplementJson: JSON.stringify({
-        off_duty_education: profile?.off_duty_education ?? [],
-        civilian_certifications: profile?.civilian_certifications ?? [],
-        additional_training: profile?.additional_training ?? [],
+        off_duty_education: uniqueTrimmed(profile?.off_duty_education ?? []),
+        civilian_certifications: uniqueTrimmed(profile?.civilian_certifications ?? []),
+        additional_training: uniqueTrimmed(profile?.additional_training ?? []),
+      }),
+      supplementalSourceContextText: buildSupplementalSourceContext({
+        masterResumeText: masterText,
+        docs: sourceDocs ?? [],
       }),
       templateGuideText,
     });

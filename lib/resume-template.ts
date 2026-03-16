@@ -1,4 +1,14 @@
-import { Document, Footer, Packer, Paragraph, TextRun } from "docx";
+import {
+  AlignmentType,
+  BorderStyle,
+  Document,
+  Footer,
+  Packer,
+  Paragraph,
+  TabStopPosition,
+  TabStopType,
+  TextRun,
+} from "docx";
 
 export type StructuredExperience = {
   role_title: string;
@@ -31,6 +41,18 @@ function clean(value?: string | null) {
   return (value ?? "").trim();
 }
 
+function uniqueItems(items: string[]) {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of items.map((value) => value.trim()).filter(Boolean)) {
+    const key = item.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(item);
+  }
+  return out;
+}
+
 function hasItems(items?: string[] | null) {
   return (items ?? []).map((item) => item.trim()).filter(Boolean).length > 0;
 }
@@ -60,21 +82,114 @@ function buildOrgLine(experience: StructuredExperience) {
 }
 
 function blankParagraph() {
-  return new Paragraph({});
+  return new Paragraph({ spacing: { after: 60 } });
 }
 
-function headingParagraph(text: string) {
+function sectionRule() {
   return new Paragraph({
-    children: [new TextRun({ text, bold: true })],
-    spacing: { before: 160, after: 100 },
+    border: {
+      bottom: {
+        color: "A0A0A0",
+        space: 1,
+        style: BorderStyle.SINGLE,
+        size: 6,
+      },
+    },
+    spacing: { after: 60 },
+  });
+}
+
+function sectionHeading(text: string) {
+  return new Paragraph({
+    children: [
+      new TextRun({
+        text,
+        bold: true,
+        font: "Times New Roman",
+        size: 28,
+      }),
+    ],
+    spacing: { after: 40 },
+  });
+}
+
+function bodyParagraph(text: string, options?: { italics?: boolean; bold?: boolean; centered?: boolean }) {
+  return new Paragraph({
+    children: [
+      new TextRun({
+        text,
+        italics: options?.italics,
+        bold: options?.bold,
+        font: "Times New Roman",
+        size: 22,
+      }),
+    ],
+    alignment: options?.centered ? AlignmentType.CENTER : undefined,
+    spacing: { after: 60 },
   });
 }
 
 function bulletParagraph(text: string) {
   return new Paragraph({
-    children: [new TextRun(`${String.fromCodePoint(0x2022)} ${text}`)],
-    spacing: { after: 60 },
+    children: [
+      new TextRun({
+        text: `${String.fromCodePoint(0x2022)} ${text}`,
+        font: "Times New Roman",
+        size: 22,
+      }),
+    ],
+    spacing: { after: 40 },
+    indent: { left: 180, hanging: 120 },
   });
+}
+
+function experienceHeadingParagraph(entry: StructuredExperience) {
+  const role = clean(entry.role_title);
+  const orgLine = buildOrgLine(entry);
+
+  if (role && orgLine) {
+    return new Paragraph({
+      children: [
+        new TextRun({ text: role, bold: true, font: "Times New Roman", size: 22 }),
+        new TextRun({ text: "\t", font: "Times New Roman", size: 22 }),
+        new TextRun({ text: orgLine, italics: true, font: "Times New Roman", size: 22 }),
+      ],
+      tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
+      spacing: { after: 50 },
+    });
+  }
+
+  return bodyParagraph(role || orgLine, { bold: true });
+}
+
+function compactCoreSkills(skills: string[]) {
+  return uniqueItems(skills).join(` ${String.fromCodePoint(0x2022)} `);
+}
+
+function pushEducationSection(paragraphs: Paragraph[], resume: StructuredTargetedResume) {
+  const education = uniqueItems((resume.off_duty_education ?? []).map((item) => item.trim()).filter(Boolean));
+  const certifications = uniqueItems((resume.civilian_certifications ?? []).map((item) => item.trim()).filter(Boolean));
+  const training = uniqueItems((resume.additional_training ?? []).map((item) => item.trim()).filter(Boolean));
+
+  if (education.length === 0 && certifications.length === 0 && training.length === 0) return;
+
+  paragraphs.push(sectionRule());
+  paragraphs.push(sectionHeading("EDUCATION & PROFESSIONAL DEVELOPMENT"));
+
+  if (education.length > 0) {
+    paragraphs.push(bodyParagraph("Education", { bold: true }));
+    for (const item of education) paragraphs.push(bulletParagraph(item));
+  }
+
+  if (certifications.length > 0) {
+    paragraphs.push(bodyParagraph("Certifications", { bold: true }));
+    for (const item of certifications) paragraphs.push(bulletParagraph(item));
+  }
+
+  if (training.length > 0) {
+    paragraphs.push(bodyParagraph("Training", { bold: true }));
+    for (const item of training) paragraphs.push(bulletParagraph(item));
+  }
 }
 
 export function buildTargetedResumeText(args: {
@@ -98,10 +213,10 @@ export function buildTargetedResumeText(args: {
     lines.push("");
   }
 
-  const coreSkills = (resume.core_skills ?? []).map((item) => item.trim()).filter(Boolean);
+  const coreSkills = uniqueItems((resume.core_skills ?? []).map((item) => item.trim()).filter(Boolean));
   if (coreSkills.length > 0) {
     lines.push("CORE EXPERTISE");
-    for (const skill of coreSkills) lines.push(`- ${skill}`);
+    lines.push(coreSkills.join(" | "));
     lines.push("");
   }
 
@@ -114,21 +229,30 @@ export function buildTargetedResumeText(args: {
       if (clean(row.role_title)) lines.push(clean(row.role_title));
       const orgLine = buildOrgLine(row);
       if (orgLine) lines.push(orgLine);
-      for (const bullet of (row.bullets ?? []).map((item) => item.trim()).filter(Boolean)) {
+      for (const bullet of uniqueItems((row.bullets ?? []).map((item) => item.trim()).filter(Boolean))) {
         lines.push(`- ${bullet}`);
       }
       lines.push("");
     }
   }
 
-  const education = (resume.off_duty_education ?? []).map((item) => item.trim()).filter(Boolean);
-  const certifications = (resume.civilian_certifications ?? []).map((item) => item.trim()).filter(Boolean);
-  const training = (resume.additional_training ?? []).map((item) => item.trim()).filter(Boolean);
+  const education = uniqueItems((resume.off_duty_education ?? []).map((item) => item.trim()).filter(Boolean));
+  const certifications = uniqueItems((resume.civilian_certifications ?? []).map((item) => item.trim()).filter(Boolean));
+  const training = uniqueItems((resume.additional_training ?? []).map((item) => item.trim()).filter(Boolean));
 
   if (education.length > 0 || certifications.length > 0 || training.length > 0) {
     lines.push("EDUCATION & PROFESSIONAL DEVELOPMENT");
-    for (const item of [...education, ...certifications, ...training]) {
-      lines.push(`- ${item}`);
+    if (education.length > 0) {
+      lines.push("Education");
+      for (const item of education) lines.push(`- ${item}`);
+    }
+    if (certifications.length > 0) {
+      lines.push("Certifications");
+      for (const item of certifications) lines.push(`- ${item}`);
+    }
+    if (training.length > 0) {
+      lines.push("Training");
+      for (const item of training) lines.push(`- ${item}`);
     }
   }
 
@@ -167,8 +291,9 @@ export async function renderTargetedResumeDocx(args: {
   if (clean(args.contact.full_name)) {
     paragraphs.push(
       new Paragraph({
-        children: [new TextRun({ text: clean(args.contact.full_name), bold: true, size: 28 })],
-        spacing: { after: 80 },
+        children: [new TextRun({ text: clean(args.contact.full_name), bold: true, font: "Times New Roman", size: 44 })],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 0 },
       })
     );
   }
@@ -176,8 +301,9 @@ export async function renderTargetedResumeDocx(args: {
   if (clean(args.resume.target_title)) {
     paragraphs.push(
       new Paragraph({
-        children: [new TextRun({ text: clean(args.resume.target_title), size: 24 })],
-        spacing: { after: 80 },
+        children: [new TextRun({ text: clean(args.resume.target_title), italics: true, font: "Times New Roman", size: 26 })],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 0 },
       })
     );
   }
@@ -186,73 +312,63 @@ export async function renderTargetedResumeDocx(args: {
   if (contactLine) {
     paragraphs.push(
       new Paragraph({
-        children: [new TextRun(contactLine)],
-        spacing: { after: 160 },
+        children: [new TextRun({ text: contactLine, font: "Times New Roman", size: 22 })],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 80 },
       })
     );
   }
+
+  paragraphs.push(sectionRule());
 
   if (clean(args.resume.executive_summary)) {
-    paragraphs.push(headingParagraph("EXECUTIVE SUMMARY"));
-    paragraphs.push(
-      new Paragraph({
-        children: [new TextRun(args.resume.executive_summary.trim())],
-        spacing: { after: 120 },
-      })
-    );
+    paragraphs.push(sectionHeading("EXECUTIVE SUMMARY"));
+    paragraphs.push(bodyParagraph(args.resume.executive_summary.trim()));
   }
 
-  const coreSkills = (args.resume.core_skills ?? []).map((item) => item.trim()).filter(Boolean);
+  const coreSkills = uniqueItems((args.resume.core_skills ?? []).map((item) => item.trim()).filter(Boolean));
   if (coreSkills.length > 0) {
-    paragraphs.push(headingParagraph("CORE EXPERTISE"));
-    for (const skill of coreSkills) paragraphs.push(bulletParagraph(skill));
-    paragraphs.push(blankParagraph());
+    paragraphs.push(sectionRule());
+    paragraphs.push(sectionHeading("CORE EXPERTISE"));
+    paragraphs.push(bodyParagraph(compactCoreSkills(coreSkills)));
   }
 
   const experienceRows = (args.resume.experience ?? []).filter(
     (row) => clean(row.role_title) || clean(row.organization) || clean(row.location) || clean(row.dates) || hasItems(row.bullets)
   );
   if (experienceRows.length > 0) {
-    paragraphs.push(headingParagraph("PROFESSIONAL EXPERIENCE"));
+    paragraphs.push(sectionRule());
+    paragraphs.push(sectionHeading("PROFESSIONAL EXPERIENCE"));
     for (const row of experienceRows) {
-      if (clean(row.role_title)) {
-        paragraphs.push(
-          new Paragraph({
-            children: [new TextRun({ text: clean(row.role_title), bold: true })],
-            spacing: { after: 60 },
-          })
-        );
-      }
-      const orgLine = buildOrgLine(row);
-      if (orgLine) {
-        paragraphs.push(
-          new Paragraph({
-            children: [new TextRun(orgLine)],
-            spacing: { after: 60 },
-          })
-        );
-      }
-      for (const bullet of (row.bullets ?? []).map((item) => item.trim()).filter(Boolean)) {
+      paragraphs.push(experienceHeadingParagraph(row));
+      for (const bullet of uniqueItems((row.bullets ?? []).map((item) => item.trim()).filter(Boolean))) {
         paragraphs.push(bulletParagraph(bullet));
       }
       paragraphs.push(blankParagraph());
     }
   }
 
-  const education = (args.resume.off_duty_education ?? []).map((item) => item.trim()).filter(Boolean);
-  const certifications = (args.resume.civilian_certifications ?? []).map((item) => item.trim()).filter(Boolean);
-  const training = (args.resume.additional_training ?? []).map((item) => item.trim()).filter(Boolean);
-
-  if (education.length > 0 || certifications.length > 0 || training.length > 0) {
-    paragraphs.push(headingParagraph("EDUCATION & PROFESSIONAL DEVELOPMENT"));
-    for (const item of [...education, ...certifications, ...training]) {
-      paragraphs.push(bulletParagraph(item));
-    }
-  }
+  pushEducationSection(paragraphs, args.resume);
 
   const footerText = [clean(args.contact.full_name), clean(args.resume.target_title)].filter(Boolean).join(" - ");
 
   const doc = new Document({
+    styles: {
+      default: {
+        document: {
+          run: {
+            font: "Times New Roman",
+            size: 22,
+          },
+          paragraph: {
+            spacing: {
+              line: 276,
+              after: 0,
+            },
+          },
+        },
+      },
+    },
     sections: [
       {
         properties: {
@@ -265,7 +381,8 @@ export async function renderTargetedResumeDocx(args: {
               default: new Footer({
                 children: [
                   new Paragraph({
-                    children: [new TextRun(footerText)],
+                    alignment: AlignmentType.RIGHT,
+                    children: [new TextRun({ text: footerText, size: 16, color: "262626", font: "Times New Roman" })],
                   }),
                 ],
               }),
