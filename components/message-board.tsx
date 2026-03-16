@@ -244,7 +244,7 @@ export function MessageBoard() {
                 <div className="min-w-0 flex-1">
                   <h3 className="text-lg font-bold">{post.title}</h3>
                   <p className="mt-1 text-sm text-[var(--muted)]">
-                    {post.authorLabel} · {formatDate(post.createdAt)}
+                    {post.authorLabel} - {formatDate(post.createdAt)}
                   </p>
                   <p className="mt-3 whitespace-pre-wrap text-sm leading-6">{post.body}</p>
                 </div>
