@@ -16,6 +16,11 @@ const coreTools = [
     title: "VA C&P Rating Navigator GPT",
     desc: "Open the VA C&P Rating Navigator GPT for guided disability rating walkthroughs.",
   },
+  {
+    href: "https://chatgpt.com/g/g-69b75fcfb8d881918bd6c8a092bdb899-milvector-ai-military-sbp-decision-advisor",
+    title: "MilVector AI Military SBP Decision Advisor",
+    desc: "Open the Military SBP Decision Advisor for guided Survivor Benefit Plan decision support.",
+  },
 ];
 
 const basicTools = [
@@ -88,4 +93,5 @@ export default function ToolsPage() {
     </main>
   );
 }
+
 
