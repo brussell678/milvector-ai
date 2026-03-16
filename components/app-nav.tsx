@@ -10,6 +10,7 @@ const links = [
   { href: "/app/documents", label: "Documents" },
   { href: "/app/tools", label: "Tools" },
   { href: "/app/library", label: "Library" },
+  { href: "/app/message-board", label: "Message Board" },
   { href: "/app/feedback", label: "Feedback" },
   { href: "/app/donate", label: "Donate", donate: true },
 ];
