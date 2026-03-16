@@ -18,7 +18,7 @@ type TopLevelPost = BoardPost & {
 };
 
 type StatusState = {
-  kind: "success" | "error";
+  kind: "success" | "error" | "info";
   message: string;
 } | null;
 
@@ -148,7 +148,7 @@ export function MessageBoard() {
   async function submitPost(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setPosting(true);
-    setStatus(null);
+    setStatus({ kind: "info", message: "Posting your message..." });
 
     try {
       const form = new FormData(e.currentTarget);
@@ -169,7 +169,7 @@ export function MessageBoard() {
       }
 
       e.currentTarget.reset();
-      setStatus({ kind: "success", message: "Post created." });
+      setStatus({ kind: "success", message: "Your message has been posted." });
       await loadBoard();
     } finally {
       setPosting(false);
@@ -184,7 +184,7 @@ export function MessageBoard() {
     }
 
     setPosting(true);
-    setStatus(null);
+    setStatus({ kind: "info", message: "Posting your message..." });
 
     try {
       const result = await requestJson("/api/message-board", {
@@ -200,7 +200,7 @@ export function MessageBoard() {
 
       setReplyDrafts((current) => ({ ...current, [postId]: "" }));
       setReplyingTo(null);
-      setStatus({ kind: "success", message: "Reply posted." });
+      setStatus({ kind: "success", message: "Your reply has been posted." });
       await loadBoard();
     } finally {
       setPosting(false);
@@ -238,7 +238,15 @@ export function MessageBoard() {
             Share a question, suggestion, or field note. Posts with the strongest support rise to the top.
           </p>
         </div>
-        <input name="title" className="input" placeholder="Post title" required minLength={3} maxLength={140} />
+        <input
+          name="title"
+          className="input"
+          placeholder="Post title"
+          required
+          minLength={3}
+          maxLength={140}
+          disabled={posting}
+        />
         <textarea
           name="body"
           className="input min-h-32"
@@ -246,6 +254,7 @@ export function MessageBoard() {
           required
           minLength={3}
           maxLength={4000}
+          disabled={posting}
         />
         <div>
           <button className="btn btn-primary" type="submit" disabled={posting}>
@@ -255,7 +264,16 @@ export function MessageBoard() {
       </form>
 
       {status && (
-        <div className={`alert-base ${status.kind === "error" ? "alert-error" : "alert-success"}`}>
+        <div
+          className={`alert-base ${
+            status.kind === "error"
+              ? "alert-error"
+              : status.kind === "info"
+                ? "alert-info"
+                : "alert-success"
+          }`}
+          aria-live="polite"
+        >
           {status.message}
         </div>
       )}

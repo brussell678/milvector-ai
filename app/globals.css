@@ -189,6 +189,12 @@ body {
   border-color: color-mix(in oklab, var(--accent) 45%, var(--line) 55%);
 }
 
+.alert-info {
+  background: color-mix(in oklab, var(--surface) 82%, var(--accent-soft) 18%);
+  color: var(--foreground);
+  border-color: color-mix(in oklab, var(--accent) 28%, var(--line) 72%);
+}
+
 .alert-error {
   background: color-mix(in oklab, var(--panel) 72%, #5c2318 28%);
   color: #ffd8cc;
