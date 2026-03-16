@@ -34,7 +34,7 @@ export async function POST(req: Request) {
 
   const { data: sourceRows, error: sourceErr } = await supabase
     .from("resume_artifacts")
-    .select("artifact_type,title,content,source_document_id,job_title_target,company_target,job_description")
+    .select("artifact_type,title,content,source_document_id,job_title_target,company_target,job_description,structured_output")
     .eq("user_id", userId)
     .in("id", ids);
 
@@ -50,6 +50,8 @@ export async function POST(req: Request) {
     job_title_target: row.job_title_target,
     company_target: row.company_target,
     job_description: row.job_description,
+    structured_output: row.structured_output,
+    rendered_document_id: null,
   }));
 
   const { data: inserted, error: insertErr } = await supabase

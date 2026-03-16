@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   }
 
   const docType = (form.get("doc_type") as string) ?? "FITREP";
-  if (!["FITREP", "EVAL", "VMET", "JST", "MASTER_RESUME", "RESUME_TEMPLATE", "OTHER"].includes(docType)) {
+  if (!["FITREP", "EVAL", "VMET", "JST", "MASTER_RESUME", "RESUME_TEMPLATE", "TARGETED_RESUME", "OTHER"].includes(docType)) {
     return NextResponse.json({ error: "Invalid doc_type" }, { status: 400 });
   }
 

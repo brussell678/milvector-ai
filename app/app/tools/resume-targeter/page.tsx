@@ -52,6 +52,8 @@ type Stage2Output = {
 
 type Stage3Output = {
   artifactId: string;
+  documentId?: string;
+  fileName?: string;
   workflowStage: "generate_resume";
   targeted_resume: string;
   keywords_added: string[];
@@ -236,7 +238,7 @@ export default function ResumeTargeterPage() {
         return;
       }
       setStage3(data as Stage3Output);
-      setNotice("Targeted resume generated and saved to Library.");
+      setNotice("Targeted resume generated, saved to Library, and rendered as a Word document.");
     } catch {
       setError("Network error during targeted resume generation.");
     } finally {
@@ -412,6 +414,11 @@ export default function ResumeTargeterPage() {
               <p className="text-sm"><span className="font-semibold">Keywords added:</span> {stage3.keywords_added.join(", ")}</p>
               <p className="text-sm"><span className="font-semibold">Changes made:</span> {stage3.changes_made.join(", ")}</p>
               {stage3.targeting_critique && <p className="text-sm"><span className="font-semibold">Targeting critique:</span> {stage3.targeting_critique}</p>}
+              {stage3.documentId && (
+                <a className="btn btn-secondary inline-flex text-sm" href={`/api/documents/${stage3.documentId}/download`}>
+                  Download Saved Word (.docx)
+                </a>
+              )}
             </section>
           )}
         </section>

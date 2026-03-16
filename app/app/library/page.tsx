@@ -15,6 +15,7 @@ type ResumeArtifact = {
   artifact_type: "master_bullets" | "master_resume" | "targeted_resume";
   title: string;
   created_at: string;
+  rendered_document_id?: string | null;
 };
 
 type PublicDoc = {
@@ -134,7 +135,7 @@ export default async function LibraryPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("resume_artifacts")
-      .select("id,artifact_type,title,created_at")
+      .select("id,artifact_type,title,created_at,rendered_document_id")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false }),
     supabase
@@ -176,6 +177,11 @@ export default async function LibraryPage() {
               <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">{doc.doc_type}</p>
               <p className="font-semibold">{doc.filename}</p>
               <p className="text-xs text-[var(--muted)]">{new Date(doc.created_at).toLocaleString()}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <a className="btn btn-secondary inline-flex text-sm" href={`/api/documents/${doc.id}/download`}>
+                  Download
+                </a>
+              </div>
             </article>
           ))}
         </div>
@@ -200,6 +206,14 @@ export default async function LibraryPage() {
                 >
                   Export Word (.docx)
                 </a>
+                {artifact.rendered_document_id && (
+                  <a
+                    className="btn btn-secondary inline-flex text-sm"
+                    href={`/api/documents/${artifact.rendered_document_id}/download`}
+                  >
+                    Open Saved File
+                  </a>
+                )}
               </div>
             </article>
           ))}

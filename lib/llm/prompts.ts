@@ -324,6 +324,7 @@ export function promptTargetedResumeGenerationV22(args: {
   stage1ContextJson?: string;
   stage2ContextJson?: string;
   profileContactJson?: string;
+  profileSupplementJson?: string;
   templateGuideText?: string;
 }) {
   return `
@@ -335,7 +336,21 @@ Use prior step context aggressively to maximize alignment accuracy.
 
 Return strict JSON:
 {
-  "targeted_resume":"",
+  "target_title":"",
+  "executive_summary":"",
+  "core_skills":[],
+  "experience":[
+    {
+      "role_title":"",
+      "organization":"",
+      "location":"",
+      "dates":"",
+      "bullets":[]
+    }
+  ],
+  "off_duty_education":[],
+  "civilian_certifications":[],
+  "additional_training":[],
   "keywords_added":[],
   "changes_made":[],
   "ats_alignment_notes":[],
@@ -344,22 +359,18 @@ Return strict JSON:
   "next_prompt":"Would you like to proceed to application and interview preparation?"
 }
 
-Resume formatting rules inside targeted_resume:
-- Plain text only
-- No markdown tables
-- One blank line between sections
-- Hyphen bullets only
-- Professional Experience must be reverse chronological (most recent first)
-- Convert military billet/position titles into civilian-equivalent role titles aligned to the target job and company context.
-- Preserve original military terms only when needed for credibility, and pair them with plain-English civilian wording.
-- Preserve detailed, evidence-rich accomplishments from master resume where relevant
-- Avoid over-compressing; retain enough detail to defend claims in interview
-- Include a contact header at the top using provided profile contact data when available:
-  Name line (if available), phone, professional email, LinkedIn, location, security clearance.
-  If any contact field is missing, omit it cleanly without placeholders.
-- If template guidance is provided, mirror its section sequencing and writing style when possible
-  while preserving ATS readability and factual integrity.
-- Never fabricate scope, seniority, responsibilities, or employers during title translation.
+Generation rules:
+- target_title should be the candidate-facing title line that best aligns to the target role.
+- executive_summary must be 3-5 lines of civilian, ATS-readable prose.
+- core_skills must contain 8-16 targeted skills or keywords, one per item.
+- experience must be reverse chronological.
+- For each experience item, preserve factual evidence from the master resume while translating military language into civilian language.
+- bullets must be achievement-oriented, interview-defensible, and specific.
+- Do not fabricate scope, employers, dates, metrics, certifications, education, or clearances.
+- Use profile supplement context as authoritative for off-duty education, civilian certifications, and additional training when provided.
+- If a section would be empty, return an empty array rather than filler text.
+- If template guidance is provided, mirror its sequencing and tone when possible while preserving ATS readability.
+- Never include placeholder tokens or markdown.
 
 Company: ${args.company ?? ""}
 Job title: ${args.jobTitle}
@@ -378,6 +389,9 @@ ${args.stage2ContextJson ?? "{}"}
 
 Profile contact context:
 ${args.profileContactJson ?? "{}"}
+
+Profile supplement context:
+${args.profileSupplementJson ?? "{}"}
 
 Optional resume template guidance text:
 ${args.templateGuideText ?? ""}

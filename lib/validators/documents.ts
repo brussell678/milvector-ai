@@ -15,5 +15,5 @@ export const FitrepBulletsSchema = z.object({
 });
 
 export const UploadMetaSchema = z.object({
-  doc_type: z.enum(["FITREP", "EVAL", "VMET", "JST", "MASTER_RESUME", "RESUME_TEMPLATE", "OTHER"]).default("FITREP"),
+  doc_type: z.enum(["FITREP", "EVAL", "VMET", "JST", "MASTER_RESUME", "RESUME_TEMPLATE", "TARGETED_RESUME", "OTHER"]).default("FITREP"),
 });
