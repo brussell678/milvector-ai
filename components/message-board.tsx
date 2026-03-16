@@ -231,6 +231,16 @@ export function MessageBoard() {
 
   return (
     <div className="space-y-4">
+      <section className="panel p-6">
+        <h2 className="text-lg font-bold">How the Board Works</h2>
+        <p className="mt-2 text-sm text-[var(--muted)]">
+          Use this board to share questions, ideas, and issues with the MilVector community.
+        </p>
+        <p className="mt-2 text-sm text-[var(--muted)]">
+          Upvotes increase a post&apos;s importance and help move it higher on the board. Downvotes lower its priority, so the most useful and relevant discussions stay near the top.
+        </p>
+      </section>
+
       <form className="panel grid gap-3 p-6" onSubmit={submitPost}>
         <div>
           <h2 className="text-lg font-bold">Start a Discussion</h2>
