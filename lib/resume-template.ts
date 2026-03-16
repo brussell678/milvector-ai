@@ -170,9 +170,11 @@ function compactCoreSkills(skills: string[]) {
   return uniqueItems(skills).join(` ${String.fromCodePoint(0x2022)} `);
 }
 
-function compactEducationLine(label: string, items: string[]) {
-  const compact = uniqueItems(items).join("; ");
-  return compact ? `${label}: ${compact}` : "";
+function educationCategoryParagraph(label: string) {
+  return new Paragraph({
+    children: [new TextRun({ text: label, bold: true, font: "Aptos", size: 22 })],
+    spacing: { after: 10 },
+  });
 }
 
 function pushEducationSection(paragraphs: Paragraph[], resume: StructuredTargetedResume) {
@@ -185,14 +187,18 @@ function pushEducationSection(paragraphs: Paragraph[], resume: StructuredTargete
   paragraphs.push(sectionRule());
   paragraphs.push(sectionHeading("EDUCATION & PROFESSIONAL DEVELOPMENT"));
 
-  const compactLines = [
-    compactEducationLine("Education", education),
-    compactEducationLine("Certifications", certifications),
-    compactEducationLine("Training", training),
-  ].filter(Boolean);
+  const sections = [
+    ["Education", education],
+    ["Certifications", certifications],
+    ["Training", training],
+  ] as const;
 
-  for (const line of compactLines) {
-    paragraphs.push(bodyParagraph(line));
+  for (const [label, items] of sections) {
+    if (items.length === 0) continue;
+    paragraphs.push(educationCategoryParagraph(label));
+    for (const item of items) {
+      paragraphs.push(bulletParagraph(item));
+    }
   }
 }
 
@@ -240,15 +246,21 @@ export function buildTargetedResumeText(args: {
     }
   }
 
-  const compactLines = [
-    compactEducationLine("Education", resume.off_duty_education ?? []),
-    compactEducationLine("Certifications", resume.civilian_certifications ?? []),
-    compactEducationLine("Training", resume.additional_training ?? []),
-  ].filter(Boolean);
+  const sections = [
+    ["Education", resume.off_duty_education ?? []],
+    ["Certifications", resume.civilian_certifications ?? []],
+    ["Training", resume.additional_training ?? []],
+  ] as const;
 
-  if (compactLines.length > 0) {
+  const populatedSections = sections.filter(([, items]) => uniqueItems(items).length > 0);
+  if (populatedSections.length > 0) {
     lines.push("EDUCATION & PROFESSIONAL DEVELOPMENT");
-    lines.push(...compactLines);
+    for (const [label, items] of populatedSections) {
+      lines.push(`${label}:`);
+      for (const item of uniqueItems(items)) {
+        lines.push(`- ${item}`);
+      }
+    }
   }
 
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();

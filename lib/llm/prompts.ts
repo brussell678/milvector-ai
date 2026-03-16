@@ -371,12 +371,14 @@ Generation rules:
 - If location is unknown for a role, leave the location field empty.
 - For each experience item, preserve factual evidence from the master resume while translating military language into civilian language.
 - Use Step 1 and Step 2 context aggressively to decide which roles and bullets matter most for this specific billet and company.
+- Use the targeting priorities below to maximize relevance to the billet, company, and job posting.
 - bullets must be achievement-oriented, interview-defensible, and specific.
-- Prefer 2-4 highly relevant bullets per role over generic filler; each bullet should clearly support the target billet, company context, or core requirements from Step 2.
-- Aim for a resume that is either one strong full page or nearly fills two full pages; avoid leaving a second page with only a tiny trailing education section.
+- Prefer 3-5 highly relevant bullets per role when supported by source material.
+- If the resume spills to a second page, use that space on stronger professional experience content before expanding education or thin filler content.
+- Treat the master resume's education and professional development section as the primary source for education, certifications, and training.
+- Select education, certifications, and training only from the master resume's education/professional-development section when that section is available.
+- Use profile supplement context only as a secondary cross-check. Do not add education or training entries that are not supported by the master resume's education/professional-development section.
 - Do not fabricate scope, employers, dates, metrics, certifications, education, or clearances.
-- Use profile supplement context plus supplemental source evidence from master resume/JST/VMET/FITREP/EVAL to populate off-duty education, civilian certifications, and additional training when defensible.
-- Prefer richer factual source evidence over leaving education/professional development under-filled, but never invent credentials or dates.
 - If a section would be empty, return an empty array rather than filler text.
 - If template guidance is provided, mirror its sequencing and tone when possible while preserving ATS readability.
 - Never include placeholder tokens or markdown.
@@ -395,6 +397,9 @@ ${args.stage1ContextJson ?? "{}"}
 
 Step 2 context:
 ${args.stage2ContextJson ?? "{}"}
+
+Targeting priorities:
+${args.targetingContextText ?? ""}
 
 Profile contact context:
 ${args.profileContactJson ?? "{}"}

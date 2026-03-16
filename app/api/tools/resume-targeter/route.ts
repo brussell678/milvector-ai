@@ -19,6 +19,43 @@ import {
   StructuredTargetedResume,
 } from "@/lib/resume-template";
 
+
+function monthNumber(value: string) {
+  const lower = value.toLowerCase();
+  if (/(jan|january)/.test(lower)) return 1;
+  if (/(feb|february)/.test(lower)) return 2;
+  if (/(mar|march)/.test(lower)) return 3;
+  if (/(apr|april)/.test(lower)) return 4;
+  if (/may/.test(lower)) return 5;
+  if (/(jun|june)/.test(lower)) return 6;
+  if (/(jul|july)/.test(lower)) return 7;
+  if (/(aug|august)/.test(lower)) return 8;
+  if (/(sep|sept|september)/.test(lower)) return 9;
+  if (/(oct|october)/.test(lower)) return 10;
+  if (/(nov|november)/.test(lower)) return 11;
+  if (/(dec|december)/.test(lower)) return 12;
+  return 0;
+}
+
+function experienceEndScore(dates: string) {
+  const normalized = dates.trim();
+  if (!normalized) return 0;
+  if (/(present|current|now)/i.test(normalized)) return 999999;
+
+  const years = Array.from(normalized.matchAll(/\b(?:19|20)\d{2}\b/g)).map((match) => Number(match[0]));
+  const year = years.length > 0 ? years[years.length - 1] : 0;
+  const tail = normalized.split(/[\u2013\-]/).pop() ?? normalized;
+  const month = monthNumber(tail) || monthNumber(normalized);
+  return year * 100 + month;
+}
+
+function sortExperienceReverseChronological(experience: StructuredExperience[]) {
+  return [...experience].sort((left, right) => {
+    const scoreDelta = experienceEndScore(right.dates) - experienceEndScore(left.dates);
+    if (scoreDelta !== 0) return scoreDelta;
+    return right.role_title.localeCompare(left.role_title);
+  });
+}
 type ResumeTargeterOutput = {
   targeted_resume: string;
   keywords_added: string[];
@@ -98,7 +135,7 @@ function normalizeStructuredResume(value: StructuredTargetedResumeOutput): Struc
     target_title: String(value.target_title ?? "").trim(),
     executive_summary: String(value.executive_summary ?? "").trim(),
     core_skills: toStringArray(value.core_skills),
-    experience: toExperienceArray(value.experience),
+    experience: sortExperienceReverseChronological(toExperienceArray(value.experience)),
     off_duty_education: toStringArray(value.off_duty_education),
     civilian_certifications: toStringArray(value.civilian_certifications),
     additional_training: toStringArray(value.additional_training),
@@ -309,6 +346,7 @@ function finalizeProfessionalDevelopment(
 
   return {
     ...resume,
+    experience: sortExperienceReverseChronological(resume.experience),
     off_duty_education: rankProfessionalDevelopmentItems(educationSource, terms, 3),
     civilian_certifications: rankProfessionalDevelopmentItems(certificationSource, terms, 4),
     additional_training: rankProfessionalDevelopmentItems(trainingSource, terms, 3),
@@ -362,7 +400,7 @@ function sanitizeExperienceLocations(resume: StructuredTargetedResumeOutput, cur
 
   return {
     ...resume,
-    experience: resume.experience.map((row) => ({ ...row, location: "" })),
+    experience: sortExperienceReverseChronological(resume.experience.map((row) => ({ ...row, location: "" }))),
   };
 }
 
