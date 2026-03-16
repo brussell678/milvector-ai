@@ -53,21 +53,46 @@ function buildThreads(posts: BoardPost[]): TopLevelPost[] {
     }));
 }
 
-async function fetchBoard() {
-  const res = await fetch("/api/message-board", { cache: "no-store" });
-  const data = await res.json().catch(() => ({}));
+async function requestJson(url: string, init?: RequestInit) {
+  try {
+    const res = await fetch(url, init);
+    const data = await res.json().catch(() => ({}));
 
-  if (!res.ok) {
+    if (!res.ok) {
+      return {
+        ok: false as const,
+        error: data.error ?? "Request failed.",
+        data: null,
+      };
+    }
+
+    return {
+      ok: true as const,
+      data,
+    };
+  } catch {
     return {
       ok: false as const,
-      error: data.error ?? "Unable to load the message board.",
+      error: "Network request failed. Please try again.",
+      data: null,
+    };
+  }
+}
+
+async function fetchBoard() {
+  const result = await requestJson("/api/message-board", { cache: "no-store" });
+
+  if (!result.ok) {
+    return {
+      ok: false as const,
+      error: result.error,
       posts: [] as BoardPost[],
     };
   }
 
   return {
     ok: true as const,
-    posts: (data.posts ?? []) as BoardPost[],
+    posts: (result.data.posts ?? []) as BoardPost[],
   };
 }
 
@@ -125,29 +150,30 @@ export function MessageBoard() {
     setPosting(true);
     setStatus(null);
 
-    const form = new FormData(e.currentTarget);
-    const payload = {
-      title: form.get("title")?.toString() ?? "",
-      body: form.get("body")?.toString() ?? "",
-    };
+    try {
+      const form = new FormData(e.currentTarget);
+      const payload = {
+        title: form.get("title")?.toString() ?? "",
+        body: form.get("body")?.toString() ?? "",
+      };
 
-    const res = await fetch("/api/message-board", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json().catch(() => ({}));
+      const result = await requestJson("/api/message-board", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    if (!res.ok) {
-      setStatus({ kind: "error", message: data.error ?? "Unable to create post." });
+      if (!result.ok) {
+        setStatus({ kind: "error", message: result.error ?? "Unable to create post." });
+        return;
+      }
+
+      e.currentTarget.reset();
+      setStatus({ kind: "success", message: "Post created." });
+      await loadBoard();
+    } finally {
       setPosting(false);
-      return;
     }
-
-    e.currentTarget.reset();
-    setStatus({ kind: "success", message: "Post created." });
-    setPosting(false);
-    await loadBoard();
   }
 
   async function submitReply(postId: string) {
@@ -160,45 +186,47 @@ export function MessageBoard() {
     setPosting(true);
     setStatus(null);
 
-    const res = await fetch("/api/message-board", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ parentPostId: postId, body }),
-    });
-    const data = await res.json().catch(() => ({}));
+    try {
+      const result = await requestJson("/api/message-board", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ parentPostId: postId, body }),
+      });
 
-    if (!res.ok) {
-      setStatus({ kind: "error", message: data.error ?? "Unable to add reply." });
+      if (!result.ok) {
+        setStatus({ kind: "error", message: result.error ?? "Unable to add reply." });
+        return;
+      }
+
+      setReplyDrafts((current) => ({ ...current, [postId]: "" }));
+      setReplyingTo(null);
+      setStatus({ kind: "success", message: "Reply posted." });
+      await loadBoard();
+    } finally {
       setPosting(false);
-      return;
     }
-
-    setReplyDrafts((current) => ({ ...current, [postId]: "" }));
-    setReplyingTo(null);
-    setStatus({ kind: "success", message: "Reply posted." });
-    setPosting(false);
-    await loadBoard();
   }
 
   async function castVote(postId: string, value: 1 | -1) {
     setVotingPostId(postId);
     setStatus(null);
 
-    const res = await fetch("/api/message-board/vote", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ postId, value }),
-    });
-    const data = await res.json().catch(() => ({}));
+    try {
+      const result = await requestJson("/api/message-board/vote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postId, value }),
+      });
 
-    if (!res.ok) {
-      setStatus({ kind: "error", message: data.error ?? "Unable to record vote." });
+      if (!result.ok) {
+        setStatus({ kind: "error", message: result.error ?? "Unable to record vote." });
+        return;
+      }
+
+      await loadBoard();
+    } finally {
       setVotingPostId(null);
-      return;
     }
-
-    setVotingPostId(null);
-    await loadBoard();
   }
 
   return (
