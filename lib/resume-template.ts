@@ -105,7 +105,7 @@ function sectionHeading(text: string) {
       new TextRun({
         text,
         bold: true,
-        font: "Times New Roman",
+        font: "Aptos",
         size: 28,
       }),
     ],
@@ -120,7 +120,7 @@ function bodyParagraph(text: string, options?: { italics?: boolean; bold?: boole
         text,
         italics: options?.italics,
         bold: options?.bold,
-        font: "Times New Roman",
+        font: "Aptos",
         size: 22,
       }),
     ],
@@ -134,7 +134,7 @@ function bulletParagraph(text: string) {
     children: [
       new TextRun({
         text: `${String.fromCodePoint(0x2022)} ${text}`,
-        font: "Times New Roman",
+        font: "Aptos",
         size: 22,
       }),
     ],
@@ -150,9 +150,9 @@ function experienceHeadingParagraph(entry: StructuredExperience) {
   if (role && orgLine) {
     return new Paragraph({
       children: [
-        new TextRun({ text: role, bold: true, font: "Times New Roman", size: 22 }),
-        new TextRun({ text: "\t", font: "Times New Roman", size: 22 }),
-        new TextRun({ text: orgLine, italics: true, font: "Times New Roman", size: 22 }),
+        new TextRun({ text: role, bold: true, font: "Aptos", size: 22 }),
+        new TextRun({ text: "\t", font: "Aptos", size: 22 }),
+        new TextRun({ text: orgLine, italics: true, font: "Aptos", size: 22 }),
       ],
       tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
       spacing: { after: 30 },
@@ -282,7 +282,7 @@ export async function renderTargetedResumeDocx(args: {
   if (clean(args.contact.full_name)) {
     paragraphs.push(
       new Paragraph({
-        children: [new TextRun({ text: clean(args.contact.full_name), bold: true, font: "Times New Roman", size: 44 })],
+        children: [new TextRun({ text: clean(args.contact.full_name), bold: true, font: "Aptos", size: 44 })],
         alignment: AlignmentType.CENTER,
         spacing: { after: 0 },
       })
@@ -292,7 +292,7 @@ export async function renderTargetedResumeDocx(args: {
   if (clean(args.resume.target_title)) {
     paragraphs.push(
       new Paragraph({
-        children: [new TextRun({ text: clean(args.resume.target_title), italics: true, font: "Times New Roman", size: 26 })],
+        children: [new TextRun({ text: clean(args.resume.target_title), italics: true, font: "Aptos", size: 26 })],
         alignment: AlignmentType.CENTER,
         spacing: { after: 0 },
       })
@@ -303,7 +303,7 @@ export async function renderTargetedResumeDocx(args: {
   if (contactLine) {
     paragraphs.push(
       new Paragraph({
-        children: [new TextRun({ text: contactLine, font: "Times New Roman", size: 22 })],
+        children: [new TextRun({ text: contactLine, font: "Aptos", size: 22 })],
         alignment: AlignmentType.CENTER,
         spacing: { after: 60 },
       })
@@ -348,7 +348,7 @@ export async function renderTargetedResumeDocx(args: {
       default: {
         document: {
           run: {
-            font: "Times New Roman",
+            font: "Aptos",
             size: 22,
           },
           paragraph: {
@@ -373,7 +373,7 @@ export async function renderTargetedResumeDocx(args: {
                 children: [
                   new Paragraph({
                     alignment: AlignmentType.RIGHT,
-                    children: [new TextRun({ text: footerText, size: 16, color: "262626", font: "Times New Roman" })],
+                    children: [new TextRun({ text: footerText, size: 16, color: "262626", font: "Aptos" })],
                   }),
                 ],
               }),
