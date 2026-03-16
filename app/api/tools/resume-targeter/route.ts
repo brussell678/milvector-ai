@@ -164,14 +164,39 @@ function extractSectionLines(text: string, headings: string[]) {
   return uniqueTrimmed(collected);
 }
 
+function normalizeProfessionalDevelopmentItem(item: string) {
+  return item
+    .replace(/^[-*]\s*/, "")
+    .replace(/[;:,]+$/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function isUsefulProfessionalDevelopmentLine(item: string) {
+  const normalized = normalizeProfessionalDevelopmentItem(item);
+  const lower = normalized.toLowerCase();
+
+  if (!normalized) return false;
+  if (normalized.length > 120) return false;
+  if (/[.!?]$/.test(normalized) && normalized.split(" ").length > 10) return false;
+  if (/(commendation|award|outstanding performance|responsible for|served as|supervised|ensure |worked with|managed the platoon|training exercises|counselings|welfare)/i.test(lower)) {
+    return false;
+  }
+
+  return /(degree|bachelor|master|mba|university|college|associate|cert|certificate|certification|license|belt|pmp|scrum|security\+|itil|six sigma|course|school|academy)/i.test(lower);
+}
+
 function classifyProfessionalDevelopment(items: string[]) {
   const education: string[] = [];
   const certifications: string[] = [];
   const training: string[] = [];
 
-  for (const item of uniqueTrimmed(items)) {
+  for (const rawItem of uniqueTrimmed(items)) {
+    const item = normalizeProfessionalDevelopmentItem(rawItem);
     const lower = item.toLowerCase();
-    if (/(b\.?s\.?|bachelor|master|m\.?s\.?|mba|degree|university|college|associate|education)/i.test(lower)) {
+    if (!isUsefulProfessionalDevelopmentLine(item)) continue;
+
+    if (/(b\.?s\.?|bachelor|master|m\.?s\.?|mba|degree|university|college|associate)/i.test(lower)) {
       education.push(item);
       continue;
     }
@@ -189,16 +214,87 @@ function classifyProfessionalDevelopment(items: string[]) {
   };
 }
 
-function mergeProfessionalDevelopment(
+function limitItems(items: string[], maxItems: number) {
+  return uniqueTrimmed(items).slice(0, maxItems);
+}
+
+function extractProfessionalDevelopmentLinesFromMasterText(text: string) {
+  const headings = [
+    "Education",
+    "Education & Training",
+    "Education and Training",
+    "Education & Professional Development",
+    "Education / Professional Development",
+    "Education & Certifications",
+    "Professional Development",
+    "Certifications",
+    "Licenses & Certifications",
+    "Training",
+  ];
+
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  const credentialLike = lines
+    .map((line) => normalizeProfessionalDevelopmentItem(line))
+    .filter((line) => isUsefulProfessionalDevelopmentLine(line));
+
+  const sectionLines = headings.flatMap((heading) => extractSectionLines(text, [heading]));
+  return uniqueTrimmed([...sectionLines, ...credentialLike]).slice(0, 16);
+}
+
+function finalizeProfessionalDevelopment(
   resume: StructuredTargetedResumeOutput,
   extras: { off_duty_education: string[]; civilian_certifications: string[]; additional_training: string[] }
 ) {
+  const classified = classifyProfessionalDevelopment([
+    ...extras.off_duty_education,
+    ...resume.off_duty_education,
+    ...extras.civilian_certifications,
+    ...resume.civilian_certifications,
+    ...extras.additional_training,
+    ...resume.additional_training,
+  ]);
+
   return {
     ...resume,
-    off_duty_education: uniqueTrimmed([...resume.off_duty_education, ...extras.off_duty_education]),
-    civilian_certifications: uniqueTrimmed([...resume.civilian_certifications, ...extras.civilian_certifications]),
-    additional_training: uniqueTrimmed([...resume.additional_training, ...extras.additional_training]),
+    off_duty_education: limitItems(classified.off_duty_education, 4),
+    civilian_certifications: limitItems(classified.civilian_certifications, 6),
+    additional_training: limitItems(classified.additional_training, 4),
   };
+}
+
+function toContextArray(value: unknown) {
+  if (!Array.isArray(value)) return [] as string[];
+  return value.map((item) => String(item ?? "").trim()).filter(Boolean);
+}
+
+function buildTargetingContextText(stage1Context: Record<string, unknown> | undefined, stage2Context: Record<string, unknown> | undefined) {
+  const lines: string[] = [];
+
+  if (stage1Context) {
+    const hardSkills = toContextArray(stage1Context.typical_hard_skills).slice(0, 8);
+    const softSkills = toContextArray(stage1Context.typical_soft_skills).slice(0, 6);
+    const painPoints = toContextArray(stage1Context.employer_pain_points).slice(0, 6);
+    if (hardSkills.length) lines.push(`Step 1 hard skills: ${hardSkills.join("; ")}`);
+    if (softSkills.length) lines.push(`Step 1 soft skills: ${softSkills.join("; ")}`);
+    if (painPoints.length) lines.push(`Step 1 employer pain points: ${painPoints.join("; ")}`);
+  }
+
+  if (stage2Context) {
+    const mustHaves = toContextArray(stage2Context.top_must_have_signals).slice(0, 8);
+    const hardRequirements = toContextArray(stage2Context.hard_requirements).slice(0, 10);
+    const implied = toContextArray(stage2Context.implied_expectations).slice(0, 6);
+    const strengths = toContextArray(stage2Context.alignment_strengths).slice(0, 6);
+    const gaps = toContextArray(stage2Context.hard_gaps).slice(0, 4);
+    const companySummary = String(stage2Context.company_context_summary ?? "").trim();
+    if (mustHaves.length) lines.push(`Step 2 top must-have signals: ${mustHaves.join("; ")}`);
+    if (hardRequirements.length) lines.push(`Step 2 hard requirements: ${hardRequirements.join("; ")}`);
+    if (implied.length) lines.push(`Step 2 implied expectations: ${implied.join("; ")}`);
+    if (strengths.length) lines.push(`Step 2 alignment strengths to emphasize: ${strengths.join("; ")}`);
+    if (gaps.length) lines.push(`Step 2 hard gaps to de-emphasize or offset: ${gaps.join("; ")}`);
+    if (companySummary) lines.push(`Step 2 company context: ${companySummary}`);
+  }
+
+  return lines.join("\n").slice(0, 5000);
 }
 
 function sanitizeExperienceLocations(resume: StructuredTargetedResumeOutput, currentLocation?: string | null) {
@@ -221,34 +317,35 @@ function extractCredentialLinesFromDocs(
   docs: Array<{ doc_type: string; extracted_text: string | null; filename: string }>
 ) {
   const lines: string[] = [];
-  const credentialRegex = /(cert|certificate|certification|license|training|course|degree|university|college|belt|pmp|scrum|security\+|itil|six sigma|program|academy|school)/i;
+  const allowedDocs = docs.filter((doc) => doc.doc_type === "JST" || doc.doc_type === "VMET");
 
-  for (const doc of docs) {
+  for (const doc of allowedDocs) {
     const raw = (doc.extracted_text ?? "").replace(/\r\n/g, "\n");
     for (const line of raw.split("\n")) {
-      const trimmed = line.trim().replace(/^[-*]\s*/, "");
-      if (!trimmed) continue;
-      if (trimmed.length > 180) continue;
-      if (!credentialRegex.test(trimmed)) continue;
+      const trimmed = normalizeProfessionalDevelopmentItem(line);
+      if (!isUsefulProfessionalDevelopmentLine(trimmed)) continue;
       lines.push(trimmed);
-      if (lines.length >= 24) break;
+      if (lines.length >= 12) break;
     }
-    if (lines.length >= 24) break;
+    if (lines.length >= 12) break;
   }
 
   return uniqueTrimmed(lines);
 }
+
 function buildSupplementalSourceContext(args: {
   masterResumeText: string;
   docs: Array<{ doc_type: string; filename: string; extracted_text: string | null; created_at: string }>;
 }) {
-  const masterEducation = extractSectionLines(args.masterResumeText, ["Education & Training", "Education and Training", "Education & Professional Development"]);
-  const credentialPriority = /(cert|certificate|course|training|education|degree|diploma|qualification|license|pme|school|completed|awarded|clearance|security|program|seminar|workshop|academy|university|college)/i;
-  const fitrepPriority = /(course|training|qualification|cert|education|school|pme|degree|award|completed|instructor)/i;
+  const masterEducation = extractSectionLines(args.masterResumeText, [
+    "Education & Training",
+    "Education and Training",
+    "Education & Professional Development",
+  ]);
+  const credentialPriority = /(cert|certificate|course|training|education|degree|diploma|qualification|license|school|program|academy|university|college)/i;
   const docsByType = {
     jst: args.docs.filter((doc) => doc.doc_type === "JST"),
     vmet: args.docs.filter((doc) => doc.doc_type === "VMET"),
-    fitrep: args.docs.filter((doc) => doc.doc_type === "FITREP" || doc.doc_type === "EVAL"),
     master: args.docs.filter((doc) => doc.doc_type === "MASTER_RESUME"),
   };
 
@@ -258,7 +355,12 @@ function buildSupplementalSourceContext(args: {
     sections.push(`Master resume education/training section:\n${masterEducation.map((line) => `- ${line}`).join("\n")}`);
   }
 
-  const pushDocSection = (label: string, docs: Array<{ extracted_text: string | null; filename: string }>, maxChars: number, priority: RegExp) => {
+  const pushDocSection = (
+    label: string,
+    docs: Array<{ extracted_text: string | null; filename: string }>,
+    maxChars: number,
+    priority: RegExp
+  ) => {
     const blocks = docs
       .map((doc) => {
         const raw = (doc.extracted_text ?? "").trim();
@@ -272,13 +374,13 @@ function buildSupplementalSourceContext(args: {
     }
   };
 
-  pushDocSection("JST credential evidence", docsByType.jst, 5000, credentialPriority);
-  pushDocSection("VMET training evidence", docsByType.vmet, 5000, credentialPriority);
-  pushDocSection("FITREP/EVAL training and qualification evidence", docsByType.fitrep, 6000, fitrepPriority);
-  pushDocSection("Additional master resume evidence", docsByType.master, 4000, credentialPriority);
+  pushDocSection("JST credential evidence", docsByType.jst, 4000, credentialPriority);
+  pushDocSection("VMET training evidence", docsByType.vmet, 4000, credentialPriority);
+  pushDocSection("Additional master resume evidence", docsByType.master, 3000, credentialPriority);
 
-  return sections.join("\n\n").slice(0, 20000);
+  return sections.join("\n\n").slice(0, 14000);
 }
+
 export async function POST(req: Request) {
   const env = getEnv();
   const { userId } = await requireUser();
@@ -443,7 +545,7 @@ export async function POST(req: Request) {
       .eq("user_id", userId)
       .eq("text_extracted", true)
       .not("extracted_text", "is", null)
-      .in("doc_type", ["JST", "VMET", "FITREP", "EVAL", "MASTER_RESUME"])
+      .in("doc_type", ["JST", "VMET", "MASTER_RESUME"])
       .order("created_at", { ascending: true });
 
     if (sourceDocsError) {
@@ -457,6 +559,7 @@ export async function POST(req: Request) {
       jobTitle: jobTitle ?? "Unknown",
       stage1ContextJson: JSON.stringify(stage1Context ?? {}),
       stage2ContextJson: JSON.stringify(stage2Context ?? {}),
+      targetingContextText: buildTargetingContextText(stage1Context, stage2Context),
       profileContactJson: JSON.stringify({
         full_name: profile?.full_name ?? null,
         phone_number: profile?.phone_number ?? null,
@@ -505,12 +608,12 @@ export async function POST(req: Request) {
     }
 
     const extractedProfessionalDevelopment = classifyProfessionalDevelopment([
-      ...extractSectionLines(masterText, ["Education & Training", "Education and Training", "Education & Professional Development"]),
+      ...extractProfessionalDevelopmentLinesFromMasterText(masterText),
       ...extractCredentialLinesFromDocs(sourceDocs ?? []),
     ]);
 
     const structuredResume = sanitizeExperienceLocations(
-      mergeProfessionalDevelopment(normalizeStructuredResume(llm.data), extractedProfessionalDevelopment),
+      finalizeProfessionalDevelopment(normalizeStructuredResume(llm.data), extractedProfessionalDevelopment),
       profile?.location ?? profile?.location_pref ?? null
     );
     const previewText = buildTargetedResumeText({

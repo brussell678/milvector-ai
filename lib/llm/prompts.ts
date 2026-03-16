@@ -326,6 +326,7 @@ export function promptTargetedResumeGenerationV22(args: {
   profileContactJson?: string;
   profileSupplementJson?: string;
   supplementalSourceContextText?: string;
+  targetingContextText?: string;
   templateGuideText?: string;
 }) {
   return `
