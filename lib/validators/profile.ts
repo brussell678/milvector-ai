@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const ProfileUpsertSchema = z.object({
+  full_name: z.string().max(160).optional().nullable(),
   branch: z.string().min(2).default("USMC"),
   mos: z.string().optional().nullable(),
   rank: z.string().optional().nullable(),

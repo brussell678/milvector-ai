@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 
 type Profile = {
+  full_name: string;
   branch: string;
   service_component: "ACTIVE" | "RESERVE" | "NATIONAL_GUARD" | "OTHER";
   mos: string;
@@ -22,6 +23,7 @@ type Profile = {
 };
 
 const initialState: Profile = {
+  full_name: "",
   branch: "USMC",
   service_component: "ACTIVE",
   mos: "",
@@ -59,6 +61,7 @@ export default function ProfilePage() {
       const data = await res.json();
       if (!data.profile) return;
       setForm({
+        full_name: data.profile.full_name ?? "",
         branch: data.profile.branch ?? "USMC",
         service_component: data.profile.service_component ?? "ACTIVE",
         mos: data.profile.mos ?? "",
@@ -89,6 +92,7 @@ export default function ProfilePage() {
     setStatus(null);
 
     const payload = {
+      full_name: form.full_name || null,
       branch: form.branch,
       service_component: form.service_component || null,
       mos: form.mos || null,
@@ -140,6 +144,14 @@ export default function ProfilePage() {
       </section>
 
       <form className="mt-5 grid gap-4 md:grid-cols-2" onSubmit={onSubmit}>
+        <label className="space-y-1 md:col-span-2">
+          <span className="text-sm font-medium">Name (To be used in targeted resumes)</span>
+          <input
+            className="input"
+            value={form.full_name}
+            onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
+          />
+        </label>
         <label className="space-y-1">
           <span className="text-sm font-medium">Branch</span>
           <input
