@@ -4,10 +4,7 @@ import {
   Document,
   Footer,
   Packer,
-  Paragraph,
-  TabStopPosition,
-  TabStopType,
-  TextRun,
+  Paragraph,  TextRun,
 } from "docx";
 
 export type StructuredExperience = {
@@ -146,20 +143,27 @@ function bulletParagraph(text: string) {
 function experienceHeadingParagraph(entry: StructuredExperience) {
   const role = clean(entry.role_title);
   const orgLine = buildOrgLine(entry);
+  const paragraphs: Paragraph[] = [];
 
-  if (role && orgLine) {
-    return new Paragraph({
-      children: [
-        new TextRun({ text: role, bold: true, font: "Aptos", size: 22 }),
-        new TextRun({ text: "\t", font: "Aptos", size: 22 }),
-        new TextRun({ text: orgLine, italics: true, font: "Aptos", size: 22 }),
-      ],
-      tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
-      spacing: { after: 30 },
-    });
+  if (role) {
+    paragraphs.push(
+      new Paragraph({
+        children: [new TextRun({ text: role, bold: true, font: "Aptos", size: 22 })],
+        spacing: { after: 10 },
+      })
+    );
   }
 
-  return bodyParagraph(role || orgLine, { bold: true });
+  if (orgLine) {
+    paragraphs.push(
+      new Paragraph({
+        children: [new TextRun({ text: orgLine, italics: true, font: "Aptos", size: 22 })],
+        spacing: { after: 20 },
+      })
+    );
+  }
+
+  return paragraphs.length > 0 ? paragraphs : [bodyParagraph(role || orgLine, { bold: true })];
 }
 
 function compactCoreSkills(skills: string[]) {
@@ -331,7 +335,9 @@ export async function renderTargetedResumeDocx(args: {
     paragraphs.push(sectionRule());
     paragraphs.push(sectionHeading("PROFESSIONAL EXPERIENCE"));
     for (const row of experienceRows) {
-      paragraphs.push(experienceHeadingParagraph(row));
+      for (const paragraph of experienceHeadingParagraph(row)) {
+        paragraphs.push(paragraph);
+      }
       for (const bullet of uniqueItems((row.bullets ?? []).map((item) => item.trim()).filter(Boolean))) {
         paragraphs.push(bulletParagraph(bullet));
       }

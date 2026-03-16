@@ -217,6 +217,27 @@ function sanitizeExperienceLocations(resume: StructuredTargetedResumeOutput, cur
   };
 }
 
+function extractCredentialLinesFromDocs(
+  docs: Array<{ doc_type: string; extracted_text: string | null; filename: string }>
+) {
+  const lines: string[] = [];
+  const credentialRegex = /(cert|certificate|certification|license|training|course|degree|university|college|belt|pmp|scrum|security\+|itil|six sigma|program|academy|school)/i;
+
+  for (const doc of docs) {
+    const raw = (doc.extracted_text ?? "").replace(/\r\n/g, "\n");
+    for (const line of raw.split("\n")) {
+      const trimmed = line.trim().replace(/^[-*]\s*/, "");
+      if (!trimmed) continue;
+      if (trimmed.length > 180) continue;
+      if (!credentialRegex.test(trimmed)) continue;
+      lines.push(trimmed);
+      if (lines.length >= 24) break;
+    }
+    if (lines.length >= 24) break;
+  }
+
+  return uniqueTrimmed(lines);
+}
 function buildSupplementalSourceContext(args: {
   masterResumeText: string;
   docs: Array<{ doc_type: string; filename: string; extracted_text: string | null; created_at: string }>;
@@ -483,9 +504,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: llm.error }, { status: 500 });
     }
 
-    const extractedProfessionalDevelopment = classifyProfessionalDevelopment(
-      extractSectionLines(masterText, ["Education & Training", "Education and Training", "Education & Professional Development"])
-    );
+    const extractedProfessionalDevelopment = classifyProfessionalDevelopment([
+      ...extractSectionLines(masterText, ["Education & Training", "Education and Training", "Education & Professional Development"]),
+      ...extractCredentialLinesFromDocs(sourceDocs ?? []),
+    ]);
 
     const structuredResume = sanitizeExperienceLocations(
       mergeProfessionalDevelopment(normalizeStructuredResume(llm.data), extractedProfessionalDevelopment),
