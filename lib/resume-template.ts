@@ -54,22 +54,28 @@ function hasItems(items?: string[] | null) {
   return (items ?? []).map((item) => item.trim()).filter(Boolean).length > 0;
 }
 
-function buildContactLine(contact: ResumeContactInfo) {
+function buildContactLines(contact: ResumeContactInfo) {
   const phoneIcon = String.fromCodePoint(0x1f4de);
   const emailIcon = String.fromCodePoint(0x2709, 0xfe0f);
   const linkIcon = String.fromCodePoint(0x1f517);
   const locationIcon = String.fromCodePoint(0x1f4cd);
   const clearanceIcon = String.fromCodePoint(0x1f6e1, 0xfe0f);
 
-  const parts = [
+  const primary = [
     clean(contact.phone_number) ? `${phoneIcon} ${clean(contact.phone_number)}` : "",
     clean(contact.professional_email) ? `${emailIcon} ${clean(contact.professional_email)}` : "",
+  ].filter(Boolean);
+
+  const secondary = [
     clean(contact.linkedin_url) ? `${linkIcon} ${clean(contact.linkedin_url)}` : "",
     clean(contact.location) ? `${locationIcon} ${clean(contact.location)}` : "",
     clean(contact.security_clearance) ? `${clearanceIcon} ${clean(contact.security_clearance)} Clearance` : "",
   ].filter(Boolean);
 
-  return parts.join(" | ");
+  return {
+    primary: primary.join(" | "),
+    secondary: secondary.join(" | "),
+  };
 }
 
 function buildOrgLine(experience: StructuredExperience) {
@@ -212,8 +218,9 @@ export function buildTargetedResumeText(args: {
   if (clean(contact.full_name)) lines.push(clean(contact.full_name));
   if (clean(resume.target_title)) lines.push(clean(resume.target_title));
 
-  const contactLine = buildContactLine(contact);
-  if (contactLine) lines.push(contactLine);
+  const contactLines = buildContactLines(contact);
+  if (contactLines.primary) lines.push(contactLines.primary);
+  if (contactLines.secondary) lines.push(contactLines.secondary);
 
   if (lines.length > 0) lines.push("");
 
@@ -315,11 +322,21 @@ export async function renderTargetedResumeDocx(args: {
     );
   }
 
-  const contactLine = buildContactLine(args.contact);
-  if (contactLine) {
+  const contactLines = buildContactLines(args.contact);
+  if (contactLines.primary) {
     paragraphs.push(
       new Paragraph({
-        children: [new TextRun({ text: contactLine, font: "Aptos", size: 22 })],
+        children: [new TextRun({ text: contactLines.primary, font: "Aptos", size: 22 })],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: contactLines.secondary ? 10 : 60 },
+      })
+    );
+  }
+
+  if (contactLines.secondary) {
+    paragraphs.push(
+      new Paragraph({
+        children: [new TextRun({ text: contactLines.secondary, font: "Aptos", size: 22 })],
         alignment: AlignmentType.CENTER,
         spacing: { after: 60 },
       })
