@@ -281,6 +281,9 @@ export default function DocumentsPage() {
                           >
                             {isExtracting ? "Extracting..." : doc.text_extracted ? "Re-Extract" : "Extract Text"}
                           </button>
+                          <a className="btn btn-secondary" href={`/api/documents/${doc.id}/download`}>
+                            Download
+                          </a>
                           <button
                             className="btn btn-secondary"
                             type="button"
