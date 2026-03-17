@@ -264,7 +264,7 @@ export default function ResumeTargeterPage() {
         return;
       }
       setStage3(data as Stage3Output);
-      setNotice("Targeted resume generated, saved to Library, and rendered as a Word document.");
+      setNotice("Targeted resume generated, saved to Documents, and rendered as a Word document.");
     } catch {
       setError("Network error during targeted resume generation.");
     } finally {
@@ -289,7 +289,7 @@ export default function ResumeTargeterPage() {
           <p className="text-sm font-semibold text-[var(--accent)]">Tool Notice</p>
           <p className="mt-1 text-sm text-[var(--foreground)]">
             This tool generates a targeted draft, not a final application resume. Review and edit wording, ensure each
-            claim is accurate, and tailor details before submitting. Save your finalized version to Documents so it can
+            claim is accurate, and tailor details before submitting. Manage and download your finalized version from Documents so it can
             be reused for future applications.
           </p>
         </section>

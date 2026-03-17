@@ -234,7 +234,7 @@ export default function DocumentsPage() {
                   <th className="px-2 py-2">Type</th>
                   <th className="px-2 py-2">Uploaded</th>
                   <th className="px-2 py-2">Extracted</th>
-                  <th className="px-2 py-2">Action</th>
+                  <th className="px-2 py-2">Actions</th>
                 </tr>
               </thead>
               <tbody>
