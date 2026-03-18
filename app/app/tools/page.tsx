@@ -11,20 +11,20 @@ type ToolCard = {
 const coreTools: ToolCard[] = [
   {
     href: "/app/tools/fitrep-bullets",
-    title: "Master Resume Generator",
+    title: "MilVector AI Master Resume Generator",
     desc: "Turn uploaded military records into a reusable civilian career foundation for applications and planning.",
     requirements: ["Upload source records such as FITREPs, EVALs, JST, or VMET.", "Review the output and save the strongest version to your Library."],
   },
   {
     href: "/app/tools/resume-targeter",
-    title: "Targeted Resume Engine",
+    title: "MilVector AI Targeted Resume Engine",
     desc: "Generate a role-specific resume and supporting application output from your career foundation + job description.",
     requirements: ["Have a saved master resume in your Library.", "Complete and save your Profile.", "Paste the full target job posting before generating output."],
     gptHref: "https://chatgpt.com/g/g-697c169088588191bce63407d421f5b0-milvector-ai-targeted-resume-builder",
   },
   {
     href: "https://chatgpt.com/g/g-69b6925c39308191b477586de0b7e6ac-va-c-p-rating-navigator-gpt",
-    title: "VA C&P Rating Navigator GPT",
+    title: "MilVector AI VA C&P Rating Navigator GPT",
     desc: "Open the VA C&P Rating Navigator GPT for guided disability rating walkthroughs.",
     requirements: ["Bring your claimed conditions, symptoms, and any rating decisions or medical evidence you want to review."],
   },
