@@ -5,6 +5,7 @@ type ToolCard = {
   title: string;
   desc: string;
   requirements?: string[];
+  gptHref?: string;
 };
 
 const coreTools: ToolCard[] = [
@@ -19,6 +20,7 @@ const coreTools: ToolCard[] = [
     title: "Targeted Resume Engine",
     desc: "Generate a role-specific resume and supporting application output from your career foundation + job description.",
     requirements: ["Have a saved master resume in your Library.", "Complete and save your Profile.", "Paste the full target job posting before generating output."],
+    gptHref: "https://chatgpt.com/g/g-697c169088588191bce63407d421f5b0-milvector-ai-targeted-resume-builder",
   },
   {
     href: "https://chatgpt.com/g/g-69b6925c39308191b477586de0b7e6ac-va-c-p-rating-navigator-gpt",
@@ -78,20 +80,22 @@ export default function ToolsPage() {
                   </ul>
                 </div>
               ) : null}
-              {tool.href.startsWith("http") ? (
-                <a
-                  href={tool.href}
-                  className="btn btn-secondary mt-4 inline-flex"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Open
-                </a>
-              ) : (
-                <Link href={tool.href} className="btn btn-secondary mt-4 inline-flex">
-                  Open
-                </Link>
-              )}
+              <div className="mt-4 flex flex-wrap gap-2">
+                {tool.href.startsWith("http") ? (
+                  <a href={tool.href} className="btn btn-secondary inline-flex" target="_blank" rel="noreferrer">
+                    Open
+                  </a>
+                ) : (
+                  <Link href={tool.href} className="btn btn-secondary inline-flex">
+                    Open
+                  </Link>
+                )}
+                {tool.gptHref ? (
+                  <a href={tool.gptHref} className="btn btn-secondary inline-flex" target="_blank" rel="noreferrer">
+                    GPT Link
+                  </a>
+                ) : null}
+              </div>
             </article>
           ))}
         </div>
