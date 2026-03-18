@@ -34,7 +34,6 @@ export function LoginForm({ error }: { error?: string }) {
     if (secMatch) return Number(secMatch[1]) * 1000;
     const minMatch = lower.match(/(\d+)\s*minutes?/);
     if (minMatch) return Number(minMatch[1]) * 60_000;
-    // Supabase/default provider can enforce longer windows than 60s.
     return 5 * 60_000;
   }
 
@@ -66,8 +65,8 @@ export function LoginForm({ error }: { error?: string }) {
       }
       setCooldownUntil(Date.now() + 60_000);
       setMessage("Check your email for the sign-in link.");
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to send sign-in link";
+    } catch (submitError) {
+      const errorMessage = submitError instanceof Error ? submitError.message : "Failed to send sign-in link";
       setDisplayError(errorMessage);
     } finally {
       setLoading(false);
@@ -78,44 +77,84 @@ export function LoginForm({ error }: { error?: string }) {
   const notificationClass = displayError ? "alert-base alert-error" : "alert-base alert-success";
 
   return (
-    <section className="panel w-full p-8 md:p-10">
-      <div className="flex items-center gap-3">
-        <Image
-          src="/assets/milvector-ai-logo-transparent.png"
-          alt="MILVECTOR AI logo"
-          width={56}
-          height={56}
-          className="object-contain"
-        />
-        <p className="text-xs font-semibold tracking-wider text-[var(--accent)]">MILVECTOR AI</p>
+    <section className="panel w-full overflow-hidden p-0">
+      <div className="grid gap-0 md:grid-cols-[1.05fr_0.95fr]">
+        <div className="relative border-b border-[var(--line)] bg-[radial-gradient(circle_at_top_left,rgba(83,181,134,0.18),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))] p-8 md:border-b-0 md:border-r md:p-10">
+          <div className="flex items-center gap-3">
+            <Image
+              src="/assets/milvector-ai-logo-transparent.png"
+              alt="MILVECTOR AI logo"
+              width={56}
+              height={56}
+              className="object-contain"
+            />
+            <div>
+              <p className="text-xs font-semibold tracking-[0.24em] text-[var(--accent)]">MILVECTOR AI</p>
+              <p className="mt-1 text-xs text-[var(--muted)]">Built by Marines for service members</p>
+            </div>
+          </div>
+          <h1 className="mt-8 max-w-md text-3xl font-extrabold tracking-tight md:text-4xl">
+            Start with a workspace built for transition, not guesswork.
+          </h1>
+          <p className="mt-4 max-w-xl text-sm leading-6 text-[var(--muted)] md:text-base">
+            Access your tools, saved documents, timelines, and transition support in one place. We&apos;ll send a secure
+            magic link to your email so you can sign in without a password.
+          </p>
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            <article className="rounded-md border border-[var(--line)] bg-[var(--surface)]/70 p-3">
+              <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">Translate</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">Turn military records into civilian-ready career materials.</p>
+            </article>
+            <article className="rounded-md border border-[var(--line)] bg-[var(--surface)]/70 p-3">
+              <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">Plan</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">Keep documents, milestones, and job-targeting work organized.</p>
+            </article>
+            <article className="rounded-md border border-[var(--line)] bg-[var(--surface)]/70 p-3">
+              <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">Move</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">Use decision and application tools built for the next step.</p>
+            </article>
+          </div>
+        </div>
+
+        <div className="p-8 md:p-10">
+          <p className="text-xs font-semibold tracking-[0.22em] text-[var(--accent)]">SECURE SIGN IN</p>
+          <h2 className="mt-3 text-3xl font-extrabold tracking-tight">Open your workspace</h2>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            Enter your email and we&apos;ll send you a secure sign-in link. No password required.
+          </p>
+          <form onSubmit={onSubmit} className="mt-6 space-y-4">
+            <label className="block space-y-1">
+              <span className="text-sm font-medium">Email</span>
+              <input
+                type="email"
+                required
+                className="input"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (displayError) setDisplayError(null);
+                }}
+                placeholder="you@example.com"
+              />
+            </label>
+            <button type="submit" className="btn btn-primary w-full justify-center" disabled={loading || cooldownSeconds > 0}>
+              {loading ? "Sending..." : cooldownSeconds > 0 ? `Retry in ${cooldownSeconds}s` : "Send magic link"}
+            </button>
+          </form>
+          {notificationText && <p className={`mt-4 ${notificationClass}`}>{notificationText}</p>}
+          <div className="mt-6 rounded-md border border-[var(--line)] bg-[var(--surface-2)] p-4">
+            <p className="text-xs font-semibold tracking-wide text-[var(--muted)]">WHAT HAPPENS NEXT</p>
+            <ol className="mt-3 space-y-2 text-sm text-[var(--muted)]">
+              <li>1. Check your inbox for the magic link.</li>
+              <li>2. Open it on this device to enter your workspace.</li>
+              <li>3. Start with Tools, Documents, or your transition timeline.</li>
+            </ol>
+          </div>
+          <p className="mt-6 text-sm text-[var(--muted)]">
+            Need context first? <Link href="/" className="font-semibold text-[var(--accent)]">View overview</Link>
+          </p>
+        </div>
       </div>
-      <h1 className="mt-3 text-3xl font-extrabold tracking-tight">Sign in to your workspace</h1>
-      <p className="mt-2 text-sm text-[var(--muted)]">
-        We send a secure magic link. No password required.
-      </p>
-      <form onSubmit={onSubmit} className="mt-6 space-y-4">
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">Email</span>
-          <input
-            type="email"
-            required
-            className="input"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              if (displayError) setDisplayError(null);
-            }}
-            placeholder="you@example.com"
-          />
-        </label>
-        <button type="submit" className="btn btn-primary" disabled={loading || cooldownSeconds > 0}>
-          {loading ? "Sending..." : cooldownSeconds > 0 ? `Retry in ${cooldownSeconds}s` : "Send magic link"}
-        </button>
-      </form>
-      {notificationText && <p className={`mt-4 ${notificationClass}`}>{notificationText}</p>}
-      <p className="mt-6 text-sm text-[var(--muted)]">
-        Need context first? <Link href="/" className="font-semibold text-[var(--accent)]">View overview</Link>
-      </p>
     </section>
   );
 }
