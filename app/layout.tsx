@@ -51,7 +51,7 @@ export default function RootLayout({
         <div className="relative z-10 pb-16 pt-16 md:pt-10">{children}</div>
         <footer className="site-footer">
           <Link href="https://russell-innovation-group.com/" target="_blank" rel="noopener noreferrer">
-            (c) 2026 Russell Innovation Group LLC
+            © 2026 Russell Innovation Group LLC
           </Link>
         </footer>
       </body>
