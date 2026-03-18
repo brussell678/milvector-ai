@@ -34,6 +34,12 @@ const coreTools: ToolCard[] = [
     desc: "Open the Military SBP Decision Advisor for guided Survivor Benefit Plan decision support.",
     requirements: ["Have your retirement timing, family situation, and SBP decision factors available before you start."],
   },
+  {
+    href: "https://chatgpt.com/g/g-69b9fc23c88c81919a3cd53ffcbe1b1a-milvector-ai-interview-strategist",
+    title: "MilVector AI Job Interview Strategist",
+    desc: "Prepare for interviews with structured role, company, and resume-based practice and feedback.",
+    requirements: ["Bring the specific job title and full job description.", "Have the company name available.", "Provide the resume you want the interview prep based on."],
+  },
 ];
 
 const basicTools: ToolCard[] = [
