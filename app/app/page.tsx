@@ -65,19 +65,42 @@ export default async function DashboardPage() {
   const toolErrorCount = toolErrorCountRes.count ?? 0;
 
   return (
-    <main className="space-y-4">
-      <section className="panel p-5">
-        <h2 className="font-bold">Transition Timeline</h2>
-        <div className="mt-3 grid gap-2 sm:grid-cols-7">
+    <main className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-grid">
+          <div className="relative z-10">
+            <p className="page-kicker">MISSION CONTROL</p>
+            <h1 className="page-title">Track your transition, tools, and next best move.</h1>
+            <p className="page-description">
+              Use the dashboard to stay oriented across your timeline, generated outputs, uploaded documents, and tool activity.
+              MilVector works best when your profile, source records, and next step stay connected.
+            </p>
+          </div>
+          <aside className="page-hero-aside">
+            <p className="page-hero-aside-title">NEXT PRIORITY</p>
+            <p className="mt-3 text-xl font-extrabold">{step.label}</p>
+            <ul className="page-hero-list">
+              <li>Current phase: {currentPhase}</li>
+              <li>{daysUntilEas === null ? "Add an EAS date in Profile to activate the timeline." : `${daysUntilEas} days until EAS`}</li>
+              <li>{hasMasterResume ? "Career foundation in place." : "Build your career foundation to unlock stronger outputs."}</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <section className="section-card">
+        <h2 className="section-title">Transition Timeline</h2>
+        <p className="section-description">Use these checkpoints to stay oriented as you move toward separation.</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-7">
           {TIMELINE_MARKERS.map((marker) => {
             const active = daysUntilEas !== null && daysUntilEas <= marker * 30;
             return (
               <article
                 key={marker}
-                className={`rounded-md border p-3 text-center ${active ? "border-[var(--accent)] bg-[var(--accent-soft)]" : "border-[var(--line)]"}`}
+                className={`stat-card text-center ${active ? "border-[var(--accent)] bg-[var(--accent-soft)]" : ""}`}
               >
                 <p className="text-lg font-bold">{marker === 0 ? "Final" : `${marker}m`}</p>
-                <p className="text-xs text-[var(--muted)]">Checkpoint</p>
+                <p className="mt-1 text-xs text-[var(--muted)]">Checkpoint</p>
               </article>
             );
           })}
@@ -96,29 +119,29 @@ export default async function DashboardPage() {
       />
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <article className="panel p-5">
-          <p className="text-xs font-semibold tracking-wide text-[var(--muted)]">Documents Uploaded</p>
-          <p className="mt-2 text-3xl font-extrabold">{documentsCount}</p>
+        <article className="stat-card">
+          <p className="stat-label">Documents Uploaded</p>
+          <p className="stat-value">{documentsCount}</p>
         </article>
-        <article className="panel p-5">
-          <p className="text-xs font-semibold tracking-wide text-[var(--muted)]">Master Resumes</p>
-          <p className="mt-2 text-3xl font-extrabold">{masterResumeCount}</p>
+        <article className="stat-card">
+          <p className="stat-label">Master Resumes</p>
+          <p className="stat-value">{masterResumeCount}</p>
         </article>
-        <article className="panel p-5">
-          <p className="text-xs font-semibold tracking-wide text-[var(--muted)]">Targeted Resumes</p>
-          <p className="mt-2 text-3xl font-extrabold">{targetedResumesCount}</p>
+        <article className="stat-card">
+          <p className="stat-label">Targeted Resumes</p>
+          <p className="stat-value">{targetedResumesCount}</p>
         </article>
-        <article className="panel p-5">
-          <p className="text-xs font-semibold tracking-wide text-[var(--muted)]">Tool Runs</p>
-          <p className="mt-2 text-3xl font-extrabold">{toolRunsCount}</p>
+        <article className="stat-card">
+          <p className="stat-label">Tool Runs</p>
+          <p className="stat-value">{toolRunsCount}</p>
         </article>
-        <article className="panel p-5">
-          <p className="text-xs font-semibold tracking-wide text-[var(--muted)]">Tool Successes</p>
-          <p className="mt-2 text-3xl font-extrabold text-[var(--accent)]">{toolSuccessCount}</p>
+        <article className="stat-card">
+          <p className="stat-label">Tool Successes</p>
+          <p className="stat-value text-[var(--accent)]">{toolSuccessCount}</p>
         </article>
-        <article className="panel p-5">
-          <p className="text-xs font-semibold tracking-wide text-[var(--muted)]">Tool Errors</p>
-          <p className="mt-2 text-3xl font-extrabold text-[#a33b3b]">{toolErrorCount}</p>
+        <article className="stat-card">
+          <p className="stat-label">Tool Errors</p>
+          <p className="stat-value text-[#a33b3b]">{toolErrorCount}</p>
         </article>
       </section>
     </main>

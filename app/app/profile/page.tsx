@@ -130,7 +130,25 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="panel p-6">
+    <main className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-grid">
+          <div className="relative z-10">
+            <p className="page-kicker">PROFILE</p>
+            <h1 className="page-title">Set the context that improves everything downstream.</h1>
+            <p className="page-description">Your profile gives MilVector the baseline contact, service, transition, and professional-development context needed to strengthen outputs across the platform.</p>
+          </div>
+          <aside className="page-hero-aside">
+            <p className="page-hero-aside-title">MOST IMPORTANT</p>
+            <ul className="page-hero-list">
+              <li>Save your profile before targeted resume workflows.</li>
+              <li>Keep contact info and location current for generated documents.</li>
+              <li>Add education, certifications, and training only if you want them available to tools.</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+      <section className="section-card">
       <h1 className="text-2xl font-bold">Profile</h1>
       <p className="mt-2 text-sm text-[var(--muted)]">
         Your profile is used to improve context quality for tool outputs and mission timeline planning.
@@ -305,6 +323,7 @@ export default function ProfilePage() {
       </form>
 
       {status && <p className="mt-4 text-sm text-[var(--accent)]">{status}</p>}
+          </section>
     </main>
   );
 }

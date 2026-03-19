@@ -51,9 +51,7 @@ export default function DocumentsPage() {
       const nextDocs = data.documents ?? [];
       setDocuments(nextDocs);
       setDrafts(
-        Object.fromEntries(
-          nextDocs.map((doc: DocumentRow) => [doc.id, { filename: doc.filename }])
-        )
+        Object.fromEntries(nextDocs.map((doc: DocumentRow) => [doc.id, { filename: doc.filename }]))
       );
     } catch {
       setError("Network error while loading documents.");
@@ -169,16 +167,31 @@ export default function DocumentsPage() {
   }
 
   return (
-    <main className="space-y-4">
-      <section className="panel p-6">
-        <h1 className="text-2xl font-bold">Documents</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          Upload all source documents here (FITREP, EVAL, VMET, JST, MASTER_RESUME, template files), then extract text for tools.
-        </p>
+    <main className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-grid">
+          <div className="relative z-10">
+            <p className="page-kicker">DOCUMENTS</p>
+            <h1 className="page-title">Manage the source material behind your transition workflows.</h1>
+            <p className="page-description">
+              Upload, rename, extract, download, and maintain the documents that power your MilVector tools and saved outputs.
+            </p>
+          </div>
+          <aside className="page-hero-aside">
+            <p className="page-hero-aside-title">BEST RESULTS</p>
+            <ul className="page-hero-list">
+              <li>Upload FITREPs, EVALs, JST, VMET, and master resumes here.</li>
+              <li>Extract text before using analysis and generation tools.</li>
+              <li>Use this page as your primary file-management workspace.</li>
+            </ul>
+          </aside>
+        </div>
       </section>
 
-      <section className="panel p-6">
-        <form onSubmit={upload} className="space-y-4">
+      <section className="section-card">
+        <h2 className="section-title">Upload A Document</h2>
+        <p className="section-description">Add the records and files you want MilVector to reference across the platform.</p>
+        <form onSubmit={upload} className="mt-5 space-y-4">
           <div className="grid gap-3 md:grid-cols-[220px_1fr]">
             <label className="space-y-1">
               <span className="text-sm font-medium">Document Type</span>
@@ -213,9 +226,12 @@ export default function DocumentsPage() {
         </form>
       </section>
 
-      <section className="panel p-6">
+      <section className="section-card">
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-bold">Uploaded Documents</h2>
+          <div>
+            <h2 className="section-title">Uploaded Documents</h2>
+            <p className="section-description">Rename, extract, download, and clean up documents from one place.</p>
+          </div>
           <button className="btn btn-secondary text-sm" type="button" onClick={loadDocuments} disabled={loadingList}>
             {loadingList ? "Refreshing..." : "Refresh"}
           </button>
@@ -304,12 +320,12 @@ export default function DocumentsPage() {
       </section>
 
       {status && (
-        <section className="panel border-[var(--accent)] p-4">
+        <section className="section-card border-[var(--accent)]">
           <p className="text-sm font-medium text-[var(--accent)]">{status}</p>
         </section>
       )}
       {error && (
-        <section className="panel border-[#d69f9f] p-4">
+        <section className="section-card border-[#d69f9f]">
           <p className="text-sm font-medium text-red-700">{error}</p>
         </section>
       )}

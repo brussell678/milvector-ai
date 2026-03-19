@@ -158,22 +158,32 @@ export default async function LibraryPage() {
   const linkCategories = [...new Set(links.map((link) => link.category))].sort((a, b) => a.localeCompare(b));
 
   return (
-    <main className="space-y-4">
-      <section className="panel p-6">
-        <h1 className="text-2xl font-bold">Library</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          Your unified resource center: personal documents, public documents, knowledge base, and links.
-        </p>
-        <p className="mt-1 text-xs text-[var(--muted)]">Expand a section below to view details.</p>
+    <main className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-grid">
+          <div className="relative z-10">
+            <p className="page-kicker">LIBRARY</p>
+            <h1 className="page-title">Keep your documents, outputs, and references in one operating picture.</h1>
+            <p className="page-description">The library brings together personal documents, generated artifacts, public resources, knowledge, and vetted links so you can pick up where you left off.</p>
+          </div>
+          <aside className="page-hero-aside">
+            <p className="page-hero-aside-title">HOW TO USE IT</p>
+            <ul className="page-hero-list">
+              <li>Use Documents for active file management and downloads.</li>
+              <li>Use Library to review everything MilVector has collected or produced.</li>
+              <li>Expand a section below to move between saved resources quickly.</li>
+            </ul>
+          </aside>
+        </div>
       </section>
 
-      <details className="panel p-5" id="personal-documents">
+      <details className="section-card" id="personal-documents">
         <summary className="cursor-pointer text-lg font-bold">Personal Documents</summary>
         <p className="mt-2 text-sm text-[var(--muted)]">Files you uploaded to your account.</p>
         <div className="mt-3 space-y-3">
           {personalDocuments.length === 0 && <p className="text-sm text-[var(--muted)]">No personal documents yet.</p>}
           {personalDocuments.map((doc) => (
-            <article key={doc.id} className="rounded-md border border-[var(--line)] p-3">
+            <article key={doc.id} className="subtle-panel p-3">
               <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">{doc.doc_type}</p>
               <p className="font-semibold">{doc.filename}</p>
               <p className="text-xs text-[var(--muted)]">{new Date(doc.created_at).toLocaleString()}</p>
@@ -192,7 +202,7 @@ export default async function LibraryPage() {
         <div className="mt-3 space-y-3">
           {resumeArtifacts.length === 0 && <p className="text-sm text-[var(--muted)]">No generated artifacts yet.</p>}
           {resumeArtifacts.map((artifact) => (
-            <article key={artifact.id} className="rounded-md border border-[var(--line)] p-3">
+            <article key={artifact.id} className="subtle-panel p-3">
               <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">{artifact.artifact_type}</p>
               <p className="font-semibold">{artifact.title}</p>
               <p className="text-xs text-[var(--muted)]">{new Date(artifact.created_at).toLocaleString()}</p>
@@ -223,7 +233,7 @@ export default async function LibraryPage() {
         </Link>
       </details>
 
-      <details className="panel p-5" id="public-documents">
+      <details className="section-card" id="public-documents">
         <summary className="cursor-pointer text-lg font-bold">Public Documents</summary>
         <p className="mt-2 text-sm text-[var(--muted)]">
           Shared resources from <code>docs/public</code>.
@@ -231,7 +241,7 @@ export default async function LibraryPage() {
         <div className="mt-3 space-y-3">
           {publicDocs.length === 0 && <p className="text-sm text-[var(--muted)]">No public documents found.</p>}
           {publicDocs.map((file) => (
-            <article key={file.name} className="rounded-md border border-[var(--line)] p-3">
+            <article key={file.name} className="subtle-panel p-3">
               <p className="font-semibold">{file.name}</p>
               <p className="text-xs text-[var(--muted)]">
                 {formatBytes(file.size)} - Updated {new Date(file.updatedAt).toLocaleDateString()}
@@ -249,13 +259,13 @@ export default async function LibraryPage() {
         </div>
       </details>
 
-      <details className="panel p-5" id="knowledge-base">
+      <details className="section-card" id="knowledge-base">
         <summary className="cursor-pointer text-lg font-bold">Knowledge Base</summary>
         <p className="mt-2 text-sm text-[var(--muted)]">Field-manual guidance organized by transition topic.</p>
         <div className="mt-3 space-y-3">
           {knowledgeArticles.length === 0 && <p className="text-sm text-[var(--muted)]">No knowledge articles yet.</p>}
           {knowledgeArticles.map((article) => (
-            <article key={article.id} className="rounded-md border border-[var(--line)] p-3">
+            <article key={article.id} className="subtle-panel p-3">
               <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">{article.category}</p>
               <h3 className="font-semibold">{article.title}</h3>
               <p className="mt-1 text-sm text-[var(--muted)]">{article.content}</p>
@@ -264,7 +274,7 @@ export default async function LibraryPage() {
         </div>
       </details>
 
-      <details className="panel p-5" id="links">
+      <details className="section-card" id="links">
         <summary className="cursor-pointer text-lg font-bold">Links</summary>
         <p className="mt-2 text-sm text-[var(--muted)]">External tools and reference sites.</p>
         <div className="mt-3 space-y-3">
@@ -272,13 +282,13 @@ export default async function LibraryPage() {
           {linkCategories.map((category) => {
             const categoryLinks = links.filter((link) => link.category === category);
             return (
-              <details key={category} className="rounded-md border border-[var(--line)] p-3">
+              <details key={category} className="subtle-panel p-3">
                 <summary className="cursor-pointer font-semibold">
                   {category} <span className="text-xs text-[var(--muted)]">({categoryLinks.length})</span>
                 </summary>
                 <div className="mt-3 space-y-3">
                   {categoryLinks.map((link) => (
-                    <article key={link.id} className="rounded-md border border-[var(--line)] p-3">
+                    <article key={link.id} className="subtle-panel p-3">
                       <h3 className="font-semibold">{link.title}</h3>
                       {link.description && <p className="mt-1 text-sm text-[var(--muted)]">{link.description}</p>}
                       {link.source && <p className="mt-1 text-xs text-[var(--muted)]">Source: {link.source}</p>}

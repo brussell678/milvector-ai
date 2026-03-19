@@ -57,15 +57,30 @@ const basicTools: ToolCard[] = [
 
 export default function ToolsPage() {
   return (
-    <main className="space-y-4">
-      <section className="panel p-6">
-        <h1 className="text-2xl font-bold">Tools</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">Run transition workflows, generate decision support, and store outputs for later reuse.</p>
+    <main className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-grid">
+          <div className="relative z-10">
+            <p className="page-kicker">TOOLSET</p>
+            <h1 className="page-title">Use MilVector tools as a connected transition system.</h1>
+            <p className="page-description">
+              Move from source records and planning to applications, decisions, and interview preparation without losing continuity between steps.
+            </p>
+          </div>
+          <aside className="page-hero-aside">
+            <p className="page-hero-aside-title">START STRONG</p>
+            <ul className="page-hero-list">
+              <li>Build your career foundation first.</li>
+              <li>Complete your profile before targeted workflows.</li>
+              <li>Check each tool&apos;s requirements before starting.</li>
+            </ul>
+          </aside>
+        </div>
       </section>
 
-      <section className="panel p-6">
-        <h2 className="text-lg font-bold">Core Tools</h2>
-        <p className="mt-1 text-sm text-[var(--muted)]">
+      <section className="section-card">
+        <h2 className="section-title">Core Tools</h2>
+        <p className="section-description">
           MilVector core workflows for military-to-civilian transition support, including career translation, applications, and decision tools.
         </p>
         <p className="mt-3 text-sm text-[var(--muted)]">
@@ -73,7 +88,7 @@ export default function ToolsPage() {
         </p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           {coreTools.map((tool) => (
-            <article key={tool.href} className="rounded-md border border-[var(--line)] p-5">
+            <article key={tool.href} className="subtle-panel p-5">
               <h3 className="text-lg font-bold">{tool.title}</h3>
               <p className="mt-1 text-sm text-[var(--muted)]">{tool.desc}</p>
               {tool.requirements && tool.requirements.length > 0 ? (
@@ -107,14 +122,12 @@ export default function ToolsPage() {
         </div>
       </section>
 
-      <section className="panel p-6">
-        <h2 className="text-lg font-bold">Basic Tools</h2>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          Supporting tools for role analysis, translation, and transition planning.
-        </p>
+      <section className="section-card">
+        <h2 className="section-title">Basic Tools</h2>
+        <p className="section-description">Supporting tools for role analysis, translation, and transition planning.</p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           {basicTools.map((tool) => (
-            <article key={tool.href} className="rounded-md border border-[var(--line)] p-5">
+            <article key={tool.href} className="subtle-panel p-5">
               <h3 className="text-lg font-bold">{tool.title}</h3>
               <p className="mt-1 text-sm text-[var(--muted)]">{tool.desc}</p>
               <Link href={tool.href} className="btn btn-secondary mt-4 inline-flex">
