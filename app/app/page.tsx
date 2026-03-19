@@ -93,12 +93,25 @@ export default async function DashboardPage() {
         <p className="section-description">Use these checkpoints to stay oriented as you move toward separation.</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-7">
           {TIMELINE_MARKERS.map((marker) => {
-            const active = daysUntilEas !== null && daysUntilEas <= marker * 30;
+            const isCurrent = currentPhaseMonth === marker;
+            const isPast = currentPhaseMonth !== null && marker > currentPhaseMonth;
+            const isFuture = currentPhaseMonth !== null && marker < currentPhaseMonth;
+
             return (
               <article
                 key={marker}
-                className={`stat-card text-center ${active ? "border-[var(--accent)] bg-[var(--accent-soft)]" : ""}`}
+                className={[
+                  "stat-card relative text-center transition-colors",
+                  isCurrent ? "border-[var(--accent)] bg-[var(--accent-soft)] shadow-[0_0_0_1px_var(--accent)]" : "",
+                  isPast ? "opacity-80" : "",
+                  isFuture ? "bg-[var(--panel)]" : "",
+                ].join(" ")}
               >
+                {isCurrent && (
+                  <span className="absolute right-3 top-3 rounded-full bg-[var(--accent)] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white">
+                    Current
+                  </span>
+                )}
                 <p className="text-lg font-bold">{marker === 0 ? "Final" : `${marker}m`}</p>
                 <p className="mt-1 text-xs text-[var(--muted)]">Checkpoint</p>
               </article>
