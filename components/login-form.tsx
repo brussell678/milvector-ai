@@ -100,19 +100,22 @@ export function LoginForm({ error }: { error?: string }) {
             Access your tools, saved documents, timelines, and transition support in one place. We&apos;ll send a secure
             magic link to your email so you can sign in without a password.
           </p>
-          <div className="mt-8 grid gap-3 sm:grid-cols-3">
-            <article className="rounded-md border border-[var(--line)] bg-[var(--surface)]/70 p-3">
-              <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">Translate</p>
-              <p className="mt-2 text-sm text-[var(--muted)]">Turn military records into civilian-ready career materials.</p>
-            </article>
-            <article className="rounded-md border border-[var(--line)] bg-[var(--surface)]/70 p-3">
-              <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">Plan</p>
-              <p className="mt-2 text-sm text-[var(--muted)]">Keep documents, milestones, and job-targeting work organized.</p>
-            </article>
-            <article className="rounded-md border border-[var(--line)] bg-[var(--surface)]/70 p-3">
-              <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">Move</p>
-              <p className="mt-2 text-sm text-[var(--muted)]">Use decision and application tools built for the next step.</p>
-            </article>
+          <div className="mt-8 rounded-xl border border-[var(--line)] bg-[linear-gradient(180deg,rgba(83,181,134,0.08),rgba(255,255,255,0.01))] p-5">
+            <p className="text-xs font-semibold tracking-[0.18em] text-[var(--accent)]">INSIDE YOUR WORKSPACE</p>
+            <div className="mt-4 space-y-4">
+              <div className="border-l-2 border-[var(--accent)] pl-4">
+                <p className="text-sm font-semibold text-[var(--foreground)]">Translate your record</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">Turn military documents and experience into civilian-ready materials.</p>
+              </div>
+              <div className="border-l-2 border-[var(--accent)] pl-4">
+                <p className="text-sm font-semibold text-[var(--foreground)]">Plan the process</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">Keep milestones, source documents, and job-targeting work organized in one place.</p>
+              </div>
+              <div className="border-l-2 border-[var(--accent)] pl-4">
+                <p className="text-sm font-semibold text-[var(--foreground)]">Move with confidence</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">Use decision, application, and support tools built for the next step.</p>
+              </div>
+            </div>
           </div>
         </div>
 

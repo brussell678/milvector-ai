@@ -16,7 +16,7 @@ export default async function LoginPage({
   if (user) redirect("/app");
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl items-center px-6 py-12">
+    <main className="mx-auto flex min-h-[calc(100vh-7rem)] max-w-5xl items-start px-6 pb-12 pt-6 md:px-8 md:pt-8">
       <LoginForm error={params.error} />
     </main>
   );
