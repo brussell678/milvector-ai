@@ -2,12 +2,25 @@ import { MessageBoard } from "@/components/message-board";
 
 export default function AppMessageBoardPage() {
   return (
-    <main className="space-y-4">
-      <section className="panel p-6">
-        <h1 className="text-2xl font-bold">Message Board</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          Discuss ideas with the community, vote on what matters most, and reply directly to ongoing threads.
-        </p>
+    <main className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-grid">
+          <div className="relative z-10">
+            <p className="page-kicker">MESSAGE BOARD</p>
+            <h1 className="page-title">Surface ideas, friction points, and community priorities.</h1>
+            <p className="page-description">
+              Discuss what is working, what is missing, and what should matter most. Upvotes help useful ideas rise to the top.
+            </p>
+          </div>
+          <aside className="page-hero-aside">
+            <p className="page-hero-aside-title">HOW IT WORKS</p>
+            <ul className="page-hero-list">
+              <li>Post questions, suggestions, or field notes</li>
+              <li>Vote on what matters most</li>
+              <li>Reply directly inside active threads</li>
+            </ul>
+          </aside>
+        </div>
       </section>
       <MessageBoard />
     </main>

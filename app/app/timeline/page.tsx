@@ -29,12 +29,25 @@ export default async function TimelinePage() {
   const links = (linksRes.data ?? []) as DashboardLink[];
 
   return (
-    <main className="space-y-4">
-      <section className="panel p-6">
-        <h1 className="text-2xl font-bold">Mission Timeline</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          All milestones grouped by phase. Check off completed requirements from any phase to calibrate readiness.
-        </p>
+    <main className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-grid">
+          <div className="relative z-10">
+            <p className="page-kicker">TIMELINE</p>
+            <h1 className="page-title">See the full transition roadmap by phase.</h1>
+            <p className="page-description">
+              Review milestones across every phase, mark work complete, and calibrate readiness as your separation date gets closer.
+            </p>
+          </div>
+          <aside className="page-hero-aside">
+            <p className="page-hero-aside-title">USE THIS PAGE TO</p>
+            <ul className="page-hero-list">
+              <li>See all phases in one place</li>
+              <li>Mark tasks complete as they happen</li>
+              <li>Find links and support tied to each milestone</li>
+            </ul>
+          </aside>
+        </div>
       </section>
 
       <TimelinePhaseBoard tasks={tasks} initialCompletedTaskIds={completedTaskIds} links={links} />

@@ -57,7 +57,7 @@ export default function FitrepBulletsPage() {
   }
 
   useEffect(() => {
-    if (mode === "master_resume" && useUploadedDocs) loadDocs();
+    if (mode === "master_resume" && useUploadedDocs) void loadDocs();
   }, [mode, useUploadedDocs]);
 
   const sourceSummary = useMemo(() => {
@@ -111,11 +111,11 @@ export default function FitrepBulletsPage() {
         const warning = typeof data.autosaveWarning === "string" ? data.autosaveWarning : null;
         setNotice(
           warning
-            ? `Master resume generated and saved to Library. ${warning}`
-            : "Master resume generated and saved to Library + Documents."
+            ? `Master resume generated and saved to Documents. ${warning}`
+            : "Master resume generated and saved to Documents."
         );
       } else {
-        setNotice("Master bullets generated and saved to Library.");
+        setNotice("Master bullets generated and saved to your account.");
       }
     } catch {
       setError("Network error while running FITREP pipeline.");
@@ -125,178 +125,210 @@ export default function FitrepBulletsPage() {
   }
 
   return (
-    <main className="space-y-4">
-      <section className="panel p-6">
-        <h1 className="text-2xl font-bold">Master Resume Builder</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          Build directly from uploaded documents, then export a Word draft for edits.
-        </p>
-        <section className="mt-4 rounded-md border border-[var(--line)] bg-[var(--accent-soft)] p-4">
+    <main className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-grid">
+          <div className="relative z-10">
+            <p className="page-kicker">MASTER RESUME</p>
+            <h1 className="page-title">Build the career foundation every downstream tool depends on.</h1>
+            <p className="page-description">
+              Pull from service records and source documents to generate the master resume that powers targeting, interview prep, and future application work.
+            </p>
+          </div>
+          <aside className="page-hero-aside">
+            <p className="page-hero-aside-title">BEST INPUTS</p>
+            <ul className="page-hero-list">
+              <li>Extracted FITREPs and EVALs</li>
+              <li>JST and VMET</li>
+              <li>Updated target role if you have one</li>
+            </ul>
+          </aside>
+        </div>
+        <section className="mt-6 rounded-md border border-[var(--line)] bg-[var(--accent-soft)] p-4">
           <p className="text-sm font-semibold text-[var(--accent)]">Tool Notice</p>
           <p className="mt-1 text-sm text-[var(--foreground)]">
-            This tool generates a starting-point master resume, not a final version. Download the output and add detail,
-            corrections, and context where needed. Your master resume becomes the base input for targeted resumes, so
-            improving it now will improve every downstream result. The generated draft is auto-saved to Documents; after
-            finalizing your edits, upload the revised version to Documents so your latest version is used by other tools.
+            This tool generates a starting-point master resume, not a final version. Improve it now and save the refined copy in Documents so every downstream tool starts from a stronger source.
           </p>
         </section>
       </section>
 
-      <section className="panel p-6">
-        <form className="space-y-4" onSubmit={onSubmit}>
-          <label className="space-y-1 block">
-            <span className="text-sm font-medium">Mode</span>
-            <select className="input" value={mode} onChange={(e) => setMode(e.target.value as "bullets" | "master_resume")}>
-              <option value="master_resume">Master Resume</option>
-              <option value="bullets">Legacy Bullets Only</option>
-            </select>
-          </label>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)]">
+        <section className="space-y-4">
+          <section className="section-card p-6">
+            <form className="space-y-4" onSubmit={onSubmit}>
+              <div>
+                <p className="section-title">Inputs</p>
+                <p className="section-description">
+                  Use uploaded documents when possible so the tool can build a fuller record from your extracted sources.
+                </p>
+              </div>
 
-          <label className="space-y-1 block">
-            <span className="text-sm font-medium">Target Role (optional)</span>
-            <input className="input" value={targetRole} onChange={(e) => setTargetRole(e.target.value)} />
-          </label>
-
-          {mode === "master_resume" ? (
-            <>
-              <label className="flex items-center gap-2 text-sm font-medium">
-                <input
-                  type="checkbox"
-                  checked={useUploadedDocs}
-                  onChange={(e) => setUseUploadedDocs(e.target.checked)}
-                />
-                Build from uploaded documents (recommended)
+              <label className="block space-y-1">
+                <span className="text-sm font-medium">Mode</span>
+                <select className="input" value={mode} onChange={(e) => setMode(e.target.value as "bullets" | "master_resume")}>
+                  <option value="master_resume">Master Resume</option>
+                  <option value="bullets">Legacy Bullets Only</option>
+                </select>
               </label>
 
-              {useUploadedDocs ? (
-                <section className="panel p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-semibold">Source Readiness</p>
-                    <button className="btn btn-secondary text-sm" type="button" onClick={loadDocs} disabled={docsLoading}>
-                      {docsLoading ? "Refreshing..." : "Refresh"}
-                    </button>
-                  </div>
-                  <ul className="mt-2 text-sm text-[var(--muted)] space-y-1">
-                    <li>VMET extracted: {sourceSummary.hasVmet ? "Yes" : "No"}</li>
-                    <li>JST extracted: {sourceSummary.hasJst ? "Yes" : "No"}</li>
-                    <li>FITREP/EVAL extracted count: {sourceSummary.fitrepCount}</li>
-                  </ul>
-                  <p className="mt-2 text-xs text-[var(--muted)]">
-                    Upload and extract documents on the Documents page if any are missing.
-                  </p>
-                  <p className="mt-1 text-xs text-[var(--muted)]">
-                    There is no hard FITREP count cap. If your extracted text exceeds model limits, the system will include as many reports
-                    as possible and prioritize the most recent.
-                  </p>
-                </section>
-              ) : (
+              <label className="block space-y-1">
+                <span className="text-sm font-medium">Target Role (optional)</span>
+                <input className="input" value={targetRole} onChange={(e) => setTargetRole(e.target.value)} />
+              </label>
+
+              {mode === "master_resume" ? (
                 <>
-                  <label className="space-y-1 block">
-                    <span className="text-sm font-medium">1) VMET Text</span>
-                    <textarea
-                      className="input min-h-40"
-                      value={vmetText}
-                      onChange={(e) => setVmetText(e.target.value)}
-                      placeholder="Paste VMET (DD2586) text first"
-                      required
+                  <label className="flex items-center gap-2 text-sm font-medium">
+                    <input
+                      type="checkbox"
+                      checked={useUploadedDocs}
+                      onChange={(e) => setUseUploadedDocs(e.target.checked)}
                     />
+                    Build from uploaded documents (recommended)
                   </label>
-                  <label className="space-y-1 block">
-                    <span className="text-sm font-medium">2) JST Text</span>
-                    <textarea
-                      className="input min-h-40"
-                      value={jstText}
-                      onChange={(e) => setJstText(e.target.value)}
-                      placeholder="Paste JST text second"
-                      required
-                    />
-                  </label>
-                  <label className="space-y-1 block">
-                    <span className="text-sm font-medium">3) Observed FITREP Text (Chronological)</span>
-                    <textarea
-                      className="input min-h-56"
-                      value={fitrepsText}
-                      onChange={(e) => setFitrepsText(e.target.value)}
-                      placeholder="Paste all observed FITREP text in chronological order"
-                      required
-                    />
-                  </label>
+
+                  {useUploadedDocs ? (
+                    <section className="subtle-panel p-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-semibold">Source Readiness</p>
+                        <button className="btn btn-secondary text-sm" type="button" onClick={loadDocs} disabled={docsLoading}>
+                          {docsLoading ? "Refreshing..." : "Refresh"}
+                        </button>
+                      </div>
+                      <ul className="mt-2 space-y-1 text-sm text-[var(--muted)]">
+                        <li>VMET extracted: {sourceSummary.hasVmet ? "Yes" : "No"}</li>
+                        <li>JST extracted: {sourceSummary.hasJst ? "Yes" : "No"}</li>
+                        <li>FITREP/EVAL extracted count: {sourceSummary.fitrepCount}</li>
+                      </ul>
+                      <p className="mt-2 text-xs text-[var(--muted)]">
+                        Upload and extract missing records on the Documents page before running this tool.
+                      </p>
+                      <p className="mt-1 text-xs text-[var(--muted)]">
+                        If extracted text exceeds model limits, the system will prioritize the most recent source material.
+                      </p>
+                    </section>
+                  ) : (
+                    <div className="space-y-3">
+                      <label className="block space-y-1">
+                        <span className="text-sm font-medium">1) VMET Text</span>
+                        <textarea
+                          className="input min-h-40"
+                          value={vmetText}
+                          onChange={(e) => setVmetText(e.target.value)}
+                          placeholder="Paste VMET (DD2586) text first"
+                          required
+                        />
+                      </label>
+                      <label className="block space-y-1">
+                        <span className="text-sm font-medium">2) JST Text</span>
+                        <textarea
+                          className="input min-h-40"
+                          value={jstText}
+                          onChange={(e) => setJstText(e.target.value)}
+                          placeholder="Paste JST text second"
+                          required
+                        />
+                      </label>
+                      <label className="block space-y-1">
+                        <span className="text-sm font-medium">3) Observed FITREP Text (Chronological)</span>
+                        <textarea
+                          className="input min-h-56"
+                          value={fitrepsText}
+                          onChange={(e) => setFitrepsText(e.target.value)}
+                          placeholder="Paste all observed FITREP text in chronological order"
+                          required
+                        />
+                      </label>
+                    </div>
+                  )}
                 </>
+              ) : (
+                <label className="block space-y-1">
+                  <span className="text-sm font-medium">FITREP/EVAL Text</span>
+                  <textarea
+                    className="input min-h-56"
+                    value={pastedText}
+                    onChange={(e) => setPastedText(e.target.value)}
+                    placeholder="Paste extracted text here"
+                    required
+                  />
+                </label>
               )}
-            </>
-          ) : (
-            <label className="space-y-1 block">
-              <span className="text-sm font-medium">FITREP/EVAL Text</span>
-              <textarea
-                className="input min-h-56"
-                value={pastedText}
-                onChange={(e) => setPastedText(e.target.value)}
-                placeholder="Paste extracted text here"
-                required
-              />
-            </label>
+
+              <button className="btn btn-primary" disabled={loading} type="submit">
+                {loading ? "Running..." : mode === "master_resume" ? "Generate Master Resume" : "Generate Master Bullets"}
+              </button>
+            </form>
+          </section>
+        </section>
+
+        <section className="space-y-4 xl:sticky xl:top-20 xl:self-start">
+          {(error || notice) && (
+            <section className="section-card">
+              {error && <p className="text-sm text-red-700">{error}</p>}
+              {notice && <p className="text-sm text-[var(--accent)]">{notice}</p>}
+            </section>
           )}
 
-          <button className="btn btn-primary" disabled={loading} type="submit">
-            {loading ? "Running..." : mode === "master_resume" ? "Generate Master Resume" : "Generate Master Bullets"}
-          </button>
-        </form>
-      </section>
-
-      {error && <p className="text-sm text-red-700">{error}</p>}
-      {notice && <p className="text-sm text-[var(--accent)]">{notice}</p>}
-
-      {result && "master_resume" in result && (
-        <section className="panel p-6 space-y-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <p className="text-sm font-semibold text-[var(--accent)]">Artifact ID: {result.artifactId}</p>
-            <a className="btn btn-secondary text-sm" href={`/api/resume-artifacts/${result.artifactId}/download?format=docx`}>
-              Export Word (.docx)
-            </a>
-            <a className="btn btn-secondary text-sm" href={`/api/resume-artifacts/${result.artifactId}/download`}>
-              Export Text (.txt)
-            </a>
-          </div>
-          <h2 className="font-bold">Generated Master Resume</h2>
-          {typeof result.fitrepDocsDetected === "number" && typeof result.fitrepDocsIncluded === "number" && (
-            <p className="text-sm text-[var(--muted)]">
-              FITREP/EVAL sources included: {result.fitrepDocsIncluded} of {result.fitrepDocsDetected}
-              {result.fitrepDocsTruncated ? " (truncated by input budget)" : ""}
-            </p>
+          {result && "master_resume" in result && (
+            <section className="section-card space-y-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-sm font-semibold text-[var(--accent)]">Artifact ID: {result.artifactId}</p>
+                <a className="btn btn-secondary text-sm" href={`/api/resume-artifacts/${result.artifactId}/download?format=docx`}>
+                  Export Word (.docx)
+                </a>
+                <a className="btn btn-secondary text-sm" href={`/api/resume-artifacts/${result.artifactId}/download`}>
+                  Export Text (.txt)
+                </a>
+              </div>
+              <div>
+                <p className="section-title">Generated Master Resume</p>
+                <p className="section-description">Review this draft, refine it, and keep your best version current in Documents.</p>
+              </div>
+              {typeof result.fitrepDocsDetected === "number" && typeof result.fitrepDocsIncluded === "number" && (
+                <p className="text-sm text-[var(--muted)]">
+                  FITREP/EVAL sources included: {result.fitrepDocsIncluded} of {result.fitrepDocsDetected}
+                  {result.fitrepDocsTruncated ? " (truncated by input budget)" : ""}
+                </p>
+              )}
+              <pre className="overflow-x-auto whitespace-pre-wrap rounded-md border border-[var(--line)] bg-[var(--surface)] p-3 text-sm text-[var(--foreground)]">
+                {result.master_resume}
+              </pre>
+              {result.validation_questions?.length > 0 && (
+                <div>
+                  <h3 className="font-semibold">Validation Questions</h3>
+                  <ul className="mt-2 list-disc pl-5 text-sm">
+                    {result.validation_questions.map((q, idx) => (
+                      <li key={`${q}-${idx}`}>{q}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </section>
           )}
-          <pre className="overflow-x-auto whitespace-pre-wrap rounded-md border border-[var(--line)] bg-[var(--surface)] p-3 text-sm text-[var(--foreground)]">
-            {result.master_resume}
-          </pre>
-          {result.validation_questions?.length > 0 && (
-            <div>
-              <h3 className="font-semibold">Validation Questions</h3>
-              <ul className="mt-2 list-disc pl-5 text-sm">
-                {result.validation_questions.map((q, idx) => (
-                  <li key={`${q}-${idx}`}>{q}</li>
+
+          {result && "bullets" in result && (
+            <section className="section-card space-y-3">
+              <p className="text-sm font-semibold text-[var(--accent)]">Artifact ID: {result.artifactId}</p>
+              <div>
+                <p className="section-title">Generated Bullets</p>
+                <p className="section-description">Use these as a starting point, then refine tone and evidence before reuse.</p>
+              </div>
+              <ul className="list-disc space-y-1 pl-5 text-sm">
+                {result.bullets.map((b, idx) => (
+                  <li key={`${b.category}-${idx}`}>{b.bullet}</li>
                 ))}
               </ul>
-            </div>
+              <p className="text-sm">
+                <span className="font-semibold">Suggested roles:</span> {result.suggested_job_titles.join(", ")}
+              </p>
+              <p className="text-sm">
+                <span className="font-semibold">Keywords:</span> {result.core_keywords.join(", ")}
+              </p>
+            </section>
           )}
         </section>
-      )}
-
-      {result && "bullets" in result && (
-        <section className="panel p-6 space-y-3">
-          <p className="text-sm font-semibold text-[var(--accent)]">Artifact ID: {result.artifactId}</p>
-          <h2 className="text-lg font-bold">Bullets</h2>
-          <ul className="list-disc pl-5 text-sm space-y-1">
-            {result.bullets.map((b, idx) => (
-              <li key={`${b.category}-${idx}`}>{b.bullet}</li>
-            ))}
-          </ul>
-          <p className="text-sm">
-            <span className="font-semibold">Suggested roles:</span> {result.suggested_job_titles.join(", ")}
-          </p>
-          <p className="text-sm">
-            <span className="font-semibold">Keywords:</span> {result.core_keywords.join(", ")}
-          </p>
-        </section>
-      )}
+      </div>
     </main>
   );
 }
