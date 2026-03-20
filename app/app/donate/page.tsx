@@ -21,48 +21,74 @@ const reasons = [
 
 function DonateContent() {
   return (
-    <>
-      <section className="panel p-6">
-        <h1 className="text-2xl font-bold">Support MilVector AI</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          MilVector AI was built to give transitioning service members practical tools without turning their transition
-          into a lead list or another subscription trap.
-        </p>
-        <p className="mt-3 text-sm text-[var(--muted)]">
-          I am not trying to get rich from this. I am trying to share the tools I built so other service members do
-          not feel like they have to reinvent the entire transition process by themselves.
-        </p>
+    <main className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-grid">
+          <div className="relative z-10">
+            <p className="page-kicker">SUPPORT THE MISSION</p>
+            <h1 className="page-title">Help keep MilVector free, useful, and built around trust.</h1>
+            <p className="page-description">
+              MilVector was built to give service members practical transition tools without turning their process into a lead list,
+              a paywall, or another subscription trap. Donations help keep the platform accessible while covering real operating costs.
+            </p>
+          </div>
+          <aside className="page-hero-aside">
+            <p className="page-hero-aside-title">WHAT DONATIONS SUPPORT</p>
+            <ul className="page-hero-list">
+              <li>AI API costs and platform operations</li>
+              <li>Free access for service members</li>
+              <li>A trust-first model without selling data</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <section className="section-card">
+        <p className="section-title">Why This Exists</p>
+        <div className="mt-3 space-y-3 text-sm text-[var(--muted)]">
+          <p>
+            This is not about getting rich. It is about sharing the tools already built so fewer service members feel like they have to reinvent the transition process on their own.
+          </p>
+          <p>
+            If the platform helps you, donations make it easier to keep building, keep improving, and keep access open for the next person behind you.
+          </p>
+        </div>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2">
         {reasons.map((reason) => (
-          <article key={reason.title} className="panel p-5">
-            <h2 className="text-lg font-bold">{reason.title}</h2>
-            <p className="mt-2 text-sm text-[var(--muted)]">{reason.body}</p>
+          <article key={reason.title} className="section-card">
+            <p className="section-title">{reason.title}</p>
+            <p className="section-description">{reason.body}</p>
           </article>
         ))}
       </section>
 
-      <section className="panel p-6">
-        <h2 className="text-lg font-bold">Why Donations Matter</h2>
-        <div className="mt-3 space-y-3 text-sm text-[var(--muted)]">
-          <p>Donations help cover the AI API costs required to run the tools and keep the platform available to more service members.</p>
-          <p>They also help preserve a model built on trust: useful support for transition without selling personal data or pushing people into unrelated offers.</p>
+      <section className="section-card">
+        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="section-title">Donation Channels</p>
+            <p className="section-description">QR codes can drop into these slots as soon as they are ready.</p>
+          </div>
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Coming Soon</p>
+        </div>
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
+          {channels.map((channel) => (
+            <article
+              key={channel}
+              className="subtle-panel flex min-h-56 flex-col items-center justify-center p-5 text-center"
+            >
+              <p className="text-lg font-bold">{channel}</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">QR code placeholder</p>
+              <p className="mt-4 text-xs uppercase tracking-[0.16em] text-[var(--accent)]">Ready for upload</p>
+            </article>
+          ))}
         </div>
       </section>
-
-      <section className="grid gap-4 md:grid-cols-3">
-        {channels.map((channel) => (
-          <article key={channel} className="panel flex min-h-52 flex-col items-center justify-center p-5 text-center">
-            <p className="font-semibold">{channel}</p>
-            <p className="mt-2 text-xs text-[var(--muted)]">QR code placeholder</p>
-          </article>
-        ))}
-      </section>
-    </>
+    </main>
   );
 }
 
 export default function AppDonatePage() {
-  return <main className="space-y-4"><DonateContent /></main>;
+  return <DonateContent />;
 }
