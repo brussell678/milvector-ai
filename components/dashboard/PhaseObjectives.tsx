@@ -5,6 +5,7 @@ import { MissionStatus } from "./MissionStatus";
 import { ReadinessScore } from "./ReadinessScore";
 import { TaskCard } from "./TaskCard";
 import { TaskDrawer } from "./TaskDrawer";
+import { getTaskLinks } from "./task-linking";
 import type { CategoryReadiness, DashboardLink, DashboardTask } from "./types";
 
 const CATEGORY_WEIGHTS: Array<{ key: string; label: string; weight: number }> = [
@@ -35,7 +36,7 @@ function inferCategory(task: DashboardTask): string {
 
 function computeCategoryReadiness(allTasks: DashboardTask[], completedIds: Set<string>, educationProfileSignals: number): { categories: CategoryReadiness[]; readiness: number } {
   const categories = CATEGORY_WEIGHTS.map((category) => {
-    const inCategory = allTasks.filter((task) => inferCategory(task) === category.key);
+    const inCategory = allTasks.filter((task) => inferCategory(task) === category.key && !task.id.startsWith("fallback:"));
     let total = inCategory.length;
     let completed = inCategory.filter((task) => completedIds.has(task.id)).length;
 
@@ -85,6 +86,8 @@ export function PhaseObjectives({
   );
 
   async function toggle(taskId: string) {
+    if (taskId.startsWith("fallback:")) return;
+
     const nextCompleted = !completedIds.has(taskId);
     const previous = new Set(completedIds);
     const optimistic = new Set(completedIds);
@@ -104,11 +107,7 @@ export function PhaseObjectives({
     setSavingId(null);
   }
 
-  const selectedLinks = selectedTask
-    ? links
-        .filter((link) => normalizeCategory(link.category) === normalizeCategory(selectedTask.category))
-        .slice(0, 6)
-    : [];
+  const selectedLinks = selectedTask ? getTaskLinks(selectedTask, links) : [];
 
   return (
     <section className="space-y-4">

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { TaskDrawer } from "./TaskDrawer";
+import { getTaskLinks } from "./task-linking";
 import type { DashboardLink, DashboardTask } from "./types";
 
 const PHASE_ORDER = [24, 18, 12, 9, 6, 3, 0] as const;
@@ -15,14 +16,14 @@ const PHASE_LABEL: Record<number, string> = {
   0: "Final",
 };
 
-function normalizeCategory(input: string | null) {
-  return String(input ?? "").trim().toLowerCase();
-}
-
 function assistanceText(task: DashboardTask) {
   if (task.assistance_type === "tool" || task.tool_link) return "Tool";
   if (task.assistance_type === "doc" || task.assistance_ref) return "File";
   return "None";
+}
+
+function isFallbackTask(task: DashboardTask) {
+  return task.id.startsWith("fallback:");
 }
 
 export function TimelinePhaseBoard({
@@ -50,6 +51,8 @@ export function TimelinePhaseBoard({
   }, [tasks]);
 
   async function toggle(taskId: string) {
+    if (taskId.startsWith("fallback:")) return;
+
     const nextCompleted = !completedIds.has(taskId);
     const previous = new Set(completedIds);
     const optimistic = new Set(completedIds);
@@ -69,9 +72,7 @@ export function TimelinePhaseBoard({
     setSavingId(null);
   }
 
-  const selectedLinks = selectedTask
-    ? links.filter((link) => normalizeCategory(link.category) === normalizeCategory(selectedTask.category)).slice(0, 6)
-    : [];
+  const selectedLinks = selectedTask ? getTaskLinks(selectedTask, links) : [];
 
   return (
     <>
@@ -87,6 +88,7 @@ export function TimelinePhaseBoard({
               {phaseTasks.length === 0 && <p className="text-sm text-[var(--muted)]">No milestones in this phase.</p>}
               {phaseTasks.map((task) => {
                 const completed = completedIds.has(task.id);
+                const readOnly = isFallbackTask(task);
                 return (
                   <article key={task.id} className="rounded-md border border-[var(--line)] p-3">
                     <div className="flex items-start gap-3">
@@ -94,7 +96,7 @@ export function TimelinePhaseBoard({
                         type="checkbox"
                         className="mt-1"
                         checked={completed}
-                        disabled={savingId === task.id}
+                        disabled={savingId === task.id || readOnly}
                         onChange={() => void toggle(task.id)}
                       />
                       <div className="w-full">
@@ -105,7 +107,7 @@ export function TimelinePhaseBoard({
                               completed ? "bg-[var(--accent-soft)] text-[var(--accent)]" : "bg-[var(--surface)] text-[var(--muted)]"
                             }`}
                           >
-                            {completed ? "Completed" : "Open"}
+                            {completed ? "Completed" : readOnly ? "Reference" : "Open"}
                           </span>
                         </div>
                         <div className="mt-1 flex flex-wrap gap-2 text-xs text-[var(--muted)]">
@@ -114,6 +116,7 @@ export function TimelinePhaseBoard({
                           {typeof task.days_before_event === "number" && <span>{task.days_before_event} days before anchor</span>}
                         </div>
                         {task.description && <p className="mt-1 text-sm text-[var(--muted)]">{task.description}</p>}
+                        {readOnly && <p className="mt-1 text-xs text-[var(--muted)]">Fallback retirement-source task shown until timeline data is reseeded.</p>}
                         <button className="btn btn-secondary mt-2 !py-1 text-xs" type="button" onClick={() => setSelectedTask(task)}>
                           Open Task Details
                         </button>

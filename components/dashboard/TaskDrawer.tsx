@@ -4,6 +4,37 @@ function isExternal(href: string) {
   return href.startsWith("http://") || href.startsWith("https://");
 }
 
+function buildRequirements(task: DashboardTask) {
+  const supporting = [...(task.transition_supporting_tasks ?? [])].sort((a, b) => a.order_index - b.order_index);
+  if (supporting.length > 0) {
+    return supporting.map((step) => ({
+      title: step.title,
+      description: step.description,
+      key: `${step.id ?? step.title}-${step.order_index}`,
+    }));
+  }
+
+  const derived: Array<{ title: string; description: string | null; key: string }> = [];
+
+  if (task.description) {
+    derived.push({ title: "Primary requirement", description: task.description, key: "derived-primary" });
+  }
+
+  if (typeof task.days_before_event === "number") {
+    derived.push({
+      title: "Timing",
+      description: `Plan to complete this about ${task.days_before_event} days before its anchor event.`,
+      key: "derived-timing",
+    });
+  }
+
+  if (task.assistance_notes) {
+    derived.push({ title: "MilVector guidance", description: task.assistance_notes, key: "derived-assistance" });
+  }
+
+  return derived;
+}
+
 export function TaskDrawer({
   task,
   links,
@@ -15,7 +46,7 @@ export function TaskDrawer({
 }) {
   if (!task) return null;
 
-  const sortedSupporting = [...(task.transition_supporting_tasks ?? [])].sort((a, b) => a.order_index - b.order_index);
+  const requirements = buildRequirements(task);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/40 p-2 sm:p-4">
@@ -31,16 +62,15 @@ export function TaskDrawer({
         </div>
 
         {task.description && <p className="mt-3 text-sm text-[var(--muted)]">{task.description}</p>}
-        {task.assistance_notes && <p className="mt-2 text-xs text-[var(--muted)]">{task.assistance_notes}</p>}
 
         <section className="mt-5">
-          <h4 className="font-semibold">Supporting Steps</h4>
-          {sortedSupporting.length === 0 && <p className="mt-1 text-sm text-[var(--muted)]">No supporting steps for this objective.</p>}
-          {sortedSupporting.length > 0 && (
-            <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-[var(--muted)]">
-              {sortedSupporting.map((step, idx) => (
-                <li key={step.id ?? `${task.id}-${idx}`}>
-                  <span className="font-medium text-[var(--fg)]">{step.title}</span>
+          <h4 className="font-semibold">Requirements / Actions</h4>
+          {requirements.length === 0 && <p className="mt-1 text-sm text-[var(--muted)]">No requirements listed for this objective yet.</p>}
+          {requirements.length > 0 && (
+            <ol className="mt-2 list-decimal space-y-2 pl-5 text-sm text-[var(--muted)]">
+              {requirements.map((step) => (
+                <li key={step.key}>
+                  <span className="font-medium text-[var(--foreground)]">{step.title}</span>
                   {step.description ? ` - ${step.description}` : ""}
                 </li>
               ))}
@@ -84,7 +114,7 @@ export function TaskDrawer({
               ))}
             </ul>
           )}
-          {links.length === 0 && <p className="mt-2 text-sm text-[var(--muted)]">No mapped library links for this category yet.</p>}
+          {links.length === 0 && <p className="mt-2 text-sm text-[var(--muted)]">No mapped library links for this objective yet.</p>}
         </section>
       </aside>
     </div>
