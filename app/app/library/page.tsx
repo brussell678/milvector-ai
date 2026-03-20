@@ -1,7 +1,8 @@
 import Link from "next/link";
 import path from "node:path";
-import { readdir, readFile, stat } from "node:fs/promises";
+import { readdir, stat } from "node:fs/promises";
 import { supabaseServer } from "@/lib/supabase/server";
+import { getLibraryLinkFallbacks, mergeLibraryLinks } from "@/lib/transition-data";
 
 type PersonalDocument = {
   id: string;
@@ -33,6 +34,7 @@ type KnowledgeArticle = {
 
 type LibraryLink = {
   id: string;
+  external_id?: string | null;
   title: string;
   description: string | null;
   category: string;
@@ -40,19 +42,6 @@ type LibraryLink = {
   source: string | null;
   review_status: "ready" | "needs_review";
   raw_reference?: string | null;
-};
-
-type WorkbookLinksPayload = {
-  links: Array<{
-    external_id: string;
-    title: string;
-    category: string;
-    description: string | null;
-    url: string | null;
-    source: string;
-    review_status: "ready" | "needs_review";
-    raw_reference?: string;
-  }>;
 };
 
 async function getPublicDocs(): Promise<PublicDoc[]> {
@@ -79,38 +68,6 @@ async function getPublicDocs(): Promise<PublicDoc[]> {
   }
 }
 
-async function getWorkbookLinksFallback(): Promise<LibraryLink[]> {
-  const dataFile = path.join(process.cwd(), "data", "milvector_library_links.json");
-  try {
-    const raw = await readFile(dataFile, "utf8");
-    const parsed = JSON.parse(raw) as WorkbookLinksPayload;
-    return (parsed.links ?? []).map((link) => ({
-      id: link.external_id,
-      title: link.title,
-      description: link.description,
-      category: link.category,
-      url: link.url ?? "",
-      source: link.source,
-      review_status: link.review_status,
-      raw_reference: link.raw_reference ?? null,
-    }));
-  } catch {
-    return [];
-  }
-}
-
-function mergeLinks(primary: LibraryLink[], fallback: LibraryLink[]) {
-  const byKey = new Map<string, LibraryLink>();
-  for (const link of primary) {
-    byKey.set(`${link.title.toLowerCase()}|${link.category.toLowerCase()}`, link);
-  }
-  for (const link of fallback) {
-    const key = `${link.title.toLowerCase()}|${link.category.toLowerCase()}`;
-    if (!byKey.has(key)) byKey.set(key, link);
-  }
-  return [...byKey.values()].sort((a, b) => a.title.localeCompare(b.title));
-}
-
 function formatBytes(value: number) {
   if (value < 1024) return `${value} B`;
   const kb = value / 1024;
@@ -127,7 +84,7 @@ export default async function LibraryPage() {
 
   if (!user) return null;
 
-  const [personalRes, artifactRes, knowledgeRes, linksRes, publicDocs, workbookFallbackLinks] = await Promise.all([
+  const [personalRes, artifactRes, knowledgeRes, linksRes, publicDocs, linkFallbacks] = await Promise.all([
     supabase
       .from("documents")
       .select("id,doc_type,filename,created_at")
@@ -144,17 +101,17 @@ export default async function LibraryPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("library_links")
-      .select("id,title,description,category,url,source,review_status")
+      .select("id,external_id,title,description,category,url,source,review_status")
       .order("created_at", { ascending: false }),
     getPublicDocs(),
-    getWorkbookLinksFallback(),
+    getLibraryLinkFallbacks(),
   ]);
 
   const personalDocuments = (personalRes.data ?? []) as PersonalDocument[];
   const resumeArtifacts = (artifactRes.data ?? []) as ResumeArtifact[];
   const knowledgeArticles = (knowledgeRes.data ?? []) as KnowledgeArticle[];
   const dbLinks = (linksRes.data ?? []) as LibraryLink[];
-  const links = mergeLinks(dbLinks, workbookFallbackLinks);
+  const links = mergeLibraryLinks(dbLinks, linkFallbacks);
   const linkCategories = [...new Set(links.map((link) => link.category))].sort((a, b) => a.localeCompare(b));
 
   return (
@@ -197,7 +154,7 @@ export default async function LibraryPage() {
         </div>
         <h3 className="mt-5 text-base font-semibold">Generated Resume Artifacts</h3>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Outputs produced by resume tools (including targeted resumes).
+          Outputs produced by resume tools, including targeted resumes.
         </p>
         <div className="mt-3 space-y-3">
           {resumeArtifacts.length === 0 && <p className="text-sm text-[var(--muted)]">No generated artifacts yet.</p>}
@@ -210,17 +167,11 @@ export default async function LibraryPage() {
                 <a className="btn btn-secondary inline-flex text-sm" href={`/api/resume-artifacts/${artifact.id}/download`}>
                   Export Text (.txt)
                 </a>
-                <a
-                  className="btn btn-secondary inline-flex text-sm"
-                  href={`/api/resume-artifacts/${artifact.id}/download?format=docx`}
-                >
+                <a className="btn btn-secondary inline-flex text-sm" href={`/api/resume-artifacts/${artifact.id}/download?format=docx`}>
                   Export Word (.docx)
                 </a>
                 {artifact.rendered_document_id && (
-                  <a
-                    className="btn btn-secondary inline-flex text-sm"
-                    href={`/api/documents/${artifact.rendered_document_id}/download`}
-                  >
+                  <a className="btn btn-secondary inline-flex text-sm" href={`/api/documents/${artifact.rendered_document_id}/download`}>
                     Open Saved File
                   </a>
                 )}

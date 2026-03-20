@@ -1,4 +1,5 @@
 import { supabaseServer } from "@/lib/supabase/server";
+import { getLibraryLinkFallbacks, getTransitionTaskFallbacks, mergeDashboardTasks, mergeLibraryLinks } from "@/lib/transition-data";
 import { TimelinePhaseBoard } from "@/components/dashboard/TimelinePhaseBoard";
 import type { DashboardLink, DashboardTask } from "@/components/dashboard/types";
 
@@ -10,23 +11,25 @@ export default async function TimelinePage() {
 
   if (!user) return null;
 
-  const [tasksRes, completedRes, linksRes] = await Promise.all([
+  const [tasksRes, completedRes, linksRes, taskFallbacks, linkFallbacks] = await Promise.all([
     supabase
       .from("transition_tasks")
       .select(
-        "id,title,description,category,phase_month,days_before_event,tool_link,knowledge_article,assistance_type,assistance_ref,assistance_notes,transition_supporting_tasks(id,title,description,order_index)"
+        "id,external_id,title,description,category,phase_month,days_before_event,tool_link,knowledge_article,assistance_type,assistance_ref,assistance_notes,transition_supporting_tasks(id,title,description,order_index)"
       )
       .eq("task_type", "milestone")
       .order("phase_month", { ascending: false })
       .order("days_before_event", { ascending: false, nullsFirst: false })
       .order("title", { ascending: true }),
     supabase.from("transition_task_completions").select("task_id").eq("user_id", user.id),
-    supabase.from("library_links").select("id,title,category,description,url").eq("review_status", "ready").order("title", { ascending: true }),
+    supabase.from("library_links").select("id,external_id,title,category,description,url,source").eq("review_status", "ready").order("title", { ascending: true }),
+    getTransitionTaskFallbacks(),
+    getLibraryLinkFallbacks(),
   ]);
 
-  const tasks = (tasksRes.data ?? []) as DashboardTask[];
+  const tasks = mergeDashboardTasks((tasksRes.data ?? []) as DashboardTask[], taskFallbacks);
   const completedTaskIds = (completedRes.data ?? []).map((x) => x.task_id);
-  const links = (linksRes.data ?? []) as DashboardLink[];
+  const links = mergeLibraryLinks((linksRes.data ?? []) as DashboardLink[], linkFallbacks);
 
   return (
     <main className="page-shell">

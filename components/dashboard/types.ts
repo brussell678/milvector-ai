@@ -7,6 +7,7 @@ export type SupportingTask = {
 
 export type DashboardTask = {
   id: string;
+  external_id?: string | null;
   title: string;
   description: string | null;
   category: string | null;
@@ -22,10 +23,13 @@ export type DashboardTask = {
 
 export type DashboardLink = {
   id: string;
+  external_id?: string | null;
   title: string;
-  category: string;
   description: string | null;
+  category: string;
   url: string;
+  source?: string | null;
+  raw_reference?: string | null;
 };
 
 export type CategoryReadiness = {

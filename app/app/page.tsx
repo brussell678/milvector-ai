@@ -1,5 +1,6 @@
 import { supabaseServer } from "@/lib/supabase/server";
 import { daysUntilDate, phaseFromDays, phaseMonthFromDays, TIMELINE_MARKERS } from "@/lib/timeline";
+import { getLibraryLinkFallbacks, getTransitionTaskFallbacks, mergeDashboardTasks, mergeLibraryLinks } from "@/lib/transition-data";
 import { PhaseObjectives } from "@/components/dashboard/PhaseObjectives";
 import type { DashboardLink, DashboardTask } from "@/components/dashboard/types";
 
@@ -32,22 +33,24 @@ export default async function DashboardPage() {
   const currentPhase = phaseFromDays(daysUntilEas);
   const currentPhaseMonth = phaseMonthFromDays(daysUntilEas);
 
-  const [tasksRes, completedRes, linksRes] = await Promise.all([
+  const [tasksRes, completedRes, linksRes, taskFallbacks, linkFallbacks] = await Promise.all([
     supabase
       .from("transition_tasks")
       .select(
-        "id,title,description,category,phase_month,tool_link,knowledge_article,assistance_type,assistance_ref,assistance_notes,transition_supporting_tasks(id,title,description,order_index)"
+        "id,external_id,title,description,category,phase_month,tool_link,knowledge_article,assistance_type,assistance_ref,assistance_notes,transition_supporting_tasks(id,title,description,order_index)"
       )
       .eq("task_type", "milestone")
       .order("days_before_event", { ascending: false, nullsFirst: false }),
     supabase.from("transition_task_completions").select("task_id").eq("user_id", user.id),
-    supabase.from("library_links").select("id,title,category,description,url").eq("review_status", "ready").order("title", { ascending: true }),
+    supabase.from("library_links").select("id,external_id,title,category,description,url,source").eq("review_status", "ready").order("title", { ascending: true }),
+    getTransitionTaskFallbacks(),
+    getLibraryLinkFallbacks(),
   ]);
 
-  const allMilestoneTasks = (tasksRes.data ?? []) as DashboardTask[];
+  const allMilestoneTasks = mergeDashboardTasks((tasksRes.data ?? []) as DashboardTask[], taskFallbacks);
   const phaseTasks = allMilestoneTasks.filter((task) => task.phase_month === currentPhaseMonth);
   const completedTaskIds = (completedRes.data ?? []).map((x) => x.task_id);
-  const links = (linksRes.data ?? []) as DashboardLink[];
+  const links = mergeLibraryLinks((linksRes.data ?? []) as DashboardLink[], linkFallbacks);
 
   const artifactTypes = new Set((artifactsRes.data ?? []).map((row) => row.artifact_type));
   const hasMasterResume = artifactTypes.has("master_resume") || artifactTypes.has("master_bullets");

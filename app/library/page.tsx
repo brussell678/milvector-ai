@@ -1,4 +1,5 @@
 import { supabaseServer } from "@/lib/supabase/server";
+import { getLibraryLinkFallbacks, mergeLibraryLinks } from "@/lib/transition-data";
 import { LibrarySubmissionForm } from "@/components/library-submission-form";
 
 type LibraryDocument = {
@@ -11,12 +12,14 @@ type LibraryDocument = {
 
 type LibraryLink = {
   id: string;
+  external_id?: string | null;
   title: string;
   description: string | null;
   category: string;
   url: string;
   source: string | null;
   review_status: "ready" | "needs_review";
+  raw_reference?: string | null;
 };
 
 export default async function LibraryPage() {
@@ -25,7 +28,7 @@ export default async function LibraryPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [documentsRes, linksRes] = await Promise.all([
+  const [documentsRes, linksRes, fallbackLinks] = await Promise.all([
     supabase
       .from("library_documents")
       .select("id,title,description,category,file_url")
@@ -33,13 +36,14 @@ export default async function LibraryPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("library_links")
-      .select("id,title,description,category,url,source,review_status")
+      .select("id,external_id,title,description,category,url,source,review_status")
       .eq("review_status", "ready")
       .order("created_at", { ascending: false }),
+    getLibraryLinkFallbacks(),
   ]);
 
   const documents = (documentsRes.data ?? []) as LibraryDocument[];
-  const links = (linksRes.data ?? []) as LibraryLink[];
+  const links = mergeLibraryLinks((linksRes.data ?? []) as LibraryLink[], fallbackLinks);
 
   return (
     <main className="mx-auto max-w-6xl space-y-4 px-6 md:px-8">
