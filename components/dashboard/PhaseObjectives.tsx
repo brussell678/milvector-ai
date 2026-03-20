@@ -20,6 +20,10 @@ function normalizeCategory(input: string | null) {
   return String(input ?? "").trim().toLowerCase();
 }
 
+function isFallbackTask(task: DashboardTask) {
+  return task.id.startsWith("fallback:");
+}
+
 function inferCategory(task: DashboardTask): string {
   const direct = normalizeCategory(task.category);
   if (direct) return direct;
@@ -36,7 +40,7 @@ function inferCategory(task: DashboardTask): string {
 
 function computeCategoryReadiness(allTasks: DashboardTask[], completedIds: Set<string>, educationProfileSignals: number): { categories: CategoryReadiness[]; readiness: number } {
   const categories = CATEGORY_WEIGHTS.map((category) => {
-    const inCategory = allTasks.filter((task) => inferCategory(task) === category.key && !task.id.startsWith("fallback:"));
+    const inCategory = allTasks.filter((task) => inferCategory(task) === category.key && !isFallbackTask(task));
     let total = inCategory.length;
     let completed = inCategory.filter((task) => completedIds.has(task.id)).length;
 
@@ -108,6 +112,9 @@ export function PhaseObjectives({
   }
 
   const selectedLinks = selectedTask ? getTaskLinks(selectedTask, links) : [];
+  const openPhaseTasks = phaseTasks.filter((task) => !completedIds.has(task.id));
+  const completedPhaseTasks = phaseTasks.filter((task) => completedIds.has(task.id));
+  const fallbackCount = phaseTasks.filter(isFallbackTask).length;
 
   return (
     <section className="space-y-4">
@@ -119,11 +126,26 @@ export function PhaseObjectives({
       />
       <section className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
         <section className="panel p-5">
-          <h2 className="font-bold">Phase Objectives</h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">Phase: {currentPhase}</p>
-          <div className="mt-3 space-y-3">
-            {phaseTasks.length === 0 && <p className="text-sm text-[var(--muted)]">No objectives configured for this phase yet.</p>}
-            {phaseTasks.map((task) => (
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="font-bold">Phase Objectives</h2>
+              <p className="mt-1 text-sm text-[var(--muted)]">Phase: {currentPhase}</p>
+            </div>
+            <div className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--muted)]">
+              <p>Open: {openPhaseTasks.length}</p>
+              <p>Completed: {completedPhaseTasks.length}</p>
+            </div>
+          </div>
+
+          {fallbackCount > 0 && (
+            <section className="mt-4 rounded-md border border-[var(--line)] bg-[var(--surface)] p-3 text-sm text-[var(--muted)]">
+              These retirement-source milestones are now visible, but completion tracking is still in reference mode until the timeline tasks are reseeded in Supabase.
+            </section>
+          )}
+
+          <div className="mt-4 space-y-3">
+            {openPhaseTasks.length === 0 && <p className="text-sm text-[var(--muted)]">No open objectives in this phase right now.</p>}
+            {openPhaseTasks.map((task) => (
               <TaskCard
                 key={task.id}
                 task={task}
@@ -134,6 +156,24 @@ export function PhaseObjectives({
               />
             ))}
           </div>
+
+          {completedPhaseTasks.length > 0 && (
+            <details className="mt-4 rounded-md border border-[var(--line)] bg-[var(--surface)] p-3">
+              <summary className="cursor-pointer text-sm font-semibold">Completed in this phase ({completedPhaseTasks.length})</summary>
+              <div className="mt-3 space-y-3">
+                {completedPhaseTasks.map((task) => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    checked={completedIds.has(task.id)}
+                    busy={savingId === task.id}
+                    onToggle={(taskId) => void toggle(taskId)}
+                    onOpen={setSelectedTask}
+                  />
+                ))}
+              </div>
+            </details>
+          )}
         </section>
         <ReadinessScore readiness={readiness.readiness} categories={readiness.categories} />
       </section>
