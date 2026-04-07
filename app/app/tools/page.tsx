@@ -37,7 +37,7 @@ const coreTools: ToolCard[] = [
   {
     href: "https://chatgpt.com/g/g-69b9fc23c88c81919a3cd53ffcbe1b1a-milvector-ai-interview-strategist",
     title: "MilVector AI Job Interview Strategist",
-    desc: "Prepare for interviews with structured role, company, and resume-based practice and feedback.",
+    desc: "Prepare for interviews with structured role, company, and resume-based practice and feedback. For mock interviews, turn on voice mode to maximize realism.",
     requirements: ["Bring the specific job title and full job description.", "Have the company name available.", "Provide the resume you want the interview prep based on."],
   },
 ];
@@ -104,7 +104,7 @@ export default function ToolsPage() {
               <div className="mt-4 flex flex-wrap gap-2">
                 {tool.href.startsWith("http") ? (
                   <a href={tool.href} className="btn btn-secondary inline-flex" target="_blank" rel="noreferrer">
-                    Open
+                    GPT Link
                   </a>
                 ) : (
                   <Link href={tool.href} className="btn btn-secondary inline-flex">
