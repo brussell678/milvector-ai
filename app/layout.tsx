@@ -37,9 +37,7 @@ export default function RootLayout({
         <div className="site-top-banner">
           <p>
             Built by Marines for service members. Sign in with your email for free access to transition tools for career planning, documents, benefits, and job search support. If you find them useful, consider donating to help keep the platform free and cover API costs.{" "}
-            <Link href="https://russell-innovation-group.com/" target="_blank" rel="noopener noreferrer">
-              Donate
-            </Link>
+            <Link href="/donate">Donate</Link>
           </p>
         </div>
         <div className="hidden md:block">
@@ -50,9 +48,7 @@ export default function RootLayout({
         </div>
         <div className="relative z-10 pb-16 pt-16 md:pt-10">{children}</div>
         <footer className="site-footer">
-          <Link href="https://russell-innovation-group.com/" target="_blank" rel="noopener noreferrer">
-            © 2026 Russell Innovation Group LLC
-          </Link>
+          <p>Copyright 2026 MilVector AI. Built by Russell Innovation Group LLC.</p>
         </footer>
       </body>
     </html>

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { supabaseServer } from "@/lib/supabase/server";
 
+const MAX_MB = Number(process.env.MAX_UPLOAD_MB ?? "10");
+
 const FeedbackSchema = z.object({
   name: z.string().max(120).optional().nullable(),
   email: z.string().email().optional().nullable(),
@@ -19,6 +21,7 @@ export async function POST(req: Request) {
   } = await supabase.auth.getUser();
 
   const form = await req.formData();
+  const attachment = form.get("attachment");
   const parsed = FeedbackSchema.safeParse({
     name: form.get("name")?.toString() || null,
     email: form.get("email")?.toString() || null,
@@ -33,9 +36,37 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
+  let attachmentUrl: string | null = null;
+
+  if (attachment instanceof File && attachment.size > 0) {
+    const sizeMb = attachment.size / (1024 * 1024);
+    if (sizeMb > MAX_MB) {
+      return NextResponse.json({ error: `Attachment too large (max ${MAX_MB}MB)` }, { status: 400 });
+    }
+
+    const safeName = attachment.name.replace(/[^\w.\- ]+/g, "_");
+    const feedbackId = crypto.randomUUID();
+    const storagePath = `${feedbackId}/${safeName}`;
+    const buffer = Buffer.from(await attachment.arrayBuffer());
+
+    const { error: uploadError } = await supabase.storage
+      .from("feedback-attachments")
+      .upload(storagePath, buffer, {
+        contentType: attachment.type || "application/octet-stream",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      return NextResponse.json({ error: uploadError.message }, { status: 500 });
+    }
+
+    attachmentUrl = storagePath;
+  }
+
   const { error } = await supabase.from("feedback").insert({
     user_id: user?.id ?? null,
     ...parsed.data,
+    attachment_url: attachmentUrl,
   });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

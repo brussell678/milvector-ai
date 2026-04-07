@@ -9,6 +9,29 @@ const features = [
   "Resume, document, and decision-support workflows in one place",
 ];
 
+const workflowSteps = [
+  {
+    step: "1",
+    title: "Upload your military records",
+    detail: "Bring FITREPs, EVALs, JST, VMET, and other source documents into one workspace.",
+  },
+  {
+    step: "2",
+    title: "Build your career foundation",
+    detail: "Turn military experience into civilian-ready resume language and reusable master material.",
+  },
+  {
+    step: "3",
+    title: "Target real opportunities",
+    detail: "Use job descriptions, interview prep, and decision-support tools to sharpen each next move.",
+  },
+  {
+    step: "4",
+    title: "Track the transition timeline",
+    detail: "Stay oriented by phase, milestone, and readiness instead of rebuilding the plan from scratch.",
+  },
+];
+
 export default async function Home({
   searchParams,
 }: {
@@ -66,7 +89,7 @@ export default async function Home({
               <Link href="/login" className="btn btn-primary">
                 Start Free
               </Link>
-              <Link href="/app" className="btn btn-secondary">
+              <Link href="#how-it-works" className="btn btn-secondary">
                 Learn How It Works
               </Link>
             </div>
@@ -89,6 +112,51 @@ export default async function Home({
             <p className="font-semibold">{feature}</p>
           </article>
         ))}
+      </section>
+
+      <section id="how-it-works" className="section-card mt-6 scroll-mt-28">
+        <p className="section-title">How It Works</p>
+        <p className="section-description">
+          MilVector is designed as a connected transition system, so each step strengthens the next instead of forcing you to start over.
+        </p>
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {workflowSteps.map((item) => (
+            <article key={item.step} className="subtle-panel p-5">
+              <p className="text-xs font-semibold tracking-[0.18em] text-[var(--accent)]">STEP {item.step}</p>
+              <h2 className="mt-2 text-lg font-bold">{item.title}</h2>
+              <p className="mt-2 text-sm text-[var(--muted)]">{item.detail}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="section-card mt-6">
+        <p className="section-title">Example Transformation</p>
+        <p className="section-description">
+          The goal is not to erase military experience. It is to translate it into civilian language that hiring managers can understand quickly.
+        </p>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <article className="subtle-panel p-5">
+            <p className="text-xs font-semibold tracking-[0.18em] text-[var(--muted)]">MILITARY VERSION</p>
+            <p className="mt-3 text-base font-semibold">Led 24 Marines maintaining a 100 vehicle fleet with 96% readiness.</p>
+          </article>
+          <article className="subtle-panel p-5">
+            <p className="text-xs font-semibold tracking-[0.18em] text-[var(--accent)]">CIVILIAN VERSION</p>
+            <p className="mt-3 text-base font-semibold">
+              Managed a 24-person operations team responsible for fleet sustainment of 100 vehicles while maintaining 96% operational readiness.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section className="section-card mt-6">
+        <p className="section-title">Mission</p>
+        <p className="section-description">
+          MilVector AI was created to help service members translate military experience into civilian careers with more clarity, less repetition, and better continuity between planning, documents, and action.
+        </p>
+        <p className="mt-3 text-sm text-[var(--muted)]">
+          Built by Marines for service members. The goal is a trust-first workspace that feels closer to mission planning software than a generic job site.
+        </p>
       </section>
     </main>
   );

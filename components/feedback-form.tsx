@@ -40,6 +40,16 @@ export function FeedbackForm() {
       </select>
       <input name="suggested_tool" className="input" placeholder="Suggested Tool (optional)" />
       <textarea name="message" className="input min-h-28 md:col-span-2" placeholder="Message" required />
+      <label className="space-y-1 md:col-span-2">
+        <span className="text-sm font-medium">Attachment (optional)</span>
+        <input
+          name="attachment"
+          type="file"
+          className="input"
+          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.txt,.md,image/png,image/jpeg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
+        />
+        <p className="text-xs text-[var(--muted)]">Use this for screenshots, supporting files, or examples that make the issue clearer.</p>
+      </label>
       <div className="md:col-span-2">
         <button className="btn btn-primary" type="submit" disabled={saving}>
           {saving ? "Submitting..." : "Submit Feedback"}

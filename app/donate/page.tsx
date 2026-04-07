@@ -68,7 +68,7 @@ export default function DonatePage() {
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="section-title">Donation Channels</p>
-            <p className="section-description">QR codes can drop into these slots as soon as they are ready.</p>
+            <p className="section-description">This page is where Venmo, CashApp, and PayPal support links will go live as soon as they are ready.</p>
           </div>
           <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Coming Soon</p>
         </div>

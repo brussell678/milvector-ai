@@ -1,13 +1,5 @@
 import { supabaseServer } from "@/lib/supabase/server";
-
-const categories = [
-  "Transition Planning",
-  "Military to Civilian Translation",
-  "VA Benefits",
-  "Education",
-  "Employment",
-  "Entrepreneurship",
-];
+import { KnowledgeBaseSections } from "@/components/knowledge-base-sections";
 
 type Article = {
   id: string;
@@ -26,31 +18,28 @@ export default async function AppKnowledgeBasePage() {
   const articles = (data ?? []) as Article[];
 
   return (
-    <main className="space-y-4">
-      <section className="panel p-6">
-        <h1 className="text-2xl font-bold">Knowledge Base</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          Field-manual style transition guidance organized by mission category.
-        </p>
+    <main className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-grid">
+          <div className="relative z-10">
+            <p className="page-kicker">KNOWLEDGE BASE</p>
+            <h1 className="page-title">Use transition guidance like a field manual, not a document dump.</h1>
+            <p className="page-description">
+              Review mission-category guidance, expand the article you need, and move directly into the related MilVector workflow without losing context.
+            </p>
+          </div>
+          <aside className="page-hero-aside">
+            <p className="page-hero-aside-title">BEST USE</p>
+            <ul className="page-hero-list">
+              <li>Start with the category closest to your current friction point.</li>
+              <li>Expand only the article you need instead of scanning a long dump.</li>
+              <li>Jump from guidance into Tools, Timeline, or Library when you are ready to act.</li>
+            </ul>
+          </aside>
+        </div>
       </section>
 
-      {categories.map((category) => {
-        const group = articles.filter((article) => article.category === category);
-        return (
-          <section key={category} className="panel p-5">
-            <h2 className="font-semibold">{category}</h2>
-            <div className="mt-3 space-y-3">
-              {group.length === 0 && <p className="text-sm text-[var(--muted)]">No articles yet.</p>}
-              {group.map((article) => (
-                <article key={article.id} className="rounded-md border border-[var(--line)] p-3">
-                  <h3 className="font-semibold">{article.title}</h3>
-                  <p className="mt-1 text-sm text-[var(--muted)]">{article.content}</p>
-                </article>
-              ))}
-            </div>
-          </section>
-        );
-      })}
+      <KnowledgeBaseSections articles={articles} />
     </main>
   );
 }

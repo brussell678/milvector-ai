@@ -191,6 +191,12 @@ export default function DocumentsPage() {
       <section className="section-card">
         <h2 className="section-title">Upload A Document</h2>
         <p className="section-description">Add the records and files you want MilVector to reference across the platform.</p>
+        <section className="mt-4 rounded-md border border-[var(--line)] bg-[var(--surface)] p-4">
+          <p className="text-sm font-semibold text-[var(--warn)]">Before You Upload</p>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Redact sensitive personal information such as SSN, full date of birth, and home address before uploading military records or resume files.
+          </p>
+        </section>
         <form onSubmit={upload} className="mt-5 space-y-4">
           <div className="grid gap-3 md:grid-cols-[220px_1fr]">
             <label className="space-y-1">
