@@ -97,8 +97,8 @@ export function LoginForm({ error }: { error?: string }) {
             Start with a workspace built for transition, not guesswork.
           </h1>
           <p className="mt-4 max-w-xl text-sm leading-6 text-[var(--muted)] md:text-base">
-            Access your tools, saved documents, timelines, and transition support in one place. We&apos;ll send a secure
-            magic link to your email so you can sign in without a password.
+            Access your tools, saved documents, timelines, and transition support in one place. Email sign-in helps us keep the platform free,
+            protect the tools from bot abuse that can drive up AI API costs, and give you a secure way to return to your workspace without a password.
           </p>
           <div className="mt-8 rounded-xl border border-[var(--line)] bg-[linear-gradient(180deg,rgba(83,181,134,0.08),rgba(255,255,255,0.01))] p-5">
             <p className="text-xs font-semibold tracking-[0.18em] text-[var(--accent)]">INSIDE YOUR WORKSPACE</p>
@@ -123,7 +123,7 @@ export function LoginForm({ error }: { error?: string }) {
           <p className="text-xs font-semibold tracking-[0.22em] text-[var(--accent)]">SECURE SIGN IN</p>
           <h2 className="mt-3 text-3xl font-extrabold tracking-tight">Open your workspace</h2>
           <p className="mt-2 text-sm text-[var(--muted)]">
-            Enter your email and we&apos;ll send you a secure sign-in link. No password required.
+            Enter your email and we&apos;ll send you a secure sign-in link. MilVector is free to use, we do not sell your information, and email access helps us keep bots from running up platform costs.
           </p>
           <form onSubmit={onSubmit} className="mt-6 space-y-4">
             <label className="block space-y-1">
@@ -146,6 +146,12 @@ export function LoginForm({ error }: { error?: string }) {
           </form>
           {notificationText && <p className={`mt-4 ${notificationClass}`}>{notificationText}</p>}
           <div className="mt-6 rounded-md border border-[var(--line)] bg-[var(--surface-2)] p-4">
+            <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">WHY EMAIL SIGN-IN EXISTS</p>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              It helps protect the platform from automated abuse, keeps AI operating costs manageable, and gives you a reliable way to return to your work later. Access is free, and your information is not sold.
+            </p>
+          </div>
+          <div className="mt-4 rounded-md border border-[var(--line)] bg-[var(--surface-2)] p-4">
             <p className="text-xs font-semibold tracking-wide text-[var(--muted)]">WHAT HAPPENS NEXT</p>
             <ol className="mt-3 space-y-2 text-sm text-[var(--muted)]">
               <li>1. Check your inbox for the magic link.</li>

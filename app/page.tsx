@@ -87,7 +87,7 @@ export default async function Home({
             </p>
             <div className="flex flex-wrap gap-3">
               <Link href="/login" className="btn btn-primary">
-                Start Free
+                Lets Go!
               </Link>
               <Link href="#how-it-works" className="btn btn-secondary">
                 Learn How It Works
