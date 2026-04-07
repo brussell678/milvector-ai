@@ -15,8 +15,9 @@ const links = [
   { href: "/app/donate", label: "Donate", donate: true },
 ];
 
-export function AppNav() {
+export function AppNav({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
+  const navLinks = isAdmin ? [...links, { href: "/app/admin", label: "Admin" }] : links;
 
   function isActive(href: string) {
     if (href === "/app") return pathname === "/app";
@@ -25,7 +26,7 @@ export function AppNav() {
 
   return (
     <nav className="flex w-full flex-wrap justify-center gap-2" aria-label="App">
-      {links.map((link) => {
+      {navLinks.map((link) => {
         const active = isActive(link.href);
         const donateClass = active
           ? "bg-[#cbe7d1] border-[#5a9a6b] text-[#155328] shadow-sm"

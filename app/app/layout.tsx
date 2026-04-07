@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { ReactNode } from "react";
 import Image from "next/image";
 import { AppNav } from "@/components/app-nav";
+import { isAdminEmail } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
@@ -11,6 +12,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
+  const isAdmin = isAdminEmail(user.email);
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-6 md:px-8">
@@ -36,7 +38,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       </header>
 
       <section className="panel mb-6 p-3">
-        <AppNav />
+        <AppNav isAdmin={isAdmin} />
       </section>
 
       {children}

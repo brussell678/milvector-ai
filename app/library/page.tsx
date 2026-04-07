@@ -8,6 +8,7 @@ type LibraryDocument = {
   description: string | null;
   category: string;
   file_url: string;
+  open_url?: string | null;
 };
 
 type LibraryLink = {
@@ -44,6 +45,16 @@ export default async function LibraryPage() {
 
   const documents = (documentsRes.data ?? []) as LibraryDocument[];
   const links = mergeLibraryLinks((linksRes.data ?? []) as LibraryLink[], fallbackLinks);
+  const documentsWithUrls = await Promise.all(
+    documents.map(async (doc) => {
+      if (/^https?:\/\//i.test(doc.file_url)) {
+        return { ...doc, open_url: doc.file_url };
+      }
+
+      const { data } = await supabase.storage.from("library-submissions").createSignedUrl(doc.file_url, 60 * 60);
+      return { ...doc, open_url: data?.signedUrl ?? null };
+    })
+  );
 
   return (
     <main className="mx-auto max-w-6xl space-y-4 px-6 md:px-8">
@@ -58,15 +69,19 @@ export default async function LibraryPage() {
         <article className="panel p-5">
           <h2 className="font-bold">Documents</h2>
           <div className="mt-3 space-y-3">
-            {documents.length === 0 && <p className="text-sm text-[var(--muted)]">No approved documents yet.</p>}
-            {documents.map((doc) => (
+            {documentsWithUrls.length === 0 && <p className="text-sm text-[var(--muted)]">No approved documents yet.</p>}
+            {documentsWithUrls.map((doc) => (
               <article key={doc.id} className="rounded-md border border-[var(--line)] p-3">
                 <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">{doc.category}</p>
                 <h3 className="font-semibold">{doc.title}</h3>
                 {doc.description && <p className="mt-1 text-sm text-[var(--muted)]">{doc.description}</p>}
-                <a className="btn btn-secondary mt-2 text-sm" href={doc.file_url} target="_blank" rel="noopener noreferrer">
-                  Open Document
-                </a>
+                {doc.open_url ? (
+                  <a className="btn btn-secondary mt-2 text-sm" href={doc.open_url} target="_blank" rel="noopener noreferrer">
+                    Open Document
+                  </a>
+                ) : (
+                  <p className="mt-2 text-xs text-[var(--muted)]">Document link unavailable.</p>
+                )}
               </article>
             ))}
           </div>
