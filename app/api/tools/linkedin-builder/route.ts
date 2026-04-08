@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import sharp from "sharp";
 import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { generateImage, generateJson } from "@/lib/llm/client";
@@ -354,6 +355,54 @@ async function saveLinkedinProfileDocument(args: {
   return { documentId } as const;
 }
 
+async function formatLinkedinBannerImage(sourcePng: Buffer) {
+  const base = sharp(sourcePng).resize(1584, 396, {
+    fit: "cover",
+    position: "centre",
+  });
+
+  const pngBuffer = await base.clone().png({
+    compressionLevel: 9,
+    palette: true,
+    quality: 90,
+  }).toBuffer();
+
+  if (pngBuffer.byteLength <= 8 * 1024 * 1024) {
+    return {
+      buffer: pngBuffer,
+      contentType: "image/png",
+      extension: "png",
+      sizeBytes: pngBuffer.byteLength,
+    } as const;
+  }
+
+  const jpegBuffer = await base.clone().jpeg({
+    quality: 88,
+    mozjpeg: true,
+  }).toBuffer();
+
+  if (jpegBuffer.byteLength <= 8 * 1024 * 1024) {
+    return {
+      buffer: jpegBuffer,
+      contentType: "image/jpeg",
+      extension: "jpg",
+      sizeBytes: jpegBuffer.byteLength,
+    } as const;
+  }
+
+  const tighterJpegBuffer = await base.clone().jpeg({
+    quality: 76,
+    mozjpeg: true,
+  }).toBuffer();
+
+  return {
+    buffer: tighterJpegBuffer,
+    contentType: "image/jpeg",
+    extension: "jpg",
+    sizeBytes: tighterJpegBuffer.byteLength,
+  } as const;
+}
+
 export async function GET() {
   const { userId } = await requireUser();
   const supabase = await supabaseServer();
@@ -706,10 +755,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: imageResult.error }, { status: 500 });
   }
 
-  const pngBytes = Buffer.from(imageResult.b64Json, "base64");
-  const storagePath = `${userId}/${crypto.randomUUID()}.png`;
-  const { error: uploadError } = await supabase.storage.from("linkedin-banners").upload(storagePath, pngBytes, {
-    contentType: "image/png",
+  const generatedBytes = Buffer.from(imageResult.b64Json, "base64");
+  const formattedBanner = await formatLinkedinBannerImage(generatedBytes);
+  const storagePath = `${userId}/${crypto.randomUUID()}.${formattedBanner.extension}`;
+  const { error: uploadError } = await supabase.storage.from("linkedin-banners").upload(storagePath, formattedBanner.buffer, {
+    contentType: formattedBanner.contentType,
     upsert: false,
   });
 
@@ -727,6 +777,11 @@ export async function POST(req: Request) {
       bannerImagePath: storagePath,
       signedUrl,
       revisedPrompt: imageResult.revisedPrompt ?? null,
+      width: 1584,
+      height: 396,
+      aspectRatio: "4:1",
+      contentType: formattedBanner.contentType,
+      sizeBytes: formattedBanner.sizeBytes,
     }),
     tokens_in: imageResult.tokensIn ?? null,
     tokens_out: imageResult.tokensOut ?? null,
@@ -746,5 +801,10 @@ export async function POST(req: Request) {
   return NextResponse.json({
     imageUrl: signedUrl,
     revisedPrompt: imageResult.revisedPrompt ?? null,
+    width: 1584,
+    height: 396,
+    aspectRatio: "4:1",
+    contentType: formattedBanner.contentType,
+    sizeBytes: formattedBanner.sizeBytes,
   });
 }
