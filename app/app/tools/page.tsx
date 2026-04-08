@@ -14,6 +14,7 @@ const coreTools: ToolCard[] = [
     title: "MilVector AI Master Resume Generator",
     desc: "Turn uploaded military records into a reusable civilian career foundation for applications and planning.",
     requirements: ["Upload source records such as FITREPs, EVALs, JST, or VMET.", "Review the output and save the strongest version to your Library."],
+    gptHref: "https://chatgpt.com/g/g-69d5982e578c819184c2e96ec1c81bbb-milvector-master-resume-generator",
   },
   {
     href: "/app/tools/resume-targeter",
@@ -86,6 +87,30 @@ export default function ToolsPage() {
         <p className="mt-3 text-sm text-[var(--muted)]">
           Each core tool has specific requirements. Check them before you start so you get the strongest output on the first pass.
         </p>
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <article className="subtle-panel p-5">
+            <p className="text-xs font-semibold tracking-[0.18em] text-[var(--accent)]">INTEGRATED MILVECTOR TOOLS</p>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              These run inside MilVector using our paid API-backed workflow. Your inputs and outputs move through the platform so results can connect to your profile, documents, library, and export flows.
+            </p>
+            <ul className="mt-3 space-y-2 text-sm text-[var(--muted)]">
+              <li>- Best when you want saved outputs and cleaner exportable Word-document workflows.</li>
+              <li>- Useful when you want work to stay connected to the MilVector system.</li>
+              <li>- These tool runs create real usage cost on the MilVector side.</li>
+            </ul>
+          </article>
+          <article className="subtle-panel p-5">
+            <p className="text-xs font-semibold tracking-[0.18em] text-[var(--accent)]">GPT LINKS</p>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              These open custom GPTs in your own ChatGPT account instead of using the integrated MilVector workflow. For many users, the final output can feel more robust because the interaction is happening directly in ChatGPT.
+            </p>
+            <ul className="mt-3 space-y-2 text-sm text-[var(--muted)]">
+              <li>- Best when you want a more conversational back-and-forth inside ChatGPT.</li>
+              <li>- Uses your ChatGPT account rather than MilVector&apos;s paid API calls.</li>
+              <li>- Does not automatically save work into MilVector documents, library, or export flows.</li>
+            </ul>
+          </article>
+        </div>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           {coreTools.map((tool) => (
             <article key={tool.href} className="subtle-panel p-5">
