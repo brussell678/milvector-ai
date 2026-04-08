@@ -48,7 +48,13 @@ export default function RootLayout({
         </div>
         <div className="relative z-10 pb-16 pt-16 md:pt-10">{children}</div>
         <footer className="site-footer">
-          <p>Copyright 2026 MilVector AI. Built by Russell Innovation Group LLC.</p>
+          <p>
+            Copyright 2026 MilVector AI. Built by{" "}
+            <a href="https://www.russell-innovation-group.com" target="_blank" rel="noopener noreferrer">
+              Russell Innovation Group LLC
+            </a>
+            .
+          </p>
         </footer>
       </body>
     </html>
