@@ -414,3 +414,164 @@ Optional resume template guidance text:
 ${args.templateGuideText ?? ""}
 `.trim();
 }
+
+export function promptLinkedinResumeAnalysis(args: { masterResumeText: string }) {
+  return `
+You are a senior military-to-civilian positioning strategist.
+Analyze this master resume to prepare LinkedIn-specific positioning guidance.
+
+Return strict JSON:
+{
+  "strengths": [],
+  "functional_areas": [],
+  "leadership_scope": [],
+  "role_families": [],
+  "skills": [],
+  "civilian_translation_notes": [],
+  "positioning_summary": ""
+}
+
+Requirements:
+- strengths: 6-10 items grounded in evidence from the resume
+- functional_areas: 4-8 items
+- leadership_scope: 3-6 items focused on team size, scope, complexity, and decision authority
+- role_families: 5-10 realistic civilian role families
+- skills: 10-20 LinkedIn-relevant skills
+- civilian_translation_notes: 5-8 notes explaining military-to-civilian phrasing opportunities
+- positioning_summary: concise paragraph explaining the candidate's strongest marketable profile
+- Do not invent credentials, employers, or outcomes
+- Use civilian language, not military jargon
+
+MASTER RESUME:
+${args.masterResumeText}
+`.trim();
+}
+
+export function promptLinkedinCareerSuggestions(args: {
+  masterResumeText: string;
+  analysisContextJson?: string;
+  locationPref?: string | null;
+}) {
+  return `
+You are a senior career-positioning strategist for transitioning service members.
+Suggest strong civilian career directions for LinkedIn targeting.
+
+Return strict JSON:
+{
+  "suggested_roles": [
+    {
+      "title": "",
+      "why_fit": "",
+      "target_industries": [],
+      "seniority": ""
+    }
+  ],
+  "suggested_industries": [],
+  "recommended_seniority": "",
+  "positioning_advice": [],
+  "location_strategy": ""
+}
+
+Requirements:
+- suggested_roles: 5-10 roles
+- suggested_industries: 2-4 industries
+- positioning_advice: 5-8 concrete notes for LinkedIn positioning
+- Use a suggestive tone, not deterministic
+- Ground recommendations in the provided resume and analysis context
+- Do not overfit to one narrow path if multiple realistic paths exist
+
+Location preference:
+${args.locationPref ?? ""}
+
+Resume analysis context:
+${args.analysisContextJson ?? "{}"}
+
+MASTER RESUME:
+${args.masterResumeText}
+`.trim();
+}
+
+export function promptLinkedinProfileGeneration(args: {
+  masterResumeText: string;
+  analysisContextJson?: string;
+  targetRole: string;
+  industry: string;
+  secondaryRoles?: string[];
+  locationPref?: string | null;
+}) {
+  return `
+You are a senior LinkedIn profile strategist for transitioning service members.
+Generate an optimized LinkedIn profile package based on the resume and selected career direction.
+
+Return strict JSON:
+{
+  "headlines": [],
+  "about_versions": [],
+  "experience": [
+    {
+      "title": "",
+      "bullets": []
+    }
+  ],
+  "skills": [],
+  "networking_guidance": {
+    "connection_targets": [],
+    "outreach_messages": [],
+    "activation_plan": []
+  }
+}
+
+Requirements:
+- headlines: 4-6 options, concise and recruiter-friendly
+- about_versions: 2-3 distinct options, 120-260 words each
+- experience: translate the most relevant roles only; each role gets 2-5 bullets
+- skills: 12-20 prioritized LinkedIn skills
+- networking_guidance.connection_targets: 5-8 target connection categories
+- networking_guidance.outreach_messages: 3-5 short message templates
+- networking_guidance.activation_plan: 5-8 practical next steps
+- Translate military language into civilian language
+- Focus on outcomes, scope, leadership, and relevance to the selected role/industry
+- Do not invent credentials, dates, metrics, or employers
+- Keep tone professional and credible, not hype-driven
+
+Target role: ${args.targetRole}
+Industry: ${args.industry}
+Secondary roles: ${(args.secondaryRoles ?? []).join("; ")}
+Location preference: ${args.locationPref ?? ""}
+
+Resume analysis context:
+${args.analysisContextJson ?? "{}"}
+
+MASTER RESUME:
+${args.masterResumeText}
+`.trim();
+}
+
+export function promptLinkedinBanner(args: {
+  targetRole: string;
+  industry: string;
+  tone?: string | null;
+}) {
+  return `
+You are a branding strategist generating a LinkedIn banner image prompt.
+
+Return strict JSON:
+{
+  "banner_prompt": "",
+  "style_notes": [],
+  "visual_focus": []
+}
+
+Requirements:
+- banner_prompt should be a single detailed image-generation prompt
+- style_notes: 3-6 concise notes
+- visual_focus: 3-6 focal elements or themes
+- Keep the result professional, modern, and aligned to civilian career branding
+- Avoid military clichés unless they are subtle and clearly relevant
+- Do not reference copyrighted logos or brand marks
+
+Target role: ${args.targetRole}
+Industry: ${args.industry}
+Tone: ${args.tone ?? "professional, confident, modern"}
+`.trim();
+}

@@ -24,6 +24,12 @@ const coreTools: ToolCard[] = [
     gptHref: "https://chatgpt.com/g/g-697c169088588191bce63407d421f5b0-milvector-ai-targeted-resume-builder",
   },
   {
+    href: "/app/tools/linkedin-builder",
+    title: "MilVector AI LinkedIn Profile Builder",
+    desc: "Turn a master resume into a stronger LinkedIn presence with career-path suggestions, profile sections, networking guidance, and banner-prompt support.",
+    requirements: ["Have a saved or pasted master resume available.", "Be ready to select target role, industry, and location strategy.", "Use this tool when you want positioning and networking support, not just resume output."],
+  },
+  {
     href: "https://chatgpt.com/g/g-69b6925c39308191b477586de0b7e6ac-va-c-p-rating-navigator-gpt",
     title: "MilVector AI VA C&P Rating Navigator GPT",
     desc: "Open the VA C&P Rating Navigator GPT for guided disability rating walkthroughs.",

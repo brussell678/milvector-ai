@@ -24,3 +24,16 @@ export const ResumeTargeterInputSchema = z.object({
   company: z.string().optional().nullable(),
   jobTitle: z.string().optional().nullable(),
 });
+
+export const LinkedinBuilderInputSchema = z.object({
+  workflowStage: z.enum(["resume_analysis", "career_suggestions", "generate_profile", "banner_prompt"]),
+  masterResumeArtifactId: z.string().uuid().optional(),
+  masterResumeDocumentId: z.string().uuid().optional(),
+  pastedResumeText: z.string().min(100).optional(),
+  analysisContext: z.record(z.any()).optional(),
+  targetRole: z.string().min(2).optional().nullable(),
+  industry: z.string().min(2).optional().nullable(),
+  secondaryRoles: z.array(z.string()).optional().nullable(),
+  locationPref: z.string().optional().nullable(),
+  tone: z.string().optional().nullable(),
+});
