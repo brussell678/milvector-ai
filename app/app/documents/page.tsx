@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 type DocumentRow = {
   id: string;
-  doc_type: "FITREP" | "EVAL" | "VMET" | "JST" | "MASTER_RESUME" | "RESUME_TEMPLATE" | "TARGETED_RESUME" | "OTHER";
+  doc_type: "FITREP" | "EVAL" | "VMET" | "JST" | "MASTER_RESUME" | "RESUME_TEMPLATE" | "TARGETED_RESUME" | "LINKEDIN_PROFILE" | "OTHER";
   filename: string;
   mime_type: string;
   size_bytes: number;
@@ -20,6 +20,7 @@ const DOC_TYPES: Array<DocumentRow["doc_type"]> = [
   "JST",
   "MASTER_RESUME",
   "RESUME_TEMPLATE",
+  "LINKEDIN_PROFILE",
   "OTHER",
 ];
 

@@ -55,6 +55,21 @@ type BannerOutput = {
   visual_focus: string[];
 };
 
+type EditableLinkedinProfileDocument = {
+  headlines: string[];
+  about_versions: string[];
+  experience: Array<{
+    title: string;
+    bullets: string[];
+  }>;
+  skills: string[];
+  networking_guidance: {
+    connection_targets: string[];
+    outreach_messages: string[];
+    activation_plan: string[];
+  };
+};
+
 type ProfileScoreOutput = {
   overall_score: number;
   recruiter_readiness: string;
@@ -227,6 +242,116 @@ async function signBannerUrl(supabase: Awaited<ReturnType<typeof supabaseServer>
 
 function toStoredJson(value: unknown) {
   return (value ?? {}) as Record<string, unknown>;
+}
+
+function renderLinkedinProfileDocument(args: {
+  targetRole: string;
+  industry: string;
+  industryTuning?: string | null;
+  locationPref?: string | null;
+  versionLabel?: string | null;
+  profile: EditableLinkedinProfileDocument;
+  score?: ProfileScoreOutput | null;
+  banner?: BannerOutput | null;
+}) {
+  const sections = [
+    "# MilVector LinkedIn Profile Draft",
+    "",
+    `Version Label: ${args.versionLabel?.trim() || "Not set"}`,
+    `Target Role: ${args.targetRole}`,
+    `Industry: ${args.industry}`,
+    `Industry Tuning: ${args.industryTuning?.trim() || "Not set"}`,
+    `Location Preference: ${args.locationPref?.trim() || "Not set"}`,
+    "",
+    "## Headlines",
+    ...args.profile.headlines.map((item) => `- ${item}`),
+    "",
+    "## About Versions",
+    ...args.profile.about_versions.flatMap((about, index) => [`### About ${index + 1}`, about, ""]),
+    "## Experience",
+    ...args.profile.experience.flatMap((entry) => [`### ${entry.title}`, ...entry.bullets.map((bullet) => `- ${bullet}`), ""]),
+    "## Skills",
+    ...args.profile.skills.map((skill) => `- ${skill}`),
+    "",
+    "## Connection Targets",
+    ...args.profile.networking_guidance.connection_targets.map((item) => `- ${item}`),
+    "",
+    "## Outreach Messages",
+    ...args.profile.networking_guidance.outreach_messages.flatMap((message, index) => [`### Outreach ${index + 1}`, message, ""]),
+    "## Activation Plan",
+    ...args.profile.networking_guidance.activation_plan.map((item) => `- ${item}`),
+  ];
+
+  if (args.score) {
+    sections.push(
+      "",
+      "## Profile Score",
+      `Overall Score: ${args.score.overall_score}/100`,
+      args.score.recruiter_readiness,
+      "",
+      "### Strengths",
+      ...args.score.strengths.map((item) => `- ${item}`),
+      "",
+      "### Improvement Priorities",
+      ...args.score.improvement_priorities.map((item) => `- ${item}`)
+    );
+  }
+
+  if (args.banner) {
+    sections.push(
+      "",
+      "## Banner Prompt",
+      args.banner.banner_prompt,
+      "",
+      "### Style Notes",
+      ...args.banner.style_notes.map((item) => `- ${item}`),
+      "",
+      "### Visual Focus",
+      ...args.banner.visual_focus.map((item) => `- ${item}`)
+    );
+  }
+
+  return sections.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+async function saveLinkedinProfileDocument(args: {
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
+  userId: string;
+  filename: string;
+  content: string;
+}) {
+  const documentId = crypto.randomUUID();
+  const safeName = args.filename.replace(/[^\w.\- ]+/g, "_");
+  const storagePath = `${args.userId}/${documentId}/${safeName}`;
+  const buffer = Buffer.from(args.content, "utf8");
+  const mimeType = "text/markdown; charset=utf-8";
+
+  const { error: uploadError } = await args.supabase.storage
+    .from("documents")
+    .upload(storagePath, buffer, { contentType: mimeType, upsert: false });
+
+  if (uploadError) {
+    return { error: uploadError.message } as const;
+  }
+
+  const { error: insertError } = await args.supabase.from("documents").insert({
+    id: documentId,
+    user_id: args.userId,
+    doc_type: "LINKEDIN_PROFILE",
+    filename: args.filename,
+    storage_path: storagePath,
+    mime_type: mimeType,
+    size_bytes: buffer.byteLength,
+    text_extracted: true,
+    extracted_text: args.content,
+  });
+
+  if (insertError) {
+    await args.supabase.storage.from("documents").remove([storagePath]);
+    return { error: insertError.message } as const;
+  }
+
+  return { documentId } as const;
 }
 
 export async function GET() {
@@ -485,6 +610,43 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json(normalized);
+  }
+
+  if (workflowStage === "save_document") {
+    if (!targetRole || !industry || !profileJson) {
+      return NextResponse.json({ error: "Target role, industry, and profile data are required to save a LinkedIn draft document." }, { status: 400 });
+    }
+
+    const normalizedProfile = normalizeLinkedinProfile(profileJson as Partial<LinkedinProfileOutput>);
+    const scorePayload = analysisContext && "profileScore" in analysisContext
+      ? normalizeProfileScore((analysisContext.profileScore ?? {}) as Partial<ProfileScoreOutput>)
+      : null;
+    const bannerPayload = analysisContext && "bannerOutput" in analysisContext
+      ? normalizeBanner((analysisContext.bannerOutput ?? {}) as Partial<BannerOutput>)
+      : null;
+    const content = renderLinkedinProfileDocument({
+      targetRole,
+      industry,
+      industryTuning: industryTuning ?? null,
+      locationPref: locationPref ?? null,
+      versionLabel: versionLabel ?? null,
+      profile: normalizedProfile,
+      score: scorePayload,
+      banner: bannerPayload,
+    });
+    const filenameBase = versionLabel?.trim() || targetRole.trim() || "LinkedIn Profile Draft";
+    const savedDocument = await saveLinkedinProfileDocument({
+      supabase,
+      userId,
+      filename: `${filenameBase}.md`,
+      content,
+    });
+
+    if ("error" in savedDocument) {
+      return NextResponse.json({ error: savedDocument.error }, { status: 500 });
+    }
+
+    return NextResponse.json({ documentId: savedDocument.documentId, filename: `${filenameBase}.md` });
   }
 
   if (!targetRole || !industry) {

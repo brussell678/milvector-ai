@@ -5,7 +5,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 
 const UpdateDocumentSchema = z.object({
   filename: z.string().trim().min(1).max(180).optional(),
-  doc_type: z.enum(["FITREP", "EVAL", "VMET", "JST", "MASTER_RESUME", "RESUME_TEMPLATE", "TARGETED_RESUME", "OTHER"]).optional(),
+  doc_type: z.enum(["FITREP", "EVAL", "VMET", "JST", "MASTER_RESUME", "RESUME_TEMPLATE", "TARGETED_RESUME", "LINKEDIN_PROFILE", "OTHER"]).optional(),
 });
 
 export async function PATCH(req: Request, context: { params: Promise<{ id: string }> }) {
