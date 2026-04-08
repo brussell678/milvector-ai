@@ -10,6 +10,19 @@ export type LlmJsonResult<T> = {
   latencyMs?: number;
 };
 
+export type LlmImageResult = {
+  ok: true;
+  b64Json: string;
+  revisedPrompt?: string;
+  tokensIn?: number;
+  tokensOut?: number;
+  latencyMs?: number;
+} | {
+  ok: false;
+  error: string;
+  latencyMs?: number;
+};
+
 import OpenAI from "openai";
 import { jsonrepair } from "jsonrepair";
 import { getEnv } from "@/lib/env";
@@ -258,6 +271,56 @@ export async function generateText(prompt: string): Promise<LlmJsonResult<string
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "LLM request failed";
+    return { ok: false, error: message, latencyMs: Date.now() - started };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function generateImage(args: {
+  prompt: string;
+  size?: "1024x1024" | "1024x1536" | "1536x1024" | "auto";
+  quality?: "low" | "medium" | "high" | "auto";
+}): Promise<LlmImageResult> {
+  const env = getEnv();
+  if (!env.OPENAI_API_KEY) return { ok: false, error: "OPENAI_API_KEY is not configured" };
+
+  const client = new OpenAI({
+    apiKey: env.OPENAI_API_KEY,
+    baseURL: env.OPENAI_BASE_URL,
+  });
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), env.LLM_TIMEOUT_MS);
+  const started = Date.now();
+
+  try {
+    const response = await client.images.generate(
+      {
+        model: "gpt-image-1",
+        prompt: args.prompt,
+        size: args.size ?? "1536x1024",
+        quality: args.quality ?? "medium",
+        output_format: "png",
+      },
+      { signal: controller.signal }
+    );
+
+    const image = response.data?.[0];
+    if (!image?.b64_json) {
+      return { ok: false, error: "Image generation did not return image data.", latencyMs: Date.now() - started };
+    }
+
+    return {
+      ok: true,
+      b64Json: image.b64_json,
+      revisedPrompt: image.revised_prompt,
+      tokensIn: response.usage?.input_tokens,
+      tokensOut: response.usage?.output_tokens,
+      latencyMs: Date.now() - started,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Image generation failed";
     return { ok: false, error: message, latencyMs: Date.now() - started };
   } finally {
     clearTimeout(timeout);

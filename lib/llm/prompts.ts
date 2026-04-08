@@ -575,3 +575,54 @@ Industry: ${args.industry}
 Tone: ${args.tone ?? "professional, confident, modern"}
 `.trim();
 }
+
+export function promptLinkedinProfileScore(args: {
+  targetRole: string;
+  industry: string;
+  industryTuning?: string | null;
+  generatedProfileJson: string;
+}) {
+  return `
+You are a senior LinkedIn optimization strategist and recruiter coach.
+Score the provided LinkedIn profile package for recruiter readiness.
+
+Return strict JSON:
+{
+  "overall_score": 0,
+  "recruiter_readiness": "",
+  "strengths": [],
+  "improvement_priorities": [],
+  "section_scores": [
+    {
+      "section": "",
+      "score": 0,
+      "max_score": 0,
+      "rationale": "",
+      "actions": []
+    }
+  ]
+}
+
+Requirements:
+- overall_score: integer 0-100
+- recruiter_readiness: short paragraph explaining current market readiness
+- strengths: 4-7 concise points
+- improvement_priorities: 4-7 concise points ordered highest priority first
+- section_scores must include exactly these sections:
+  headline
+  about
+  experience
+  skills
+  networking
+- each section score should be realistic, not inflated
+- actions: 2-4 concrete improvements for that section
+- advisory tone only; no guarantee language
+
+Target role: ${args.targetRole}
+Industry: ${args.industry}
+Industry-specific tuning: ${args.industryTuning ?? ""}
+
+Generated profile JSON:
+${args.generatedProfileJson}
+`.trim();
+}

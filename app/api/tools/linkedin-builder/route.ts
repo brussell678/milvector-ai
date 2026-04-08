@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
-import { LinkedinBuilderInputSchema } from "@/lib/validators/tools";
-import { generateJson } from "@/lib/llm/client";
+import { generateImage, generateJson } from "@/lib/llm/client";
 import {
   promptLinkedinBanner,
   promptLinkedinCareerSuggestions,
   promptLinkedinProfileGeneration,
+  promptLinkedinProfileScore,
   promptLinkedinResumeAnalysis,
 } from "@/lib/llm/prompts";
+import { LinkedinBuilderInputSchema } from "@/lib/validators/tools";
 
 type ResumeAnalysisOutput = {
   strengths: string[];
@@ -54,6 +55,38 @@ type BannerOutput = {
   visual_focus: string[];
 };
 
+type ProfileScoreOutput = {
+  overall_score: number;
+  recruiter_readiness: string;
+  strengths: string[];
+  improvement_priorities: string[];
+  section_scores: Array<{
+    section: string;
+    score: number;
+    max_score: number;
+    rationale: string;
+    actions: string[];
+  }>;
+};
+
+type SavedLinkedinProfileRow = {
+  id: string;
+  version_label: string | null;
+  resume_text: string;
+  target_role: string | null;
+  industry: string | null;
+  industry_tuning: string | null;
+  location_pref: string | null;
+  analysis_context: unknown;
+  career_suggestions: unknown;
+  generated_profile: unknown;
+  profile_score: unknown;
+  banner_output: unknown;
+  banner_image_path: string | null;
+  created_at: string;
+  updated_at: string | null;
+};
+
 function toStringArray(value: unknown) {
   if (!Array.isArray(value)) return [] as string[];
   return value.map((item) => String(item ?? "").trim()).filter(Boolean);
@@ -74,12 +107,14 @@ function normalizeResumeAnalysis(data: Partial<ResumeAnalysisOutput>): ResumeAna
 function normalizeCareerSuggestions(data: Partial<CareerSuggestionOutput>): CareerSuggestionOutput {
   return {
     suggested_roles: Array.isArray(data.suggested_roles)
-      ? data.suggested_roles.map((role) => ({
-          title: String(role?.title ?? "").trim(),
-          why_fit: String(role?.why_fit ?? "").trim(),
-          target_industries: toStringArray(role?.target_industries),
-          seniority: String(role?.seniority ?? "").trim(),
-        })).filter((role) => role.title)
+      ? data.suggested_roles
+          .map((role) => ({
+            title: String(role?.title ?? "").trim(),
+            why_fit: String(role?.why_fit ?? "").trim(),
+            target_industries: toStringArray(role?.target_industries),
+            seniority: String(role?.seniority ?? "").trim(),
+          }))
+          .filter((role) => role.title)
       : [],
     suggested_industries: toStringArray(data.suggested_industries),
     recommended_seniority: String(data.recommended_seniority ?? "").trim(),
@@ -117,12 +152,130 @@ function normalizeBanner(data: Partial<BannerOutput>): BannerOutput {
   };
 }
 
-export async function POST(req: Request) {
+function normalizeProfileScore(data: Partial<ProfileScoreOutput>): ProfileScoreOutput {
+  return {
+    overall_score: Math.max(0, Math.min(100, Number(data.overall_score ?? 0) || 0)),
+    recruiter_readiness: String(data.recruiter_readiness ?? "").trim(),
+    strengths: toStringArray(data.strengths),
+    improvement_priorities: toStringArray(data.improvement_priorities),
+    section_scores: Array.isArray(data.section_scores)
+      ? data.section_scores
+          .map((section) => ({
+            section: String(section?.section ?? "").trim(),
+            score: Math.max(0, Number(section?.score ?? 0) || 0),
+            max_score: Math.max(1, Number(section?.max_score ?? 20) || 20),
+            rationale: String(section?.rationale ?? "").trim(),
+            actions: toStringArray(section?.actions),
+          }))
+          .filter((section) => section.section)
+      : [],
+  };
+}
+
+async function getMasterResumeText(args: {
+  supabase: Awaited<ReturnType<typeof supabaseServer>>;
+  userId: string;
+  masterResumeArtifactId?: string;
+  masterResumeDocumentId?: string;
+  pastedResumeText?: string;
+}) {
+  let masterResumeText = args.pastedResumeText ?? "";
+
+  if (!masterResumeText && args.masterResumeArtifactId) {
+    const { data: artifact, error } = await args.supabase
+      .from("resume_artifacts")
+      .select("content")
+      .eq("id", args.masterResumeArtifactId)
+      .eq("user_id", args.userId)
+      .single();
+
+    if (error) {
+      return { error: "Master resume artifact not found." } as const;
+    }
+
+    masterResumeText = artifact.content;
+  }
+
+  if (!masterResumeText && args.masterResumeDocumentId) {
+    const { data: document, error } = await args.supabase
+      .from("documents")
+      .select("extracted_text,text_extracted")
+      .eq("id", args.masterResumeDocumentId)
+      .eq("user_id", args.userId)
+      .single();
+
+    if (error) {
+      return { error: "Master resume document not found." } as const;
+    }
+
+    if (!document.text_extracted || !document.extracted_text) {
+      return { error: "Selected master resume document is not extracted yet." } as const;
+    }
+
+    masterResumeText = document.extracted_text;
+  }
+
+  return { masterResumeText } as const;
+}
+
+async function signBannerUrl(supabase: Awaited<ReturnType<typeof supabaseServer>>, path: string | null) {
+  if (!path) return null;
+
+  const { data } = await supabase.storage.from("linkedin-banners").createSignedUrl(path, 60 * 60);
+  return data?.signedUrl ?? null;
+}
+
+function toStoredJson(value: unknown) {
+  return (value ?? {}) as Record<string, unknown>;
+}
+
+export async function GET() {
   const { userId } = await requireUser();
   const supabase = await supabaseServer();
 
+  const { data, error } = await supabase
+    .from("linkedin_profiles")
+    .select(
+      "id,version_label,resume_text,target_role,industry,industry_tuning,location_pref,analysis_context,career_suggestions,generated_profile,profile_score,banner_output,banner_image_path,created_at,updated_at"
+    )
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(12);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  const rows = (data ?? []) as SavedLinkedinProfileRow[];
+  const profiles = await Promise.all(
+    rows.map(async (row) => ({
+      id: row.id,
+      versionLabel: row.version_label,
+      resumeText: row.resume_text,
+      targetRole: row.target_role,
+      industry: row.industry,
+      industryTuning: row.industry_tuning,
+      locationPref: row.location_pref,
+      analysisContext: row.analysis_context ?? {},
+      careerSuggestions: row.career_suggestions ?? {},
+      generatedProfile: row.generated_profile ?? {},
+      profileScore: row.profile_score ?? {},
+      bannerOutput: row.banner_output ?? {},
+      bannerImageUrl: await signBannerUrl(supabase, row.banner_image_path),
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }))
+  );
+
+  return NextResponse.json({ profiles });
+}
+
+export async function POST(req: Request) {
+  const { userId } = await requireUser();
+  const supabase = await supabaseServer();
   const body = await req.json();
   const parsed = LinkedinBuilderInputSchema.safeParse(body);
+
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
@@ -133,122 +286,116 @@ export async function POST(req: Request) {
     masterResumeDocumentId,
     pastedResumeText,
     analysisContext,
+    profileId,
+    profileJson,
     targetRole,
     industry,
+    industryTuning,
     secondaryRoles,
     locationPref,
     tone,
+    bannerPrompt,
+    versionLabel,
   } = parsed.data;
-
-  let masterResumeText = pastedResumeText ?? "";
-
-  if (!masterResumeText && masterResumeArtifactId) {
-    const { data: artifact, error } = await supabase
-      .from("resume_artifacts")
-      .select("content")
-      .eq("id", masterResumeArtifactId)
-      .eq("user_id", userId)
-      .single();
-
-    if (error) return NextResponse.json({ error: "Master resume artifact not found." }, { status: 404 });
-    masterResumeText = artifact.content;
-  }
-
-  if (!masterResumeText && masterResumeDocumentId) {
-    const { data: document, error } = await supabase
-      .from("documents")
-      .select("extracted_text,text_extracted")
-      .eq("id", masterResumeDocumentId)
-      .eq("user_id", userId)
-      .single();
-
-    if (error) return NextResponse.json({ error: "Master resume document not found." }, { status: 404 });
-    if (!document.text_extracted || !document.extracted_text) {
-      return NextResponse.json({ error: "Selected master resume document is not extracted yet." }, { status: 400 });
-    }
-    masterResumeText = document.extracted_text;
-  }
 
   const baseRun = {
     user_id: userId,
     tool_name: "linkedin_builder" as const,
     input_json: {
       workflowStage,
+      profileId: profileId ?? null,
       masterResumeArtifactId: masterResumeArtifactId ?? null,
       masterResumeDocumentId: masterResumeDocumentId ?? null,
       targetRole: targetRole ?? null,
       industry: industry ?? null,
+      industryTuning: industryTuning ?? null,
       locationPref: locationPref ?? null,
+      versionLabel: versionLabel ?? null,
     },
   };
 
-  if (workflowStage !== "banner_prompt" && (!masterResumeText || masterResumeText.trim().length < 100)) {
-    return NextResponse.json({ error: "Provide a master resume source or pasted resume text." }, { status: 400 });
-  }
-
   const started = Date.now();
 
-  if (workflowStage === "resume_analysis") {
-    const llm = await generateJson<ResumeAnalysisOutput>(promptLinkedinResumeAnalysis({ masterResumeText }));
-    const latency = Date.now() - started;
-
-    if (!llm.ok) {
-      await supabase.from("tool_runs").insert({ ...baseRun, latency_ms: latency, status: "error", error_message: llm.error });
-      return NextResponse.json({ error: llm.error }, { status: 500 });
-    }
-
-    const normalized = normalizeResumeAnalysis(llm.data);
-    await supabase.from("tool_runs").insert({
-      ...baseRun,
-      latency_ms: latency,
-      status: "success",
-      output_json: normalized as unknown as Record<string, unknown>,
-      tokens_in: llm.tokensIn ?? null,
-      tokens_out: llm.tokensOut ?? null,
+  if (workflowStage === "resume_analysis" || workflowStage === "career_suggestions" || workflowStage === "generate_profile") {
+    const resumeResult = await getMasterResumeText({
+      supabase,
+      userId,
+      masterResumeArtifactId,
+      masterResumeDocumentId,
+      pastedResumeText,
     });
 
-    return NextResponse.json(normalized);
-  }
-
-  if (workflowStage === "career_suggestions") {
-    const llm = await generateJson<CareerSuggestionOutput>(
-      promptLinkedinCareerSuggestions({
-        masterResumeText,
-        analysisContextJson: JSON.stringify(analysisContext ?? {}),
-        locationPref: locationPref ?? null,
-      })
-    );
-    const latency = Date.now() - started;
-
-    if (!llm.ok) {
-      await supabase.from("tool_runs").insert({ ...baseRun, latency_ms: latency, status: "error", error_message: llm.error });
-      return NextResponse.json({ error: llm.error }, { status: 500 });
+    if ("error" in resumeResult) {
+      const resumeError = resumeResult.error ?? "Unable to load master resume.";
+      return NextResponse.json({ error: resumeError }, { status: resumeError.includes("not found") ? 404 : 400 });
     }
 
-    const normalized = normalizeCareerSuggestions(llm.data);
-    await supabase.from("tool_runs").insert({
-      ...baseRun,
-      latency_ms: latency,
-      status: "success",
-      output_json: normalized as unknown as Record<string, unknown>,
-      tokens_in: llm.tokensIn ?? null,
-      tokens_out: llm.tokensOut ?? null,
-    });
+    const masterResumeText = resumeResult.masterResumeText;
+    if (!masterResumeText || masterResumeText.trim().length < 100) {
+      return NextResponse.json({ error: "Provide a master resume source or pasted resume text." }, { status: 400 });
+    }
 
-    return NextResponse.json(normalized);
-  }
+    if (workflowStage === "resume_analysis") {
+      const llm = await generateJson<ResumeAnalysisOutput>(promptLinkedinResumeAnalysis({ masterResumeText }));
+      const latency = Date.now() - started;
 
-  if (workflowStage === "generate_profile") {
+      if (!llm.ok) {
+        await supabase.from("tool_runs").insert({ ...baseRun, latency_ms: latency, status: "error", error_message: llm.error });
+        return NextResponse.json({ error: llm.error }, { status: 500 });
+      }
+
+      const normalized = normalizeResumeAnalysis(llm.data);
+      await supabase.from("tool_runs").insert({
+        ...baseRun,
+        latency_ms: latency,
+        status: "success",
+        output_json: toStoredJson(normalized),
+        tokens_in: llm.tokensIn ?? null,
+        tokens_out: llm.tokensOut ?? null,
+      });
+
+      return NextResponse.json(normalized);
+    }
+
+    if (workflowStage === "career_suggestions") {
+      const llm = await generateJson<CareerSuggestionOutput>(
+        promptLinkedinCareerSuggestions({
+          masterResumeText,
+          analysisContextJson: JSON.stringify(analysisContext ?? {}),
+          locationPref: locationPref ?? null,
+        })
+      );
+      const latency = Date.now() - started;
+
+      if (!llm.ok) {
+        await supabase.from("tool_runs").insert({ ...baseRun, latency_ms: latency, status: "error", error_message: llm.error });
+        return NextResponse.json({ error: llm.error }, { status: 500 });
+      }
+
+      const normalized = normalizeCareerSuggestions(llm.data);
+      await supabase.from("tool_runs").insert({
+        ...baseRun,
+        latency_ms: latency,
+        status: "success",
+        output_json: toStoredJson(normalized),
+        tokens_in: llm.tokensIn ?? null,
+        tokens_out: llm.tokensOut ?? null,
+      });
+
+      return NextResponse.json(normalized);
+    }
+
     if (!targetRole || !industry) {
       return NextResponse.json({ error: "Target role and industry are required to generate a LinkedIn profile." }, { status: 400 });
     }
 
+    const effectiveIndustry = industryTuning ? `${industry} | Industry tuning: ${industryTuning}` : industry;
     const llm = await generateJson<LinkedinProfileOutput>(
       promptLinkedinProfileGeneration({
         masterResumeText,
         analysisContextJson: JSON.stringify(analysisContext ?? {}),
         targetRole,
-        industry,
+        industry: effectiveIndustry,
         secondaryRoles: secondaryRoles ?? [],
         locationPref: locationPref ?? null,
       }),
@@ -262,12 +409,11 @@ export async function POST(req: Request) {
     }
 
     const normalized = normalizeLinkedinProfile(llm.data);
-
     await supabase.from("tool_runs").insert({
       ...baseRun,
       latency_ms: latency,
       status: "success",
-      output_json: normalized as unknown as Record<string, unknown>,
+      output_json: toStoredJson(normalized),
       tokens_in: llm.tokensIn ?? null,
       tokens_out: llm.tokensOut ?? null,
     });
@@ -276,47 +422,167 @@ export async function POST(req: Request) {
       .from("linkedin_profiles")
       .insert({
         user_id: userId,
+        version_label: versionLabel?.trim() || null,
         resume_text: masterResumeText,
         target_role: targetRole,
         industry,
+        industry_tuning: industryTuning ?? null,
         location_pref: locationPref ?? null,
-        generated_profile: normalized as unknown as Record<string, unknown>,
+        analysis_context: toStoredJson(analysisContext),
+        career_suggestions: toStoredJson(analysisContext && "careerSuggestions" in analysisContext ? analysisContext.careerSuggestions : {}),
+        generated_profile: toStoredJson(normalized),
+        updated_at: new Date().toISOString(),
       })
       .select("id")
       .single();
 
-    if (saveError) return NextResponse.json({ error: saveError.message }, { status: 500 });
+    if (saveError) {
+      return NextResponse.json({ error: saveError.message }, { status: 500 });
+    }
 
     return NextResponse.json({ profileId: saved.id, ...normalized });
   }
 
-  if (!targetRole || !industry) {
-    return NextResponse.json({ error: "Target role and industry are required to generate a banner prompt." }, { status: 400 });
+  if (workflowStage === "score_profile") {
+    if (!targetRole || !industry || !profileJson) {
+      return NextResponse.json({ error: "Target role, industry, and generated profile data are required to score the profile." }, { status: 400 });
+    }
+
+    const llm = await generateJson<ProfileScoreOutput>(
+      promptLinkedinProfileScore({
+        targetRole,
+        industry,
+        industryTuning: industryTuning ?? null,
+        generatedProfileJson: JSON.stringify(profileJson),
+      })
+    );
+    const latency = Date.now() - started;
+
+    if (!llm.ok) {
+      await supabase.from("tool_runs").insert({ ...baseRun, latency_ms: latency, status: "error", error_message: llm.error });
+      return NextResponse.json({ error: llm.error }, { status: 500 });
+    }
+
+    const normalized = normalizeProfileScore(llm.data);
+    await supabase.from("tool_runs").insert({
+      ...baseRun,
+      latency_ms: latency,
+      status: "success",
+      output_json: toStoredJson(normalized),
+      tokens_in: llm.tokensIn ?? null,
+      tokens_out: llm.tokensOut ?? null,
+    });
+
+    if (profileId) {
+      await supabase
+        .from("linkedin_profiles")
+        .update({
+          profile_score: toStoredJson(normalized),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", profileId)
+        .eq("user_id", userId);
+    }
+
+    return NextResponse.json(normalized);
   }
 
-  const llm = await generateJson<BannerOutput>(
-    promptLinkedinBanner({
-      targetRole,
-      industry,
-      tone: tone ?? null,
-    })
-  );
+  if (!targetRole || !industry) {
+    return NextResponse.json({ error: "Target role and industry are required." }, { status: 400 });
+  }
+
+  if (workflowStage === "banner_prompt") {
+    const effectiveIndustry = industryTuning ? `${industry} | Industry tuning: ${industryTuning}` : industry;
+    const llm = await generateJson<BannerOutput>(
+      promptLinkedinBanner({
+        targetRole,
+        industry: effectiveIndustry,
+        tone: tone ?? null,
+      })
+    );
+    const latency = Date.now() - started;
+
+    if (!llm.ok) {
+      await supabase.from("tool_runs").insert({ ...baseRun, latency_ms: latency, status: "error", error_message: llm.error });
+      return NextResponse.json({ error: llm.error }, { status: 500 });
+    }
+
+    const normalized = normalizeBanner(llm.data);
+    await supabase.from("tool_runs").insert({
+      ...baseRun,
+      latency_ms: latency,
+      status: "success",
+      output_json: toStoredJson(normalized),
+      tokens_in: llm.tokensIn ?? null,
+      tokens_out: llm.tokensOut ?? null,
+    });
+
+    if (profileId) {
+      await supabase
+        .from("linkedin_profiles")
+        .update({
+          banner_output: toStoredJson(normalized),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", profileId)
+        .eq("user_id", userId);
+    }
+
+    return NextResponse.json(normalized);
+  }
+
+  const promptToUse = bannerPrompt?.trim();
+  if (!promptToUse || promptToUse.length < 20) {
+    return NextResponse.json({ error: "Generate a banner prompt before requesting a banner image." }, { status: 400 });
+  }
+
+  const imageResult = await generateImage({ prompt: promptToUse });
   const latency = Date.now() - started;
 
-  if (!llm.ok) {
-    await supabase.from("tool_runs").insert({ ...baseRun, latency_ms: latency, status: "error", error_message: llm.error });
-    return NextResponse.json({ error: llm.error }, { status: 500 });
+  if (!imageResult.ok) {
+    await supabase.from("tool_runs").insert({ ...baseRun, latency_ms: latency, status: "error", error_message: imageResult.error });
+    return NextResponse.json({ error: imageResult.error }, { status: 500 });
   }
 
-  const normalized = normalizeBanner(llm.data);
+  const pngBytes = Buffer.from(imageResult.b64Json, "base64");
+  const storagePath = `${userId}/${crypto.randomUUID()}.png`;
+  const { error: uploadError } = await supabase.storage.from("linkedin-banners").upload(storagePath, pngBytes, {
+    contentType: "image/png",
+    upsert: false,
+  });
+
+  if (uploadError) {
+    await supabase.from("tool_runs").insert({ ...baseRun, latency_ms: latency, status: "error", error_message: uploadError.message });
+    return NextResponse.json({ error: uploadError.message }, { status: 500 });
+  }
+
+  const signedUrl = await signBannerUrl(supabase, storagePath);
   await supabase.from("tool_runs").insert({
     ...baseRun,
     latency_ms: latency,
     status: "success",
-    output_json: normalized as unknown as Record<string, unknown>,
-    tokens_in: llm.tokensIn ?? null,
-    tokens_out: llm.tokensOut ?? null,
+    output_json: toStoredJson({
+      bannerImagePath: storagePath,
+      signedUrl,
+      revisedPrompt: imageResult.revisedPrompt ?? null,
+    }),
+    tokens_in: imageResult.tokensIn ?? null,
+    tokens_out: imageResult.tokensOut ?? null,
   });
 
-  return NextResponse.json(normalized);
+  if (profileId) {
+    await supabase
+      .from("linkedin_profiles")
+      .update({
+        banner_image_path: storagePath,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", profileId)
+      .eq("user_id", userId);
+  }
+
+  return NextResponse.json({
+    imageUrl: signedUrl,
+    revisedPrompt: imageResult.revisedPrompt ?? null,
+  });
 }
