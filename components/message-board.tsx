@@ -279,8 +279,8 @@ export function MessageBoard() {
   }
 
   function visibleReplies(thread: Thread) {
-    if (expandedReplies[thread.id] || thread.replies.length <= 2) return thread.replies;
-    return thread.replies.slice(0, 2);
+    if (expandedReplies[thread.id] || thread.replies.length <= 1) return thread.replies;
+    return [thread.replies[thread.replies.length - 1]];
   }
 
   return (
@@ -406,7 +406,7 @@ export function MessageBoard() {
                 <button type="button" className="btn btn-secondary" disabled={!canPost || thread.isLocked || thread.status !== "active"} onClick={() => setReplyingTo((current) => current === thread.id ? null : thread.id)}>
                   {replyingTo === thread.id ? "Cancel Reply" : `Reply${thread.replies.length ? ` (${thread.replies.length})` : ""}`}
                 </button>
-                {thread.replies.length > 2 ? (
+                {thread.replies.length > 1 ? (
                   <button type="button" className="btn btn-secondary text-sm" onClick={() => setExpandedReplies((current) => ({ ...current, [thread.id]: !current[thread.id] }))}>
                     {expandedReplies[thread.id] ? "Collapse Replies" : `Show All Replies (${thread.replies.length})`}
                   </button>
