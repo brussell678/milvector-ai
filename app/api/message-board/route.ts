@@ -26,10 +26,17 @@ export async function GET() {
     } = await supabase.auth.getUser();
     const isAdmin = isAdminEmail(user?.email);
     let hasSavedProfile = false;
+    let postingBlocked = false;
+    let postingBlockReason: string | null = null;
 
     if (user) {
-      const { data: profile } = await supabase.from("profiles").select("id").eq("id", user.id).maybeSingle();
+      const [{ data: profile }, { data: blockedUser }] = await Promise.all([
+        supabase.from("profiles").select("id").eq("id", user.id).maybeSingle(),
+        supabase.from("message_board_blocked_users").select("reason").eq("user_id", user.id).maybeSingle(),
+      ]);
       hasSavedProfile = !!profile;
+      postingBlocked = !!blockedUser;
+      postingBlockReason = blockedUser?.reason ?? null;
     }
 
     let postsQuery = supabase
@@ -82,8 +89,10 @@ export async function GET() {
 
     return NextResponse.json({
       posts: enrichedPosts,
-      canPost: hasSavedProfile,
+      canPost: hasSavedProfile && !postingBlocked,
       requiresSavedProfile: true,
+      postingBlocked,
+      postingBlockReason,
       isAdmin,
       currentUserId: user?.id ?? null,
     });
@@ -109,13 +118,24 @@ export async function POST(req: Request) {
       .select("id, full_name")
       .eq("id", user.id)
       .maybeSingle();
+    const { data: blockedUser, error: blockedUserError } = await supabase
+      .from("message_board_blocked_users")
+      .select("reason")
+      .eq("user_id", user.id)
+      .maybeSingle();
 
     if (profileError) {
       return NextResponse.json({ error: profileError.message }, { status: 500 });
     }
+    if (blockedUserError) {
+      return NextResponse.json({ error: blockedUserError.message }, { status: 500 });
+    }
 
     if (!profile) {
       return NextResponse.json({ error: "Save your MilVector profile before posting on the message board." }, { status: 403 });
+    }
+    if (blockedUser) {
+      return NextResponse.json({ error: blockedUser.reason?.trim() || "Your account is currently blocked from posting on the message board." }, { status: 403 });
     }
 
     const parsed = CreateMessageSchema.safeParse(await req.json().catch(() => null));

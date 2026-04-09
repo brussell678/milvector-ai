@@ -38,6 +38,7 @@ type MessageBoardReportItem = {
   post_id: string;
   reported_by_user_id: string;
   post?: {
+    user_id: string;
     title: string | null;
     body: string;
     author_label: string;
@@ -45,21 +46,31 @@ type MessageBoardReportItem = {
   } | null;
 };
 
+type MessageBoardBlockedUserItem = {
+  user_id: string;
+  reason: string | null;
+  created_at: string;
+};
+
 export function AdminPortal({
   initialFeedback,
   initialSubmissions,
   initialMessageBoardReports,
+  initialBlockedUsers,
 }: {
   initialFeedback: FeedbackItem[];
   initialSubmissions: SubmissionItem[];
   initialMessageBoardReports: MessageBoardReportItem[];
+  initialBlockedUsers: MessageBoardBlockedUserItem[];
 }) {
   const [feedback, setFeedback] = useState(initialFeedback);
   const [submissions, setSubmissions] = useState(initialSubmissions);
   const [reports, setReports] = useState(initialMessageBoardReports);
+  const [blockedUsers, setBlockedUsers] = useState(initialBlockedUsers);
   const [busyFeedbackId, setBusyFeedbackId] = useState<string | null>(null);
   const [busySubmissionId, setBusySubmissionId] = useState<string | null>(null);
   const [busyReportId, setBusyReportId] = useState<string | null>(null);
+  const [busyBlockedUserId, setBusyBlockedUserId] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -146,9 +157,72 @@ export function AdminPortal({
     }
   }
 
+  async function blockPosting(userId: string, authorLabel: string) {
+    setBusyBlockedUserId(userId);
+    setStatus(null);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/admin/message-board-blocks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          reason: `Posting blocked by admin after repeat message board moderation issues. (${authorLabel})`,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setError(data.error ?? "Failed to block this user.");
+        return;
+      }
+
+      setBlockedUsers((current) => {
+        if (current.some((item) => item.user_id === userId)) return current;
+        return [
+          {
+            user_id: userId,
+            reason: `Posting blocked by admin after repeat message board moderation issues. (${authorLabel})`,
+            created_at: new Date().toISOString(),
+          },
+          ...current,
+        ];
+      });
+      setStatus("User blocked from posting on the message board.");
+    } catch {
+      setError("Network error while blocking this user.");
+    } finally {
+      setBusyBlockedUserId(null);
+    }
+  }
+
+  async function unblockPosting(userId: string) {
+    setBusyBlockedUserId(userId);
+    setStatus(null);
+    setError(null);
+
+    try {
+      const res = await fetch(`/api/admin/message-board-blocks/${userId}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setError(data.error ?? "Failed to remove posting block.");
+        return;
+      }
+
+      setBlockedUsers((current) => current.filter((item) => item.user_id !== userId));
+      setStatus("Message board posting block removed.");
+    } catch {
+      setError("Network error while removing the posting block.");
+    } finally {
+      setBusyBlockedUserId(null);
+    }
+  }
+
   return (
     <section className="space-y-4">
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <article className="stat-card">
           <p className="stat-label">Feedback Items</p>
           <p className="stat-value">{feedback.length}</p>
@@ -164,6 +238,10 @@ export function AdminPortal({
         <article className="stat-card">
           <p className="stat-label">Open Reports</p>
           <p className="stat-value">{reports.filter((item) => item.status === "open").length}</p>
+        </article>
+        <article className="stat-card">
+          <p className="stat-label">Blocked Posters</p>
+          <p className="stat-value">{blockedUsers.length}</p>
         </article>
       </section>
 
@@ -304,10 +382,58 @@ export function AdminPortal({
                     {busyReportId === item.id && item.status !== nextStatus ? "Updating..." : `Mark ${nextStatus}`}
                   </button>
                 ))}
+                {item.post?.user_id ? (
+                  blockedUsers.some((blocked) => blocked.user_id === item.post?.user_id) ? (
+                    <button
+                      className="btn btn-secondary inline-flex text-sm"
+                      type="button"
+                      disabled={busyBlockedUserId === item.post.user_id}
+                      onClick={() => void unblockPosting(item.post!.user_id)}
+                    >
+                      {busyBlockedUserId === item.post.user_id ? "Updating..." : "Unblock User"}
+                    </button>
+                  ) : (
+                    <button
+                      className="btn btn-secondary inline-flex text-sm"
+                      type="button"
+                      disabled={busyBlockedUserId === item.post.user_id}
+                      onClick={() => void blockPosting(item.post!.user_id, item.post!.author_label)}
+                    >
+                      {busyBlockedUserId === item.post.user_id ? "Updating..." : "Block User From Posting"}
+                    </button>
+                  )
+                ) : null}
                 <a className="btn btn-secondary inline-flex text-sm" href={`/app/message-board#thread-${item.post_id}`}>
                   Open Thread
                 </a>
               </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="section-card">
+        <h2 className="section-title">Blocked Message Board Users</h2>
+        <p className="section-description">These users can still access MilVector, but they cannot create new message board posts or replies until you remove the block.</p>
+        <div className="mt-4 space-y-3">
+          {blockedUsers.length === 0 && <p className="text-sm text-[var(--muted)]">No blocked message board users.</p>}
+          {blockedUsers.map((item) => (
+            <article key={item.user_id} className="subtle-panel p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-bold">{item.user_id}</h3>
+                  <p className="mt-1 text-xs text-[var(--muted)]">{new Date(item.created_at).toLocaleString()}</p>
+                </div>
+                <button
+                  className="btn btn-secondary inline-flex text-sm"
+                  type="button"
+                  disabled={busyBlockedUserId === item.user_id}
+                  onClick={() => void unblockPosting(item.user_id)}
+                >
+                  {busyBlockedUserId === item.user_id ? "Updating..." : "Remove Block"}
+                </button>
+              </div>
+              {item.reason ? <p className="mt-3 text-sm text-[var(--muted)]">{item.reason}</p> : null}
             </article>
           ))}
         </div>

@@ -39,6 +39,7 @@ type MessageBoardReportRow = {
   post_id: string;
   reported_by_user_id: string;
   post?: {
+    user_id: string;
     title: string | null;
     body: string;
     author_label: string;
@@ -48,11 +49,18 @@ type MessageBoardReportRow = {
 
 type MessageBoardReportQueryRow = Omit<MessageBoardReportRow, "post"> & {
   post?: {
+    user_id: string;
     title: string | null;
     body: string;
     author_label: string;
     parent_post_id: string | null;
   }[] | null;
+};
+
+type MessageBoardBlockedUserRow = {
+  user_id: string;
+  reason: string | null;
+  created_at: string;
 };
 
 export default async function AdminPage() {
@@ -64,7 +72,7 @@ export default async function AdminPage() {
   if (!user) redirect("/login");
   if (!isAdminEmail(user.email)) redirect("/app");
 
-  const [{ data: feedback }, { data: submissions }, { data: reports }] = await Promise.all([
+  const [{ data: feedback }, { data: submissions }, { data: reports }, { data: blockedUsers }] = await Promise.all([
     supabase
       .from("feedback")
       .select("id,created_at,name,email,branch,mos,feedback_type,message,suggested_tool,status,attachment_url")
@@ -75,7 +83,11 @@ export default async function AdminPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("message_board_reports")
-      .select("id,created_at,reason,details,status,moderator_notes,post_id,reported_by_user_id,post:message_board_posts(title,body,author_label,parent_post_id)")
+      .select("id,created_at,reason,details,status,moderator_notes,post_id,reported_by_user_id,post:message_board_posts(user_id,title,body,author_label,parent_post_id)")
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("message_board_blocked_users")
+      .select("user_id,reason,created_at")
       .order("created_at", { ascending: false }),
   ]);
 
@@ -85,6 +97,7 @@ export default async function AdminPage() {
     ...item,
     post: item.post?.[0] ?? null,
   }));
+  const blockedRows = ((blockedUsers ?? []) as MessageBoardBlockedUserRow[]).slice();
 
   const feedbackWithUrls = await Promise.all(
     feedbackRows.map(async (item) => {
@@ -127,7 +140,12 @@ export default async function AdminPage() {
         </div>
       </section>
 
-      <AdminPortal initialFeedback={feedbackWithUrls} initialSubmissions={submissionsWithUrls} initialMessageBoardReports={reportRows} />
+      <AdminPortal
+        initialFeedback={feedbackWithUrls}
+        initialSubmissions={submissionsWithUrls}
+        initialMessageBoardReports={reportRows}
+        initialBlockedUsers={blockedRows}
+      />
     </main>
   );
 }

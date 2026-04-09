@@ -88,6 +88,8 @@ export function MessageBoard() {
   const [expandedReplies, setExpandedReplies] = useState<Record<string, boolean>>({});
   const [canPost, setCanPost] = useState(false);
   const [requiresSavedProfile, setRequiresSavedProfile] = useState(true);
+  const [postingBlocked, setPostingBlocked] = useState(false);
+  const [postingBlockReason, setPostingBlockReason] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>("top");
@@ -110,6 +112,8 @@ export function MessageBoard() {
     setPosts((result.data.posts ?? []) as BoardPost[]);
     setCanPost(Boolean(result.data.canPost));
     setRequiresSavedProfile(Boolean(result.data.requiresSavedProfile));
+    setPostingBlocked(Boolean(result.data.postingBlocked));
+    setPostingBlockReason((result.data.postingBlockReason as string | null) ?? null);
     setIsAdmin(Boolean(result.data.isAdmin));
     setCurrentUserId((result.data.currentUserId as string | null) ?? null);
     setLoading(false);
@@ -409,7 +413,12 @@ export function MessageBoard() {
               </button>
             ) : null}
           </div>
-          {requiresSavedProfile && !canPost ? (
+          {postingBlocked ? (
+            <div className="mt-4 rounded-md border border-[#d69f9f] bg-[var(--surface)] p-4 text-sm text-red-700">
+              {postingBlockReason?.trim() || "Your account is currently blocked from posting on the message board."}
+            </div>
+          ) : null}
+          {requiresSavedProfile && !canPost && !postingBlocked ? (
             <div className="mt-4 rounded-md border border-[var(--line)] bg-[var(--surface)] p-4 text-sm text-[var(--muted)]">
               Save your MilVector profile before posting or replying so the board stays grounded in real platform members.
             </div>
@@ -518,7 +527,7 @@ export function MessageBoard() {
         </label>
         <div>
           <button className="btn btn-primary" type="submit" disabled={posting || !canPost}>
-            {posting ? "Posting..." : canPost ? "Post to Board" : "Save Profile To Post"}
+            {posting ? "Posting..." : canPost ? "Post to Board" : postingBlocked ? "Posting Blocked" : "Save Profile To Post"}
           </button>
         </div>
       </form>
