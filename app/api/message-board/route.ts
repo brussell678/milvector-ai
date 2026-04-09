@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isAdminEmail } from "@/lib/auth";
+import { getMessageBoardLinkOption, normalizeMessageBoardText } from "@/lib/message-board";
 import { supabaseServer } from "@/lib/supabase/server";
 
 const CreateMessageSchema = z.object({
   title: z.string().trim().min(3).max(140).optional(),
   body: z.string().trim().min(3).max(4000),
   parentPostId: z.string().uuid().optional().nullable(),
+  linkKey: z.string().trim().min(1).max(80).optional().nullable(),
 });
 
 function getAuthorLabel(email?: string | null) {
@@ -32,7 +34,7 @@ export async function GET() {
 
     let postsQuery = supabase
       .from("message_board_posts")
-      .select("id, user_id, parent_post_id, title, body, author_label, created_at, status, is_pinned, is_locked, last_activity_at, edited_at")
+      .select("id, user_id, parent_post_id, title, body, author_label, created_at, status, is_pinned, is_locked, last_activity_at, edited_at, linked_tool_slug, linked_resource_type, linked_resource_path, linked_resource_label")
       .order("created_at", { ascending: false });
 
     if (!isAdmin) {
@@ -70,6 +72,10 @@ export async function GET() {
       isLocked: post.is_locked,
       lastActivityAt: post.last_activity_at,
       editedAt: post.edited_at,
+      linkedToolSlug: post.linked_tool_slug,
+      linkedResourceType: post.linked_resource_type,
+      linkedResourcePath: post.linked_resource_path,
+      linkedResourceLabel: post.linked_resource_label,
       score: scoreByPostId.get(post.id) ?? 0,
       userVote: userVoteByPostId.get(post.id) ?? 0,
     }));
@@ -118,8 +124,15 @@ export async function POST(req: Request) {
     }
 
     const parentPostId = parsed.data.parentPostId ?? null;
+    const linkOption = getMessageBoardLinkOption(parsed.data.linkKey ?? null);
     if (!parentPostId && !parsed.data.title) {
       return NextResponse.json({ error: "A title is required for new posts." }, { status: 400 });
+    }
+    if (parentPostId && parsed.data.linkKey) {
+      return NextResponse.json({ error: "Replies cannot attach a linked tool or resource." }, { status: 400 });
+    }
+    if (parsed.data.linkKey && !linkOption) {
+      return NextResponse.json({ error: "The selected tool or resource link is not available." }, { status: 400 });
     }
 
     if (parentPostId) {
@@ -142,12 +155,61 @@ export async function POST(req: Request) {
       }
     }
 
+    const minimumTextLength = parentPostId ? 10 : 24;
+    if (normalizeMessageBoardText(parsed.data.body).length < minimumTextLength) {
+      return NextResponse.json(
+        { error: parentPostId ? "Replies should include a little more context before posting." : "Posts should include enough detail to help the community respond." },
+        { status: 400 }
+      );
+    }
+
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const { data: recentPosts, error: recentPostsError } = await supabase
+      .from("message_board_posts")
+      .select("id, title, body, created_at, parent_post_id")
+      .eq("user_id", user.id)
+      .gte("created_at", tenMinutesAgo)
+      .order("created_at", { ascending: false });
+
+    if (recentPostsError) {
+      return NextResponse.json({ error: recentPostsError.message }, { status: 500 });
+    }
+
+    const latestPost = recentPosts?.[0];
+    if (latestPost && Date.now() - new Date(latestPost.created_at).getTime() < 20_000) {
+      return NextResponse.json({ error: "Give the board a few seconds between posts so the feed stays readable." }, { status: 429 });
+    }
+
+    const recentTopLevelCount = (recentPosts ?? []).filter((post) => !post.parent_post_id).length;
+    const recentReplyCount = (recentPosts ?? []).filter((post) => !!post.parent_post_id).length;
+    if (!parentPostId && recentTopLevelCount >= 3) {
+      return NextResponse.json({ error: "You have posted several new threads recently. Give the current ones time to breathe before starting another." }, { status: 429 });
+    }
+    if (parentPostId && recentReplyCount >= 6) {
+      return NextResponse.json({ error: "You have replied a lot in a short window. Pause for a bit before posting another reply." }, { status: 429 });
+    }
+
+    const normalizedTitle = normalizeMessageBoardText(parsed.data.title ?? "");
+    const normalizedBody = normalizeMessageBoardText(parsed.data.body);
+    const duplicate = (recentPosts ?? []).some((post) => {
+      const matchesTitle = normalizeMessageBoardText(post.title ?? "") === normalizedTitle;
+      const matchesBody = normalizeMessageBoardText(post.body) === normalizedBody;
+      return parentPostId ? matchesBody : matchesTitle && matchesBody;
+    });
+    if (duplicate) {
+      return NextResponse.json({ error: "This looks like a duplicate of something you already posted recently." }, { status: 409 });
+    }
+
     const payload = {
       user_id: user.id,
       parent_post_id: parentPostId,
       title: parentPostId ? null : parsed.data.title,
       body: parsed.data.body,
       author_label: profile.full_name?.trim() || getAuthorLabel(user.email),
+      linked_tool_slug: parentPostId ? null : linkOption?.toolSlug ?? null,
+      linked_resource_type: parentPostId ? null : linkOption?.resourceType ?? null,
+      linked_resource_path: parentPostId ? null : linkOption?.path ?? null,
+      linked_resource_label: parentPostId ? null : linkOption?.label ?? null,
     };
 
     const { error } = await supabase.from("message_board_posts").insert(payload);

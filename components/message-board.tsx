@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { MESSAGE_BOARD_LINK_OPTIONS, MESSAGE_BOARD_REPORT_REASONS } from "@/lib/message-board";
 
 type BoardPost = {
   id: string;
@@ -15,14 +17,27 @@ type BoardPost = {
   status: "active" | "hidden" | "removed";
   isPinned: boolean;
   isLocked: boolean;
+  linkedToolSlug: string | null;
+  linkedResourceType: string | null;
+  linkedResourcePath: string | null;
+  linkedResourceLabel: string | null;
   score: number;
   userVote: number;
 };
 
 type Thread = BoardPost & { replies: BoardPost[] };
+type BoardNotification = {
+  id: string;
+  postId: string;
+  type: "thread_reply" | "followed_thread_reply";
+  message: string;
+  readAt: string | null;
+  createdAt: string;
+};
 type StatusState = { kind: "success" | "error" | "info"; message: string } | null;
 type SortMode = "top" | "new" | "active";
 type FilterMode = "all" | "my_posts" | "unanswered" | "pinned" | "locked";
+type ReportReason = (typeof MESSAGE_BOARD_REPORT_REASONS)[number];
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
@@ -58,7 +73,9 @@ async function requestJson(url: string, init?: RequestInit) {
 
 export function MessageBoard() {
   const [posts, setPosts] = useState<BoardPost[]>([]);
+  const [notifications, setNotifications] = useState<BoardNotification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
   const [status, setStatus] = useState<StatusState>(null);
   const [posting, setPosting] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -76,6 +93,11 @@ export function MessageBoard() {
   const [sortMode, setSortMode] = useState<SortMode>("top");
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [reportingPostId, setReportingPostId] = useState<string | null>(null);
+  const [reportReason, setReportReason] = useState<ReportReason>(MESSAGE_BOARD_REPORT_REASONS[0]);
+  const [reportDetails, setReportDetails] = useState("");
+  const [reporting, setReporting] = useState(false);
+  const [seedingStarters, setSeedingStarters] = useState(false);
 
   async function loadBoard() {
     setLoading(true);
@@ -93,9 +115,23 @@ export function MessageBoard() {
     setLoading(false);
   }
 
+  async function loadNotifications() {
+    setNotificationsLoading(true);
+    const result = await requestJson("/api/message-board/notifications", { cache: "no-store" });
+    if (!result.ok) {
+      setNotificationsLoading(false);
+      return;
+    }
+    setNotifications((result.data.notifications ?? []) as BoardNotification[]);
+    setNotificationsLoading(false);
+  }
+
   useEffect(() => {
     void loadBoard();
+    void loadNotifications();
   }, []);
+
+  const unreadNotifications = notifications.filter((item) => !item.readAt);
 
   const threads = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -115,6 +151,7 @@ export function MessageBoard() {
         thread.title ?? "",
         thread.body,
         thread.authorLabel,
+        thread.linkedResourceLabel ?? "",
         ...thread.replies.flatMap((reply) => [reply.body, reply.authorLabel]),
       ].join("\n").toLowerCase();
 
@@ -146,6 +183,7 @@ export function MessageBoard() {
         body: JSON.stringify({
           title: form.get("title")?.toString() ?? "",
           body: form.get("body")?.toString() ?? "",
+          linkKey: form.get("linkKey")?.toString() || null,
         }),
       });
       if (!result.ok) {
@@ -154,7 +192,7 @@ export function MessageBoard() {
       }
       e.currentTarget.reset();
       setStatus({ kind: "success", message: "Your message has been posted." });
-      await loadBoard();
+      await Promise.all([loadBoard(), loadNotifications()]);
     } finally {
       setPosting(false);
     }
@@ -186,7 +224,7 @@ export function MessageBoard() {
       setReplyingTo(null);
       setExpandedReplies((current) => ({ ...current, [postId]: true }));
       setStatus({ kind: "success", message: "Your reply has been posted." });
-      await loadBoard();
+      await Promise.all([loadBoard(), loadNotifications()]);
     } finally {
       setPosting(false);
     }
@@ -263,6 +301,59 @@ export function MessageBoard() {
       return;
     }
     setStatus({ kind: "success", message: "Post deleted." });
+    await Promise.all([loadBoard(), loadNotifications()]);
+  }
+
+  async function submitReport(post: BoardPost) {
+    setReporting(true);
+    const result = await requestJson("/api/message-board/report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        postId: post.id,
+        reason: reportReason,
+        details: reportDetails.trim() || null,
+      }),
+    });
+    if (!result.ok) {
+      setStatus({ kind: "error", message: result.error ?? "Unable to submit report." });
+      setReporting(false);
+      return;
+    }
+    setStatus({ kind: "success", message: "Report submitted for admin review." });
+    setReporting(false);
+    setReportingPostId(null);
+    setReportDetails("");
+    setReportReason(MESSAGE_BOARD_REPORT_REASONS[0]);
+  }
+
+  async function markNotificationsRead(ids?: string[]) {
+    const result = await requestJson("/api/message-board/notifications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
+    });
+    if (!result.ok) {
+      setStatus({ kind: "error", message: result.error ?? "Unable to update notifications." });
+      return;
+    }
+    await loadNotifications();
+  }
+
+  async function seedStarterThreads() {
+    setSeedingStarters(true);
+    const result = await requestJson("/api/message-board/starter-threads", { method: "POST" });
+    if (!result.ok) {
+      setStatus({ kind: "error", message: result.error ?? "Unable to seed starter threads." });
+      setSeedingStarters(false);
+      return;
+    }
+    const created = Number(result.data.created ?? 0);
+    setStatus({
+      kind: "success",
+      message: created > 0 ? `Starter threads created: ${created}.` : "Starter threads were already in place.",
+    });
+    setSeedingStarters(false);
     await loadBoard();
   }
 
@@ -283,21 +374,93 @@ export function MessageBoard() {
     return [thread.replies[thread.replies.length - 1]];
   }
 
+  function renderLinkedReference(post: BoardPost) {
+    if (!post.linkedResourcePath || !post.linkedResourceLabel) return null;
+    return (
+      <div className="mt-4 rounded-md border border-[var(--line)] bg-[var(--surface)] p-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">Linked Resource</p>
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <span className="text-sm text-[var(--muted)]">{post.linkedResourceLabel}</span>
+          <Link href={post.linkedResourcePath} className="btn btn-secondary text-sm">
+            Open Resource
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
-      <section className="panel p-6">
-        <h2 className="text-lg font-bold">How the Board Works</h2>
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          Use this board to share questions, ideas, and issues with the MilVector community.
-        </p>
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          Upvotes increase a post&apos;s importance and help move it higher on the board. Use search, filters, and the `Top / New / Active` views to find the right conversations faster.
-        </p>
-        {requiresSavedProfile && !canPost ? (
-          <div className="mt-4 rounded-md border border-[var(--line)] bg-[var(--surface)] p-4 text-sm text-[var(--muted)]">
-            Save your MilVector profile before posting or replying so the board stays grounded in real platform members.
+      <section className="grid gap-4 lg:grid-cols-[1.4fr,1fr]">
+        <section className="panel p-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold">How the Board Works</h2>
+              <p className="mt-2 text-sm text-[var(--muted)]">
+                Use this board to share questions, ideas, field notes, and product feedback with the MilVector community.
+              </p>
+              <p className="mt-2 text-sm text-[var(--muted)]">
+                Upvotes increase a post&apos;s importance and help move it higher on the board. You can also link a post directly to a MilVector tool or resource so discussion leads into action.
+              </p>
+            </div>
+            {isAdmin ? (
+              <button type="button" className="btn btn-secondary text-sm" disabled={seedingStarters} onClick={() => void seedStarterThreads()}>
+                {seedingStarters ? "Seeding..." : "Seed Starter Threads"}
+              </button>
+            ) : null}
           </div>
-        ) : null}
+          {requiresSavedProfile && !canPost ? (
+            <div className="mt-4 rounded-md border border-[var(--line)] bg-[var(--surface)] p-4 text-sm text-[var(--muted)]">
+              Save your MilVector profile before posting or replying so the board stays grounded in real platform members.
+            </div>
+          ) : null}
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-md border border-[var(--line)] bg-[var(--surface)] p-4">
+              <p className="text-sm font-semibold">Posting Standards</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">Share enough context to help others respond, avoid duplicate posts, and keep the board practical and mission-focused.</p>
+            </div>
+            <div className="rounded-md border border-[var(--line)] bg-[var(--surface)] p-4">
+              <p className="text-sm font-semibold">Moderation</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">Report spam, unsafe advice, or sensitive information. Admin can review, hide, lock, and pin threads when needed.</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="panel p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold">Board Activity</h2>
+              <p className="mt-2 text-sm text-[var(--muted)]">Recent replies to your threads and conversations you joined.</p>
+            </div>
+            {unreadNotifications.length > 0 ? (
+              <button type="button" className="btn btn-secondary text-sm" onClick={() => void markNotificationsRead()}>
+                Mark All Read
+              </button>
+            ) : null}
+          </div>
+          <div className="mt-4 space-y-3">
+            {notificationsLoading ? <p className="text-sm text-[var(--muted)]">Loading activity...</p> : null}
+            {!notificationsLoading && notifications.length === 0 ? <p className="text-sm text-[var(--muted)]">No board notifications yet.</p> : null}
+            {notifications.map((notification) => (
+              <div key={notification.id} className={`rounded-md border p-4 ${notification.readAt ? "border-[var(--line)] bg-[var(--background)]" : "border-[var(--accent)] bg-[var(--surface)]"}`}>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-medium">{notification.message}</p>
+                  {!notification.readAt ? (
+                    <button type="button" className="btn btn-secondary text-xs" onClick={() => void markNotificationsRead([notification.id])}>
+                      Mark Read
+                    </button>
+                  ) : null}
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <Link href={`/app/message-board#thread-${notification.postId}`} className="btn btn-secondary text-xs">
+                    Open Thread
+                  </Link>
+                  <span className="text-xs text-[var(--muted)]">{formatDate(notification.createdAt)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       </section>
 
       <section className="panel grid gap-3 p-6">
@@ -308,7 +471,7 @@ export function MessageBoard() {
           </div>
           <label className="block min-w-64 space-y-1">
             <span className="text-sm font-medium">Search</span>
-            <input className="input" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search posts, replies, or authors" />
+            <input className="input" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search posts, replies, authors, or linked resources" />
           </label>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -337,11 +500,22 @@ export function MessageBoard() {
         <div>
           <h2 className="text-lg font-bold">Start a Discussion</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Share a question, suggestion, or field note. Posts with the strongest support rise to the top.
+            Share a question, suggestion, or field note. You can optionally connect the post to a MilVector workflow so people can jump straight into the right tool or resource.
           </p>
         </div>
         <input name="title" className="input" placeholder="Post title" required minLength={3} maxLength={140} disabled={posting || !canPost} />
         <textarea name="body" className="input min-h-32" placeholder="What should the community know or weigh in on?" required minLength={3} maxLength={4000} disabled={posting || !canPost} />
+        <label className="space-y-1">
+          <span className="text-sm font-medium">Link this thread to a MilVector workflow or resource</span>
+          <select name="linkKey" className="input" defaultValue="" disabled={posting || !canPost}>
+            <option value="">No linked resource</option>
+            {MESSAGE_BOARD_LINK_OPTIONS.map((option) => (
+              <option key={option.key} value={option.key}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
         <div>
           <button className="btn btn-primary" type="submit" disabled={posting || !canPost}>
             {posting ? "Posting..." : canPost ? "Post to Board" : "Save Profile To Post"}
@@ -358,7 +532,7 @@ export function MessageBoard() {
           <div className="panel p-6 text-sm text-[var(--muted)]">No matching posts found. Try a different filter or start a new discussion.</div>
         ) : (
           threads.map((thread) => (
-            <article key={thread.id} className="panel p-5">
+            <article key={thread.id} id={`thread-${thread.id}`} className="panel p-5">
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div className="min-w-0 flex-1">
                   {editingPostId === thread.id ? (
@@ -384,9 +558,10 @@ export function MessageBoard() {
                         </span>
                       </div>
                       <p className="mt-1 text-sm text-[var(--muted)]">
-                        {thread.authorLabel} - {formatDate(thread.createdAt)}{thread.editedAt ? ` - edited ${formatDate(thread.editedAt)}` : ""} - active {formatDate(thread.lastActivityAt ?? thread.createdAt)}
+                        {thread.authorLabel} · {formatDate(thread.createdAt)}{thread.editedAt ? ` · edited ${formatDate(thread.editedAt)}` : ""} · active {formatDate(thread.lastActivityAt ?? thread.createdAt)}
                       </p>
                       <p className="mt-3 whitespace-pre-wrap text-sm leading-6">{thread.body}</p>
+                      {renderLinkedReference(thread)}
                     </>
                   )}
                 </div>
@@ -417,6 +592,11 @@ export function MessageBoard() {
                     <button type="button" className="btn btn-secondary text-sm" onClick={() => void deleteOwnPost(thread)}>Delete</button>
                   </>
                 ) : null}
+                {currentUserId && currentUserId !== thread.userId ? (
+                  <button type="button" className="btn btn-secondary text-sm" onClick={() => setReportingPostId((current) => current === thread.id ? null : thread.id)}>
+                    {reportingPostId === thread.id ? "Cancel Report" : "Report"}
+                  </button>
+                ) : null}
                 {isAdmin ? (
                   <>
                     <button type="button" className="btn btn-secondary text-sm" disabled={adminBusyId === thread.id} onClick={() => void moderatePost(thread.id, { isPinned: !thread.isPinned }, thread.isPinned ? "Thread unpinned." : "Thread pinned.")}>
@@ -431,6 +611,32 @@ export function MessageBoard() {
                   </>
                 ) : null}
               </div>
+
+              {reportingPostId === thread.id ? (
+                <div className="mt-4 rounded-md border border-[var(--line)] bg-[var(--surface)] p-4">
+                  <div className="grid gap-3 md:grid-cols-[220px,1fr]">
+                    <label className="space-y-1">
+                      <span className="text-sm font-medium">Reason</span>
+                      <select className="input" value={reportReason} onChange={(e) => setReportReason(e.target.value as ReportReason)}>
+                        {MESSAGE_BOARD_REPORT_REASONS.map((reason) => (
+                          <option key={reason} value={reason}>
+                            {reason}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="space-y-1">
+                      <span className="text-sm font-medium">Details</span>
+                      <textarea className="input min-h-24" value={reportDetails} onChange={(e) => setReportDetails(e.target.value)} placeholder="Optional context for admin review" maxLength={1000} />
+                    </label>
+                  </div>
+                  <div className="mt-3">
+                    <button type="button" className="btn btn-primary text-sm" disabled={reporting} onClick={() => void submitReport(thread)}>
+                      {reporting ? "Submitting..." : "Submit Report"}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
 
               {replyingTo === thread.id ? (
                 <div className="mt-4 rounded-md border border-[var(--line)] bg-[var(--surface)] p-4">
@@ -460,7 +666,7 @@ export function MessageBoard() {
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <div>
                               <p className="text-sm font-semibold">{reply.authorLabel}</p>
-                              <p className="mt-1 text-xs text-[var(--muted)]">{formatDate(reply.createdAt)}{reply.editedAt ? ` - edited ${formatDate(reply.editedAt)}` : ""}</p>
+                              <p className="mt-1 text-xs text-[var(--muted)]">{formatDate(reply.createdAt)}{reply.editedAt ? ` · edited ${formatDate(reply.editedAt)}` : ""}</p>
                             </div>
                             <div className="flex flex-wrap gap-2">
                               {canManageOwn(reply, thread) ? (
@@ -468,6 +674,11 @@ export function MessageBoard() {
                                   <button type="button" className="btn btn-secondary text-sm" onClick={() => beginEdit(reply)}>Edit</button>
                                   <button type="button" className="btn btn-secondary text-sm" onClick={() => void deleteOwnPost(reply)}>Delete</button>
                                 </>
+                              ) : null}
+                              {currentUserId && currentUserId !== reply.userId ? (
+                                <button type="button" className="btn btn-secondary text-sm" onClick={() => setReportingPostId((current) => current === reply.id ? null : reply.id)}>
+                                  {reportingPostId === reply.id ? "Cancel Report" : "Report"}
+                                </button>
                               ) : null}
                               {isAdmin ? (
                                 <button type="button" className="btn btn-secondary text-sm" disabled={adminBusyId === reply.id} onClick={() => void moderatePost(reply.id, { status: reply.status === "active" ? "hidden" : "active" }, reply.status === "active" ? "Reply hidden." : "Reply restored.")}>
@@ -477,6 +688,31 @@ export function MessageBoard() {
                             </div>
                           </div>
                           <p className="mt-3 whitespace-pre-wrap text-sm leading-6">{reply.body}</p>
+                          {reportingPostId === reply.id ? (
+                            <div className="mt-4 rounded-md border border-[var(--line)] bg-[var(--background)] p-4">
+                              <div className="grid gap-3 md:grid-cols-[220px,1fr]">
+                                <label className="space-y-1">
+                                  <span className="text-sm font-medium">Reason</span>
+                                  <select className="input" value={reportReason} onChange={(e) => setReportReason(e.target.value as ReportReason)}>
+                                    {MESSAGE_BOARD_REPORT_REASONS.map((reason) => (
+                                      <option key={reason} value={reason}>
+                                        {reason}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+                                <label className="space-y-1">
+                                  <span className="text-sm font-medium">Details</span>
+                                  <textarea className="input min-h-24" value={reportDetails} onChange={(e) => setReportDetails(e.target.value)} placeholder="Optional context for admin review" maxLength={1000} />
+                                </label>
+                              </div>
+                              <div className="mt-3">
+                                <button type="button" className="btn btn-primary text-sm" disabled={reporting} onClick={() => void submitReport(reply)}>
+                                  {reporting ? "Submitting..." : "Submit Report"}
+                                </button>
+                              </div>
+                            </div>
+                          ) : null}
                         </>
                       )}
                     </div>

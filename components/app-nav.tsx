@@ -15,7 +15,7 @@ const links = [
   { href: "/app/donate", label: "Donate", donate: true },
 ];
 
-export function AppNav({ isAdmin = false }: { isAdmin?: boolean }) {
+export function AppNav({ isAdmin = false, unreadBoardNotifications = 0 }: { isAdmin?: boolean; unreadBoardNotifications?: number }) {
   const pathname = usePathname();
   const navLinks = isAdmin ? [...links, { href: "/app/admin", label: "Admin" }] : links;
 
@@ -42,7 +42,14 @@ export function AppNav({ isAdmin = false }: { isAdmin?: boolean }) {
             className={`btn text-sm !py-1.5 ${link.donate ? donateClass : defaultClass}`}
             aria-current={active ? "page" : undefined}
           >
-            {link.label}
+            <span className="inline-flex items-center gap-2">
+              <span>{link.label}</span>
+              {link.href === "/app/message-board" && unreadBoardNotifications > 0 ? (
+                <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[10px] font-semibold text-white">
+                  {unreadBoardNotifications}
+                </span>
+              ) : null}
+            </span>
           </Link>
         );
       })}

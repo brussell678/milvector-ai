@@ -29,6 +29,32 @@ type SubmissionRow = {
   review_url?: string | null;
 };
 
+type MessageBoardReportRow = {
+  id: string;
+  created_at: string;
+  reason: string;
+  details: string | null;
+  status: "open" | "reviewed" | "dismissed" | "actioned";
+  moderator_notes: string | null;
+  post_id: string;
+  reported_by_user_id: string;
+  post?: {
+    title: string | null;
+    body: string;
+    author_label: string;
+    parent_post_id: string | null;
+  } | null;
+};
+
+type MessageBoardReportQueryRow = Omit<MessageBoardReportRow, "post"> & {
+  post?: {
+    title: string | null;
+    body: string;
+    author_label: string;
+    parent_post_id: string | null;
+  }[] | null;
+};
+
 export default async function AdminPage() {
   const supabase = await supabaseServer();
   const {
@@ -38,7 +64,7 @@ export default async function AdminPage() {
   if (!user) redirect("/login");
   if (!isAdminEmail(user.email)) redirect("/app");
 
-  const [{ data: feedback }, { data: submissions }] = await Promise.all([
+  const [{ data: feedback }, { data: submissions }, { data: reports }] = await Promise.all([
     supabase
       .from("feedback")
       .select("id,created_at,name,email,branch,mos,feedback_type,message,suggested_tool,status,attachment_url")
@@ -47,10 +73,18 @@ export default async function AdminPage() {
       .from("library_submissions")
       .select("id,created_at,title,description,category,file_url,approved")
       .order("created_at", { ascending: false }),
+    supabase
+      .from("message_board_reports")
+      .select("id,created_at,reason,details,status,moderator_notes,post_id,reported_by_user_id,post:message_board_posts(title,body,author_label,parent_post_id)")
+      .order("created_at", { ascending: false }),
   ]);
 
   const feedbackRows = ((feedback ?? []) as FeedbackRow[]).slice();
   const submissionRows = ((submissions ?? []) as SubmissionRow[]).slice();
+  const reportRows = ((reports ?? []) as MessageBoardReportQueryRow[]).map((item) => ({
+    ...item,
+    post: item.post?.[0] ?? null,
+  }));
 
   const feedbackWithUrls = await Promise.all(
     feedbackRows.map(async (item) => {
@@ -93,7 +127,7 @@ export default async function AdminPage() {
         </div>
       </section>
 
-      <AdminPortal initialFeedback={feedbackWithUrls} initialSubmissions={submissionsWithUrls} />
+      <AdminPortal initialFeedback={feedbackWithUrls} initialSubmissions={submissionsWithUrls} initialMessageBoardReports={reportRows} />
     </main>
   );
 }

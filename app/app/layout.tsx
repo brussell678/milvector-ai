@@ -13,6 +13,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   if (!user) redirect("/login");
   const isAdmin = isAdminEmail(user.email);
+  const notificationsCountRes = await supabase
+    .from("message_board_notifications")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .is("read_at", null);
+  const unreadBoardNotifications = notificationsCountRes.error ? 0 : notificationsCountRes.count ?? 0;
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-6 md:px-8">
@@ -38,7 +44,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       </header>
 
       <section className="panel mb-6 p-3">
-        <AppNav isAdmin={isAdmin} />
+        <AppNav isAdmin={isAdmin} unreadBoardNotifications={unreadBoardNotifications} />
       </section>
 
       {children}

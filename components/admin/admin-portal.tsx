@@ -28,17 +28,38 @@ type SubmissionItem = {
   review_url?: string | null;
 };
 
+type MessageBoardReportItem = {
+  id: string;
+  created_at: string;
+  reason: string;
+  details: string | null;
+  status: "open" | "reviewed" | "dismissed" | "actioned";
+  moderator_notes: string | null;
+  post_id: string;
+  reported_by_user_id: string;
+  post?: {
+    title: string | null;
+    body: string;
+    author_label: string;
+    parent_post_id: string | null;
+  } | null;
+};
+
 export function AdminPortal({
   initialFeedback,
   initialSubmissions,
+  initialMessageBoardReports,
 }: {
   initialFeedback: FeedbackItem[];
   initialSubmissions: SubmissionItem[];
+  initialMessageBoardReports: MessageBoardReportItem[];
 }) {
   const [feedback, setFeedback] = useState(initialFeedback);
   const [submissions, setSubmissions] = useState(initialSubmissions);
+  const [reports, setReports] = useState(initialMessageBoardReports);
   const [busyFeedbackId, setBusyFeedbackId] = useState<string | null>(null);
   const [busySubmissionId, setBusySubmissionId] = useState<string | null>(null);
+  const [busyReportId, setBusyReportId] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -98,9 +119,36 @@ export function AdminPortal({
     }
   }
 
+  async function updateReportStatus(id: string, nextStatus: MessageBoardReportItem["status"]) {
+    setBusyReportId(id);
+    setStatus(null);
+    setError(null);
+
+    try {
+      const res = await fetch(`/api/admin/message-board-reports/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setError(data.error ?? "Failed to update report status.");
+        return;
+      }
+
+      setReports((current) => current.map((item) => (item.id === id ? { ...item, status: nextStatus } : item)));
+      setStatus("Message board report updated.");
+    } catch {
+      setError("Network error while updating the report.");
+    } finally {
+      setBusyReportId(null);
+    }
+  }
+
   return (
     <section className="space-y-4">
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <article className="stat-card">
           <p className="stat-label">Feedback Items</p>
           <p className="stat-value">{feedback.length}</p>
@@ -112,6 +160,10 @@ export function AdminPortal({
         <article className="stat-card">
           <p className="stat-label">Pending Submissions</p>
           <p className="stat-value">{submissions.filter((item) => !item.approved).length}</p>
+        </article>
+        <article className="stat-card">
+          <p className="stat-label">Open Reports</p>
+          <p className="stat-value">{reports.filter((item) => item.status === "open").length}</p>
         </article>
       </section>
 
@@ -214,6 +266,47 @@ export function AdminPortal({
                 >
                   {busySubmissionId === item.id ? "Publishing..." : item.approved ? "Published" : "Approve And Publish"}
                 </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="section-card">
+        <h2 className="section-title">Message Board Reports</h2>
+        <p className="section-description">Review user reports from the community board and decide whether each item should stay open, be dismissed, or be actioned.</p>
+        <div className="mt-4 space-y-3">
+          {reports.length === 0 && <p className="text-sm text-[var(--muted)]">No message board reports yet.</p>}
+          {reports.map((item) => (
+            <article key={item.id} className="subtle-panel p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">{item.reason.toUpperCase()}</p>
+                  <h3 className="mt-1 text-base font-bold">{item.post?.title || "Reply report"}</h3>
+                  <p className="mt-1 text-xs text-[var(--muted)]">{new Date(item.created_at).toLocaleString()}</p>
+                </div>
+                <span className="rounded-full bg-[var(--surface)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                  {item.status}
+                </span>
+              </div>
+              <p className="mt-3 text-sm"><span className="font-semibold">Reported content by:</span> {item.post?.author_label || "Unknown author"}</p>
+              <p className="mt-2 text-sm text-[var(--muted)] whitespace-pre-wrap">{item.post?.body || "No post body available."}</p>
+              {item.details ? <p className="mt-3 text-sm text-[var(--muted)]"><span className="font-semibold text-[var(--foreground)]">Reporter notes:</span> {item.details}</p> : null}
+              <div className="mt-4 flex flex-wrap gap-2">
+                {(["open", "reviewed", "dismissed", "actioned"] as const).map((nextStatus) => (
+                  <button
+                    key={nextStatus}
+                    className="btn btn-secondary inline-flex text-sm"
+                    type="button"
+                    disabled={busyReportId === item.id || item.status === nextStatus}
+                    onClick={() => void updateReportStatus(item.id, nextStatus)}
+                  >
+                    {busyReportId === item.id && item.status !== nextStatus ? "Updating..." : `Mark ${nextStatus}`}
+                  </button>
+                ))}
+                <a className="btn btn-secondary inline-flex text-sm" href={`/app/message-board#thread-${item.post_id}`}>
+                  Open Thread
+                </a>
               </div>
             </article>
           ))}
