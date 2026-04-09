@@ -79,6 +79,7 @@ export async function GET() {
       canPost: hasSavedProfile,
       requiresSavedProfile: true,
       isAdmin,
+      currentUserId: user?.id ?? null,
     });
   } catch (error) {
     console.error("Message board GET failed", error);

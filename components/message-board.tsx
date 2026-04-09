@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 type BoardPost = {
   id: string;
@@ -19,7 +19,10 @@ type BoardPost = {
   userVote: number;
 };
 
+type Thread = BoardPost & { replies: BoardPost[] };
 type StatusState = { kind: "success" | "error" | "info"; message: string } | null;
+type SortMode = "top" | "new" | "active";
+type FilterMode = "all" | "my_posts" | "unanswered" | "pinned" | "locked";
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
@@ -36,11 +39,6 @@ function buildThreads(posts: BoardPost[]) {
 
   return posts
     .filter((post) => !post.parentPostId)
-    .sort((a, b) => {
-      if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
-      if (b.score !== a.score) return b.score - a.score;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    })
     .map((post) => ({
       ...post,
       replies: (repliesByParent.get(post.id) ?? []).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
@@ -67,9 +65,17 @@ export function MessageBoard() {
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [votingPostId, setVotingPostId] = useState<string | null>(null);
   const [adminBusyId, setAdminBusyId] = useState<string | null>(null);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editBody, setEditBody] = useState("");
+  const [expandedReplies, setExpandedReplies] = useState<Record<string, boolean>>({});
   const [canPost, setCanPost] = useState(false);
   const [requiresSavedProfile, setRequiresSavedProfile] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [sortMode, setSortMode] = useState<SortMode>("top");
+  const [filterMode, setFilterMode] = useState<FilterMode>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   async function loadBoard() {
     setLoading(true);
@@ -83,6 +89,7 @@ export function MessageBoard() {
     setCanPost(Boolean(result.data.canPost));
     setRequiresSavedProfile(Boolean(result.data.requiresSavedProfile));
     setIsAdmin(Boolean(result.data.isAdmin));
+    setCurrentUserId((result.data.currentUserId as string | null) ?? null);
     setLoading(false);
   }
 
@@ -90,7 +97,38 @@ export function MessageBoard() {
     void loadBoard();
   }, []);
 
-  const topLevelPosts = buildThreads(posts);
+  const threads = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    const built = buildThreads(posts);
+    const filtered = built.filter((thread) => {
+      if (filterMode === "my_posts" && currentUserId) {
+        const matchesMine = thread.userId === currentUserId || thread.replies.some((reply) => reply.userId === currentUserId);
+        if (!matchesMine) return false;
+      }
+      if (filterMode === "unanswered" && thread.replies.length > 0) return false;
+      if (filterMode === "pinned" && !thread.isPinned) return false;
+      if (filterMode === "locked" && !thread.isLocked) return false;
+
+      if (!normalizedQuery) return true;
+
+      const haystacks = [
+        thread.title ?? "",
+        thread.body,
+        thread.authorLabel,
+        ...thread.replies.flatMap((reply) => [reply.body, reply.authorLabel]),
+      ].join("\n").toLowerCase();
+
+      return haystacks.includes(normalizedQuery);
+    });
+
+    return filtered.sort((a, b) => {
+      if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+      if (sortMode === "new") return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      if (sortMode === "active") return new Date(b.lastActivityAt ?? b.createdAt).getTime() - new Date(a.lastActivityAt ?? a.createdAt).getTime();
+      if (b.score !== a.score) return b.score - a.score;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  }, [posts, searchQuery, filterMode, sortMode, currentUserId]);
 
   async function submitPost(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -146,6 +184,7 @@ export function MessageBoard() {
       }
       setReplyDrafts((current) => ({ ...current, [postId]: "" }));
       setReplyingTo(null);
+      setExpandedReplies((current) => ({ ...current, [postId]: true }));
       setStatus({ kind: "success", message: "Your reply has been posted." });
       await loadBoard();
     } finally {
@@ -192,12 +231,56 @@ export function MessageBoard() {
     }
   }
 
+  function beginEdit(post: BoardPost) {
+    setEditingPostId(post.id);
+    setEditTitle(post.title ?? "");
+    setEditBody(post.body);
+  }
+
+  async function saveEdit(post: BoardPost) {
+    const payload: Record<string, unknown> = { body: editBody };
+    if (!post.parentPostId) payload.title = editTitle;
+    const result = await requestJson(`/api/message-board/${post.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!result.ok) {
+      setStatus({ kind: "error", message: result.error ?? "Unable to save changes." });
+      return;
+    }
+    setEditingPostId(null);
+    setStatus({ kind: "success", message: "Post updated." });
+    await loadBoard();
+  }
+
+  async function deleteOwnPost(post: BoardPost) {
+    const confirmed = window.confirm("Delete this post or reply? This cannot be undone.");
+    if (!confirmed) return;
+    const result = await requestJson(`/api/message-board/${post.id}`, { method: "DELETE" });
+    if (!result.ok) {
+      setStatus({ kind: "error", message: result.error ?? "Unable to delete post." });
+      return;
+    }
+    setStatus({ kind: "success", message: "Post deleted." });
+    await loadBoard();
+  }
+
   function statusBadge(post: BoardPost) {
     const labels = [];
     if (post.isPinned) labels.push("Pinned");
     if (post.isLocked) labels.push("Locked");
     if (post.status !== "active") labels.push(post.status === "hidden" ? "Hidden" : "Removed");
     return labels;
+  }
+
+  function canManageOwn(post: BoardPost, thread: Thread) {
+    return currentUserId === post.userId && !thread.isLocked;
+  }
+
+  function visibleReplies(thread: Thread) {
+    if (expandedReplies[thread.id] || thread.replies.length <= 2) return thread.replies;
+    return thread.replies.slice(0, 2);
   }
 
   return (
@@ -208,13 +291,46 @@ export function MessageBoard() {
           Use this board to share questions, ideas, and issues with the MilVector community.
         </p>
         <p className="mt-2 text-sm text-[var(--muted)]">
-          Upvotes increase a post&apos;s importance and help move it higher on the board. Pinned threads stay at the top, and locked threads remain readable but closed to new replies.
+          Upvotes increase a post&apos;s importance and help move it higher on the board. Use search, filters, and the `Top / New / Active` views to find the right conversations faster.
         </p>
         {requiresSavedProfile && !canPost ? (
           <div className="mt-4 rounded-md border border-[var(--line)] bg-[var(--surface)] p-4 text-sm text-[var(--muted)]">
             Save your MilVector profile before posting or replying so the board stays grounded in real platform members.
           </div>
         ) : null}
+      </section>
+
+      <section className="panel grid gap-3 p-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h2 className="text-lg font-bold">Board Controls</h2>
+            <p className="mt-1 text-sm text-[var(--muted)]">Find the right thread quickly and keep the feed focused on what matters.</p>
+          </div>
+          <label className="block min-w-64 space-y-1">
+            <span className="text-sm font-medium">Search</span>
+            <input className="input" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search posts, replies, or authors" />
+          </label>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {(["top", "new", "active"] as const).map((mode) => (
+            <button key={mode} type="button" className={sortMode === mode ? "btn btn-primary text-sm" : "btn btn-secondary text-sm"} onClick={() => setSortMode(mode)}>
+              {mode === "top" ? "Top" : mode === "new" ? "New" : "Active"}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {([
+            ["all", "All"],
+            ["my_posts", "My Posts"],
+            ["unanswered", "Unanswered"],
+            ["pinned", "Pinned"],
+            ["locked", "Locked"],
+          ] as const).map(([mode, label]) => (
+            <button key={mode} type="button" className={filterMode === mode ? "btn btn-primary text-sm" : "btn btn-secondary text-sm"} onClick={() => setFilterMode(mode)}>
+              {label}
+            </button>
+          ))}
+        </div>
       </section>
 
       <form className="panel grid gap-3 p-6" onSubmit={submitPost}>
@@ -238,106 +354,131 @@ export function MessageBoard() {
       <section className="space-y-4">
         {loading ? (
           <div className="panel p-6 text-sm text-[var(--muted)]">Loading board...</div>
-        ) : topLevelPosts.length === 0 ? (
-          <div className="panel p-6 text-sm text-[var(--muted)]">No posts yet. Start the first discussion.</div>
+        ) : threads.length === 0 ? (
+          <div className="panel p-6 text-sm text-[var(--muted)]">No matching posts found. Try a different filter or start a new discussion.</div>
         ) : (
-          topLevelPosts.map((post) => (
-            <article key={post.id} className="panel p-5">
+          threads.map((thread) => (
+            <article key={thread.id} className="panel p-5">
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-lg font-bold">{post.title}</h3>
-                    {statusBadge(post).map((label) => (
-                      <span key={`${post.id}-${label}`} className="rounded-full bg-[var(--surface)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                        {label}
-                      </span>
-                    ))}
-                  </div>
-                  <p className="mt-1 text-sm text-[var(--muted)]">
-                    {post.authorLabel} - {formatDate(post.createdAt)}{post.editedAt ? ` - edited ${formatDate(post.editedAt)}` : ""}
-                  </p>
-                  <p className="mt-3 whitespace-pre-wrap text-sm leading-6">{post.body}</p>
+                  {editingPostId === thread.id ? (
+                    <div className="space-y-3">
+                      <input className="input" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} minLength={3} maxLength={140} />
+                      <textarea className="input min-h-32" value={editBody} onChange={(e) => setEditBody(e.target.value)} minLength={3} maxLength={4000} />
+                      <div className="flex flex-wrap gap-2">
+                        <button type="button" className="btn btn-primary text-sm" onClick={() => void saveEdit(thread)}>Save Changes</button>
+                        <button type="button" className="btn btn-secondary text-sm" onClick={() => setEditingPostId(null)}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-lg font-bold">{thread.title}</h3>
+                        {statusBadge(thread).map((label) => (
+                          <span key={`${thread.id}-${label}`} className="rounded-full bg-[var(--surface)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                            {label}
+                          </span>
+                        ))}
+                        <span className="rounded-full bg-[var(--background)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                          {thread.replies.length} repl{thread.replies.length === 1 ? "y" : "ies"}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-sm text-[var(--muted)]">
+                        {thread.authorLabel} - {formatDate(thread.createdAt)}{thread.editedAt ? ` - edited ${formatDate(thread.editedAt)}` : ""} - active {formatDate(thread.lastActivityAt ?? thread.createdAt)}
+                      </p>
+                      <p className="mt-3 whitespace-pre-wrap text-sm leading-6">{thread.body}</p>
+                    </>
+                  )}
                 </div>
 
                 <div className="flex min-w-32 items-center gap-2 md:flex-col md:items-stretch">
-                  <button type="button" className={`btn ${post.userVote === 1 ? "btn-primary" : "btn-secondary"}`} onClick={() => castVote(post.id, 1)} disabled={votingPostId === post.id || post.status !== "active"}>
+                  <button type="button" className={`btn ${thread.userVote === 1 ? "btn-primary" : "btn-secondary"}`} onClick={() => castVote(thread.id, 1)} disabled={votingPostId === thread.id || thread.status !== "active"}>
                     Upvote
                   </button>
-                  <div className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-center text-sm font-semibold">Score {post.score}</div>
-                  <button type="button" className={`btn ${post.userVote === -1 ? "btn-primary" : "btn-secondary"}`} onClick={() => castVote(post.id, -1)} disabled={votingPostId === post.id || post.status !== "active"}>
+                  <div className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-center text-sm font-semibold">Score {thread.score}</div>
+                  <button type="button" className={`btn ${thread.userVote === -1 ? "btn-primary" : "btn-secondary"}`} onClick={() => castVote(thread.id, -1)} disabled={votingPostId === thread.id || thread.status !== "active"}>
                     Downvote
                   </button>
                 </div>
               </div>
 
               <div className="mt-4 flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  disabled={!canPost || post.isLocked || post.status !== "active"}
-                  onClick={() => setReplyingTo((current) => (current === post.id ? null : post.id))}
-                >
-                  {replyingTo === post.id ? "Cancel Reply" : `Reply${post.replies.length ? ` (${post.replies.length})` : ""}`}
+                <button type="button" className="btn btn-secondary" disabled={!canPost || thread.isLocked || thread.status !== "active"} onClick={() => setReplyingTo((current) => current === thread.id ? null : thread.id)}>
+                  {replyingTo === thread.id ? "Cancel Reply" : `Reply${thread.replies.length ? ` (${thread.replies.length})` : ""}`}
                 </button>
+                {thread.replies.length > 2 ? (
+                  <button type="button" className="btn btn-secondary text-sm" onClick={() => setExpandedReplies((current) => ({ ...current, [thread.id]: !current[thread.id] }))}>
+                    {expandedReplies[thread.id] ? "Collapse Replies" : `Show All Replies (${thread.replies.length})`}
+                  </button>
+                ) : null}
+                {canManageOwn(thread, thread) && editingPostId !== thread.id ? (
+                  <>
+                    <button type="button" className="btn btn-secondary text-sm" onClick={() => beginEdit(thread)}>Edit</button>
+                    <button type="button" className="btn btn-secondary text-sm" onClick={() => void deleteOwnPost(thread)}>Delete</button>
+                  </>
+                ) : null}
                 {isAdmin ? (
                   <>
-                    <button type="button" className="btn btn-secondary text-sm" disabled={adminBusyId === post.id} onClick={() => void moderatePost(post.id, { isPinned: !post.isPinned }, post.isPinned ? "Thread unpinned." : "Thread pinned.")}>
-                      {post.isPinned ? "Unpin" : "Pin"}
+                    <button type="button" className="btn btn-secondary text-sm" disabled={adminBusyId === thread.id} onClick={() => void moderatePost(thread.id, { isPinned: !thread.isPinned }, thread.isPinned ? "Thread unpinned." : "Thread pinned.")}>
+                      {thread.isPinned ? "Unpin" : "Pin"}
                     </button>
-                    <button type="button" className="btn btn-secondary text-sm" disabled={adminBusyId === post.id} onClick={() => void moderatePost(post.id, { isLocked: !post.isLocked }, post.isLocked ? "Thread unlocked." : "Thread locked.")}>
-                      {post.isLocked ? "Unlock" : "Lock"}
+                    <button type="button" className="btn btn-secondary text-sm" disabled={adminBusyId === thread.id} onClick={() => void moderatePost(thread.id, { isLocked: !thread.isLocked }, thread.isLocked ? "Thread unlocked." : "Thread locked.")}>
+                      {thread.isLocked ? "Unlock" : "Lock"}
                     </button>
-                    <button type="button" className="btn btn-secondary text-sm" disabled={adminBusyId === post.id} onClick={() => void moderatePost(post.id, { status: post.status === "active" ? "hidden" : "active" }, post.status === "active" ? "Thread hidden." : "Thread restored.")}>
-                      {post.status === "active" ? "Hide" : "Restore"}
-                    </button>
-                    <button type="button" className="btn btn-secondary text-sm" disabled={adminBusyId === post.id || post.status === "removed"} onClick={() => void moderatePost(post.id, { status: "removed" }, "Thread removed from the public board.")}>
-                      Remove
+                    <button type="button" className="btn btn-secondary text-sm" disabled={adminBusyId === thread.id} onClick={() => void moderatePost(thread.id, { status: thread.status === "active" ? "hidden" : "active" }, thread.status === "active" ? "Thread hidden." : "Thread restored.")}>
+                      {thread.status === "active" ? "Hide" : "Restore"}
                     </button>
                   </>
                 ) : null}
               </div>
 
-              {replyingTo === post.id ? (
+              {replyingTo === thread.id ? (
                 <div className="mt-4 rounded-md border border-[var(--line)] bg-[var(--surface)] p-4">
-                  <textarea className="input min-h-24" placeholder="Add your reply" value={replyDrafts[post.id] ?? ""} onChange={(e) => setReplyDrafts((current) => ({ ...current, [post.id]: e.target.value }))} maxLength={4000} />
+                  <textarea className="input min-h-24" placeholder="Add your reply" value={replyDrafts[thread.id] ?? ""} onChange={(e) => setReplyDrafts((current) => ({ ...current, [thread.id]: e.target.value }))} maxLength={4000} />
                   <div className="mt-3">
-                    <button type="button" className="btn btn-primary" onClick={() => submitReply(post.id)} disabled={posting || !canPost}>
+                    <button type="button" className="btn btn-primary" onClick={() => submitReply(thread.id)} disabled={posting || !canPost}>
                       {posting ? "Posting..." : "Submit Reply"}
                     </button>
                   </div>
                 </div>
               ) : null}
 
-              {post.replies.length > 0 ? (
+              {thread.replies.length > 0 ? (
                 <div className="mt-4 space-y-3 border-t border-[var(--line)] pt-4">
-                  {post.replies.map((reply) => (
+                  {visibleReplies(thread).map((reply) => (
                     <div key={reply.id} className="rounded-md border border-[var(--line)] bg-[var(--surface)] p-4">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <p className="text-sm font-semibold">{reply.authorLabel}</p>
-                          <p className="mt-1 text-xs text-[var(--muted)]">{formatDate(reply.createdAt)}{reply.editedAt ? ` - edited ${formatDate(reply.editedAt)}` : ""}</p>
-                        </div>
-                        {isAdmin ? (
+                      {editingPostId === reply.id ? (
+                        <div className="space-y-3">
+                          <textarea className="input min-h-24" value={editBody} onChange={(e) => setEditBody(e.target.value)} minLength={3} maxLength={4000} />
                           <div className="flex flex-wrap gap-2">
-                            <button type="button" className="btn btn-secondary text-sm" disabled={adminBusyId === reply.id} onClick={() => void moderatePost(reply.id, { status: reply.status === "active" ? "hidden" : "active" }, reply.status === "active" ? "Reply hidden." : "Reply restored.")}>
-                              {reply.status === "active" ? "Hide" : "Restore"}
-                            </button>
-                            <button type="button" className="btn btn-secondary text-sm" disabled={adminBusyId === reply.id || reply.status === "removed"} onClick={() => void moderatePost(reply.id, { status: "removed" }, "Reply removed from the public board.")}>
-                              Remove
-                            </button>
+                            <button type="button" className="btn btn-primary text-sm" onClick={() => void saveEdit(reply)}>Save Changes</button>
+                            <button type="button" className="btn btn-secondary text-sm" onClick={() => setEditingPostId(null)}>Cancel</button>
                           </div>
-                        ) : null}
-                      </div>
-                      {statusBadge(reply).length > 0 ? (
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {statusBadge(reply).map((label) => (
-                            <span key={`${reply.id}-${label}`} className="rounded-full bg-[var(--background)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                              {label}
-                            </span>
-                          ))}
                         </div>
-                      ) : null}
-                      <p className="mt-3 whitespace-pre-wrap text-sm leading-6">{reply.body}</p>
+                      ) : (
+                        <>
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                              <p className="text-sm font-semibold">{reply.authorLabel}</p>
+                              <p className="mt-1 text-xs text-[var(--muted)]">{formatDate(reply.createdAt)}{reply.editedAt ? ` - edited ${formatDate(reply.editedAt)}` : ""}</p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {canManageOwn(reply, thread) ? (
+                                <>
+                                  <button type="button" className="btn btn-secondary text-sm" onClick={() => beginEdit(reply)}>Edit</button>
+                                  <button type="button" className="btn btn-secondary text-sm" onClick={() => void deleteOwnPost(reply)}>Delete</button>
+                                </>
+                              ) : null}
+                              {isAdmin ? (
+                                <button type="button" className="btn btn-secondary text-sm" disabled={adminBusyId === reply.id} onClick={() => void moderatePost(reply.id, { status: reply.status === "active" ? "hidden" : "active" }, reply.status === "active" ? "Reply hidden." : "Reply restored.")}>
+                                  {reply.status === "active" ? "Hide" : "Restore"}
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
+                          <p className="mt-3 whitespace-pre-wrap text-sm leading-6">{reply.body}</p>
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>
