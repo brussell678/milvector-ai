@@ -4,6 +4,7 @@ const links = [
   { href: "/", label: "Home" },
   { href: "/dashboard", label: "Dashboard" },
   { href: "/tools", label: "Tools" },
+  { href: "/platform", label: "Why MilVector" },
   { href: "/knowledge-base", label: "Knowledge Base" },
   { href: "/library", label: "Library" },
   { href: "/message-board", label: "Message Board" },

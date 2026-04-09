@@ -160,7 +160,7 @@ export function LoginForm({ error }: { error?: string }) {
             </ol>
           </div>
           <p className="mt-6 text-sm text-[var(--muted)]">
-            Need context first? <Link href="/" className="font-semibold text-[var(--accent)]">View overview</Link>
+            Need context first? <Link href="/platform" className="font-semibold text-[var(--accent)]">See how MilVector works</Link>
           </p>
         </div>
       </div>

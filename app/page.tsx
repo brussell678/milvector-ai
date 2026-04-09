@@ -87,10 +87,13 @@ export default async function Home({
             </p>
             <div className="flex flex-wrap gap-3">
               <Link href="/login" className="btn btn-primary">
-                Lets Go!
+                Let&apos;s Go!
               </Link>
               <Link href="#how-it-works" className="btn btn-secondary">
                 Learn How It Works
+              </Link>
+              <Link href="/platform" className="btn btn-secondary">
+                Why MilVector
               </Link>
             </div>
           </div>

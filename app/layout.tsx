@@ -19,7 +19,7 @@ const plexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: "MilVector AI",
-  description: "AI career navigation for service members",
+  description: "Connected transition planning, document workflows, and AI support for service members moving into civilian careers.",
   icons: {
     icon: "/assets/milvector-ai-logo-transparent.png",
   },
@@ -36,8 +36,8 @@ export default function RootLayout({
         <div className="site-watermark" aria-hidden="true" />
         <div className="site-top-banner">
           <p>
-            Built by Marines for service members. Sign in with your email for free access to transition tools for career planning, documents, benefits, and job search support. If you find them useful, consider donating to help keep the platform free and cover API costs.{" "}
-            <Link href="/donate">Donate</Link>
+            Built by Marines for service members. MilVector keeps transition planning, documents, and AI tools in one connected workspace.{" "}
+            <Link href="/platform">How It Works</Link>
           </p>
         </div>
         <div className="hidden md:block">
@@ -52,7 +52,8 @@ export default function RootLayout({
             Copyright 2026 MilVector AI. Built by{" "}
             <a href="https://www.russell-innovation-group.com" target="_blank" rel="noopener noreferrer">
               Russell Innovation Group LLC
-            </a>
+            </a>{" "}
+            · <Link href="/platform">How MilVector Works</Link>
             .
           </p>
         </footer>
