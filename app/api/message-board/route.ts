@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { isAdminEmail } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 
 const CreateMessageSchema = z.object({
@@ -21,12 +22,25 @@ export async function GET() {
     const {
       data: { user },
     } = await supabase.auth.getUser();
+    const isAdmin = isAdminEmail(user?.email);
+    let hasSavedProfile = false;
+
+    if (user) {
+      const { data: profile } = await supabase.from("profiles").select("id").eq("id", user.id).maybeSingle();
+      hasSavedProfile = !!profile;
+    }
+
+    let postsQuery = supabase
+      .from("message_board_posts")
+      .select("id, user_id, parent_post_id, title, body, author_label, created_at, status, is_pinned, is_locked, last_activity_at, edited_at")
+      .order("created_at", { ascending: false });
+
+    if (!isAdmin) {
+      postsQuery = postsQuery.eq("status", "active");
+    }
 
     const [{ data: posts, error: postsError }, { data: votes, error: votesError }] = await Promise.all([
-      supabase
-        .from("message_board_posts")
-        .select("id, parent_post_id, title, body, author_label, created_at")
-        .order("created_at", { ascending: false }),
+      postsQuery,
       supabase.from("message_board_votes").select("post_id, user_id, vote_value"),
     ]);
 
@@ -45,16 +59,27 @@ export async function GET() {
 
     const enrichedPosts = (posts ?? []).map((post) => ({
       id: post.id,
+      userId: post.user_id,
       parentPostId: post.parent_post_id,
       title: post.title,
       body: post.body,
       authorLabel: post.author_label,
       createdAt: post.created_at,
+      status: post.status,
+      isPinned: post.is_pinned,
+      isLocked: post.is_locked,
+      lastActivityAt: post.last_activity_at,
+      editedAt: post.edited_at,
       score: scoreByPostId.get(post.id) ?? 0,
       userVote: userVoteByPostId.get(post.id) ?? 0,
     }));
 
-    return NextResponse.json({ posts: enrichedPosts });
+    return NextResponse.json({
+      posts: enrichedPosts,
+      canPost: hasSavedProfile,
+      requiresSavedProfile: true,
+      isAdmin,
+    });
   } catch (error) {
     console.error("Message board GET failed", error);
     return NextResponse.json({ error: "Unable to load the message board." }, { status: 500 });
@@ -72,6 +97,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "You must be signed in to post." }, { status: 401 });
     }
 
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      return NextResponse.json({ error: profileError.message }, { status: 500 });
+    }
+
+    if (!profile) {
+      return NextResponse.json({ error: "Save your MilVector profile before posting on the message board." }, { status: 403 });
+    }
+
     const parsed = CreateMessageSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid request." }, { status: 400 });
@@ -85,7 +124,7 @@ export async function POST(req: Request) {
     if (parentPostId) {
       const { data: parent, error: parentError } = await supabase
         .from("message_board_posts")
-        .select("id, parent_post_id")
+        .select("id, parent_post_id, is_locked, status")
         .eq("id", parentPostId)
         .maybeSingle();
 
@@ -94,6 +133,12 @@ export async function POST(req: Request) {
       if (parent.parent_post_id) {
         return NextResponse.json({ error: "Replies can only be added to top-level posts." }, { status: 400 });
       }
+      if (parent.status !== "active") {
+        return NextResponse.json({ error: "You cannot reply to this thread." }, { status: 400 });
+      }
+      if (parent.is_locked) {
+        return NextResponse.json({ error: "This thread is locked." }, { status: 400 });
+      }
     }
 
     const payload = {
@@ -101,11 +146,18 @@ export async function POST(req: Request) {
       parent_post_id: parentPostId,
       title: parentPostId ? null : parsed.data.title,
       body: parsed.data.body,
-      author_label: getAuthorLabel(user.email),
+      author_label: profile.full_name?.trim() || getAuthorLabel(user.email),
     };
 
     const { error } = await supabase.from("message_board_posts").insert(payload);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    if (parentPostId) {
+      await supabase
+        .from("message_board_posts")
+        .update({ last_activity_at: new Date().toISOString() })
+        .eq("id", parentPostId);
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {
