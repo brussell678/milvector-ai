@@ -92,12 +92,13 @@ export function FeedbackForm() {
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formElement = e.currentTarget;
     setSaving(true);
     setStatus("");
     setStatusKind("");
 
     try {
-      const formData = new FormData(e.currentTarget);
+      const formData = new FormData(formElement);
       const res = await fetch("/api/feedback", { method: "POST", body: formData });
       const rawText = await res.text();
       let data: { error?: unknown } = {};
@@ -117,7 +118,7 @@ export function FeedbackForm() {
 
       setStatus("Feedback submitted. Thank you.");
       setStatusKind("success");
-      e.currentTarget.reset();
+      formElement.reset();
       setForm((current) => ({
         ...current,
         feedback_type: "general",
