@@ -4,26 +4,35 @@ import { FormEvent, useState } from "react";
 
 export function LibrarySubmissionForm() {
   const [status, setStatus] = useState<string>("");
+  const [statusKind, setStatusKind] = useState<"success" | "error" | "">("");
   const [saving, setSaving] = useState(false);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSaving(true);
     setStatus("");
+    setStatusKind("");
 
-    const formData = new FormData(e.currentTarget);
-    const res = await fetch("/api/library/submit", { method: "POST", body: formData });
-    const data = await res.json().catch(() => ({}));
+    try {
+      const formData = new FormData(e.currentTarget);
+      const res = await fetch("/api/library/submit", { method: "POST", body: formData });
+      const data = await res.json().catch(() => ({}));
 
-    if (!res.ok) {
-      setStatus(data.error ?? "Submission failed.");
+      if (!res.ok) {
+        setStatus(data.error ?? "Submission failed.");
+        setStatusKind("error");
+        return;
+      }
+
+      setStatus("Submission sent for admin review.");
+      setStatusKind("success");
+      e.currentTarget.reset();
+    } catch {
+      setStatus("Submission failed.");
+      setStatusKind("error");
+    } finally {
       setSaving(false);
-      return;
     }
-
-    setStatus("Submission sent for admin review.");
-    e.currentTarget.reset();
-    setSaving(false);
   }
 
   return (
@@ -39,7 +48,7 @@ export function LibrarySubmissionForm() {
       <button className="btn btn-primary" type="submit" disabled={saving}>
         {saving ? "Submitting..." : "Submit for Approval"}
       </button>
-      {status && <p className="text-sm text-[var(--accent)]">{status}</p>}
+      {status ? <div className={`alert-base ${statusKind === "error" ? "alert-error" : "alert-success"}`}>{status}</div> : null}
     </form>
   );
 }

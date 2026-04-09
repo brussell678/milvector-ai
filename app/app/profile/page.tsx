@@ -52,6 +52,7 @@ function parseListInput(value: string) {
 export default function ProfilePage() {
   const [form, setForm] = useState<Profile>(initialState);
   const [status, setStatus] = useState<string | null>(null);
+  const [statusKind, setStatusKind] = useState<"success" | "error" | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -90,6 +91,7 @@ export default function ProfilePage() {
     e.preventDefault();
     setSaving(true);
     setStatus(null);
+    setStatusKind(null);
 
     const payload = {
       full_name: form.full_name || null,
@@ -124,9 +126,11 @@ export default function ProfilePage() {
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: "Failed to save profile" }));
       setStatus(err.error ?? "Failed to save profile");
+      setStatusKind("error");
       return;
     }
     setStatus("Profile saved.");
+    setStatusKind("success");
   }
 
   return (
@@ -322,7 +326,7 @@ export default function ProfilePage() {
         </div>
       </form>
 
-      {status && <p className="mt-4 text-sm text-[var(--accent)]">{status}</p>}
+      {status ? <div className={`alert-base mt-4 ${statusKind === "error" ? "alert-error" : "alert-success"}`}>{status}</div> : null}
           </section>
     </main>
   );

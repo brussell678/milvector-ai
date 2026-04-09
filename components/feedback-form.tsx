@@ -42,6 +42,7 @@ export function FeedbackForm() {
     message: "",
   });
   const [status, setStatus] = useState<string>("");
+  const [statusKind, setStatusKind] = useState<"success" | "error" | "">("");
   const [saving, setSaving] = useState(false);
   const [history, setHistory] = useState<FeedbackRow[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
@@ -93,6 +94,7 @@ export function FeedbackForm() {
     e.preventDefault();
     setSaving(true);
     setStatus("");
+    setStatusKind("");
 
     try {
       const formData = new FormData(e.currentTarget);
@@ -101,10 +103,12 @@ export function FeedbackForm() {
 
       if (!res.ok) {
         setStatus(typeof data.error === "string" ? data.error : "Feedback submission failed.");
+        setStatusKind("error");
         return;
       }
 
       setStatus("Feedback submitted. Thank you.");
+      setStatusKind("success");
       e.currentTarget.reset();
       setForm((current) => ({
         ...current,
@@ -115,6 +119,7 @@ export function FeedbackForm() {
       await loadHistory();
     } catch {
       setStatus("Feedback submission failed.");
+      setStatusKind("error");
     } finally {
       setSaving(false);
     }
@@ -134,7 +139,7 @@ export function FeedbackForm() {
           <option value="tool_request">Tool Request</option>
         </select>
         <input name="suggested_tool" className="input" placeholder="Suggested Tool (optional)" value={form.suggested_tool} onChange={(e) => setForm((current) => ({ ...current, suggested_tool: e.target.value }))} />
-        <textarea name="message" className="input min-h-28 md:col-span-2" placeholder="Message" required value={form.message} onChange={(e) => setForm((current) => ({ ...current, message: e.target.value }))} />
+        <textarea name="message" className="input min-h-28 md:col-span-2" placeholder="Message" required minLength={10} value={form.message} onChange={(e) => setForm((current) => ({ ...current, message: e.target.value }))} />
         <label className="space-y-1 md:col-span-2">
           <span className="text-sm font-medium">Attachment (optional)</span>
           <input
@@ -150,7 +155,7 @@ export function FeedbackForm() {
             {saving ? "Submitting..." : "Submit Feedback"}
           </button>
         </div>
-        {status && <p className="text-sm text-[var(--accent)] md:col-span-2">{status}</p>}
+        {status ? <div className={`alert-base md:col-span-2 ${statusKind === "error" ? "alert-error" : "alert-success"}`}>{status}</div> : null}
       </form>
 
       <section className="panel p-6">

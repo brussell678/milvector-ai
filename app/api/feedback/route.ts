@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     });
 
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+      return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Please review your feedback form and try again." }, { status: 400 });
     }
 
     let attachmentUrl: string | null = null;
