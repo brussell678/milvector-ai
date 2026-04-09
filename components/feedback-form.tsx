@@ -13,6 +13,13 @@ type FeedbackRow = {
   admin_response_updated_at: string | null;
 };
 
+type FeedbackProfile = {
+  full_name: string;
+  branch: string;
+  mos: string;
+  professional_email: string;
+};
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
@@ -25,6 +32,15 @@ const STATUS_LABELS: Record<FeedbackRow["status"], string> = {
 };
 
 export function FeedbackForm() {
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    branch: "",
+    mos: "",
+    feedback_type: "general",
+    suggested_tool: "",
+    message: "",
+  });
   const [status, setStatus] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [history, setHistory] = useState<FeedbackRow[]>([]);
@@ -51,6 +67,28 @@ export function FeedbackForm() {
     void loadHistory();
   }, []);
 
+  useEffect(() => {
+    async function loadProfileDefaults() {
+      try {
+        const res = await fetch("/api/profile", { cache: "no-store" });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.profile) return;
+        const profile = data.profile as Partial<FeedbackProfile>;
+        setForm((current) => ({
+          ...current,
+          name: current.name || profile.full_name || "",
+          email: current.email || profile.professional_email || "",
+          branch: current.branch || profile.branch || "",
+          mos: current.mos || profile.mos || "",
+        }));
+      } catch {
+        // leave the form usable even if profile preload fails
+      }
+    }
+
+    void loadProfileDefaults();
+  }, []);
+
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setSaving(true);
@@ -68,6 +106,12 @@ export function FeedbackForm() {
 
       setStatus("Feedback submitted. Thank you.");
       e.currentTarget.reset();
+      setForm((current) => ({
+        ...current,
+        feedback_type: "general",
+        suggested_tool: "",
+        message: "",
+      }));
       await loadHistory();
     } catch {
       setStatus("Feedback submission failed.");
@@ -79,18 +123,18 @@ export function FeedbackForm() {
   return (
     <div className="space-y-4">
       <form className="panel mt-4 grid gap-3 p-6 md:grid-cols-2" onSubmit={onSubmit}>
-        <input name="name" className="input" placeholder="Name (optional)" />
-        <input name="email" type="email" className="input" placeholder="Email (optional)" />
-        <input name="branch" className="input" placeholder="Branch" />
-        <input name="mos" className="input" placeholder="MOS" />
-        <select name="feedback_type" className="input" required>
+        <input name="name" className="input" placeholder="Name (optional)" value={form.name} onChange={(e) => setForm((current) => ({ ...current, name: e.target.value }))} />
+        <input name="email" type="email" className="input" placeholder="Email (optional)" value={form.email} onChange={(e) => setForm((current) => ({ ...current, email: e.target.value }))} />
+        <input name="branch" className="input" placeholder="Branch" value={form.branch} onChange={(e) => setForm((current) => ({ ...current, branch: e.target.value }))} />
+        <input name="mos" className="input" placeholder="MOS" value={form.mos} onChange={(e) => setForm((current) => ({ ...current, mos: e.target.value }))} />
+        <select name="feedback_type" className="input" required value={form.feedback_type} onChange={(e) => setForm((current) => ({ ...current, feedback_type: e.target.value }))}>
           <option value="general">General</option>
           <option value="suggestion">Suggestion</option>
           <option value="bug">Bug</option>
           <option value="tool_request">Tool Request</option>
         </select>
-        <input name="suggested_tool" className="input" placeholder="Suggested Tool (optional)" />
-        <textarea name="message" className="input min-h-28 md:col-span-2" placeholder="Message" required />
+        <input name="suggested_tool" className="input" placeholder="Suggested Tool (optional)" value={form.suggested_tool} onChange={(e) => setForm((current) => ({ ...current, suggested_tool: e.target.value }))} />
+        <textarea name="message" className="input min-h-28 md:col-span-2" placeholder="Message" required value={form.message} onChange={(e) => setForm((current) => ({ ...current, message: e.target.value }))} />
         <label className="space-y-1 md:col-span-2">
           <span className="text-sm font-medium">Attachment (optional)</span>
           <input
