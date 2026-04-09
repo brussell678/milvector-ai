@@ -14,6 +14,8 @@ type FeedbackItem = {
   suggested_tool: string | null;
   status: "new" | "reviewing" | "resolved" | "archived";
   attachment_url: string | null;
+  admin_response: string | null;
+  admin_response_updated_at: string | null;
   attachment_signed_url?: string | null;
 };
 
@@ -64,6 +66,9 @@ export function AdminPortal({
   initialBlockedUsers: MessageBoardBlockedUserItem[];
 }) {
   const [feedback, setFeedback] = useState(initialFeedback);
+  const [feedbackResponses, setFeedbackResponses] = useState<Record<string, string>>(
+    Object.fromEntries(initialFeedback.map((item) => [item.id, item.admin_response ?? ""]))
+  );
   const [submissions, setSubmissions] = useState(initialSubmissions);
   const [reports, setReports] = useState(initialMessageBoardReports);
   const [blockedUsers, setBlockedUsers] = useState(initialBlockedUsers);
@@ -98,6 +103,43 @@ export function AdminPortal({
       setStatus("Feedback status updated.");
     } catch {
       setError("Network error while updating feedback.");
+    } finally {
+      setBusyFeedbackId(null);
+    }
+  }
+
+  async function saveFeedbackResponse(id: string) {
+    setBusyFeedbackId(id);
+    setStatus(null);
+    setError(null);
+
+    try {
+      const res = await fetch(`/api/admin/feedback/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adminResponse: feedbackResponses[id] ?? "" }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setError(data.error ?? "Failed to save admin response.");
+        return;
+      }
+
+      setFeedback((current) =>
+        current.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                admin_response: (feedbackResponses[id] ?? "").trim() || null,
+                admin_response_updated_at: (feedbackResponses[id] ?? "").trim() ? new Date().toISOString() : null,
+              }
+            : item
+        )
+      );
+      setStatus("Admin feedback response saved.");
+    } catch {
+      setError("Network error while saving the admin response.");
     } finally {
       setBusyFeedbackId(null);
     }
@@ -284,6 +326,20 @@ export function AdminPortal({
                 {item.mos && <span>MOS: {item.mos}</span>}
                 {item.suggested_tool && <span>Suggested Tool: {item.suggested_tool}</span>}
               </div>
+              <div className="mt-4 space-y-2">
+                <label className="block space-y-1">
+                  <span className="text-sm font-medium">Admin Response / Follow-Up Question</span>
+                  <textarea
+                    className="input min-h-24"
+                    value={feedbackResponses[item.id] ?? ""}
+                    onChange={(e) => setFeedbackResponses((current) => ({ ...current, [item.id]: e.target.value }))}
+                    placeholder="Add a response or question the user should see in their feedback tracker."
+                  />
+                </label>
+                {item.admin_response_updated_at ? (
+                  <p className="text-xs text-[var(--muted)]">Last updated {new Date(item.admin_response_updated_at).toLocaleString()}</p>
+                ) : null}
+              </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 {item.attachment_signed_url ? (
                   <a
@@ -306,6 +362,14 @@ export function AdminPortal({
                     {busyFeedbackId === item.id && item.status !== nextStatus ? "Updating..." : `Mark ${nextStatus}`}
                   </button>
                 ))}
+                <button
+                  className="btn btn-secondary inline-flex text-sm"
+                  type="button"
+                  disabled={busyFeedbackId === item.id}
+                  onClick={() => void saveFeedbackResponse(item.id)}
+                >
+                  {busyFeedbackId === item.id ? "Saving..." : "Save Response"}
+                </button>
               </div>
             </article>
           ))}

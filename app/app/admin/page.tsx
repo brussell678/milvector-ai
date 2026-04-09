@@ -15,6 +15,8 @@ type FeedbackRow = {
   suggested_tool: string | null;
   status: "new" | "reviewing" | "resolved" | "archived";
   attachment_url: string | null;
+  admin_response: string | null;
+  admin_response_updated_at: string | null;
   attachment_signed_url?: string | null;
 };
 
@@ -75,7 +77,7 @@ export default async function AdminPage() {
   const [{ data: feedback }, { data: submissions }, { data: reports }, { data: blockedUsers }] = await Promise.all([
     supabase
       .from("feedback")
-      .select("id,created_at,name,email,branch,mos,feedback_type,message,suggested_tool,status,attachment_url")
+      .select("id,created_at,name,email,branch,mos,feedback_type,message,suggested_tool,status,attachment_url,admin_response,admin_response_updated_at")
       .order("created_at", { ascending: false }),
     supabase
       .from("library_submissions")
