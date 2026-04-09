@@ -1,4 +1,31 @@
-const channels = ["Venmo", "CashApp", "PayPal"];
+import Image from "next/image";
+
+const channels = [
+  {
+    name: "Venmo",
+    status: "Live now",
+    description: "Scan this QR code to donate through the shared Venmo / PayPal payment link.",
+    qrSrc: "/assets/paypal-venmo-qr.png",
+    logoText: "V",
+    logoClass: "bg-[#008CFF] text-white",
+  },
+  {
+    name: "Cash App",
+    status: "Live now",
+    description: "Scan this QR code to donate directly through Cash App.",
+    qrSrc: "/assets/cashapp-qr.png",
+    logoText: "$",
+    logoClass: "bg-[#00D632] text-[#0a2b12]",
+  },
+  {
+    name: "PayPal",
+    status: "Live now",
+    description: "Scan this QR code to donate through the shared PayPal / Venmo payment link.",
+    qrSrc: "/assets/paypal-venmo-qr.png",
+    logoText: "P",
+    logoClass: "bg-[#003087] text-white",
+  },
+] as const;
 
 const reasons = [
   {
@@ -68,19 +95,31 @@ export default function DonatePage() {
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="section-title">Donation Channels</p>
-            <p className="section-description">This page is where Venmo, CashApp, and PayPal support links will go live as soon as they are ready.</p>
+            <p className="section-description">Venmo, Cash App, and PayPal can all be supported from this page using the QR codes below.</p>
           </div>
-          <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Coming Soon</p>
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Scan To Donate</p>
         </div>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
           {channels.map((channel) => (
             <article
-              key={channel}
+              key={channel.name}
               className="subtle-panel flex min-h-56 flex-col items-center justify-center p-5 text-center"
             >
-              <p className="text-lg font-bold">{channel}</p>
-              <p className="mt-2 text-sm text-[var(--muted)]">QR code placeholder</p>
-              <p className="mt-4 text-xs uppercase tracking-[0.16em] text-[var(--accent)]">Ready for upload</p>
+              <div className="flex items-center gap-3">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-full text-lg font-bold ${channel.logoClass}`}>
+                  {channel.logoText}
+                </div>
+                <p className="text-lg font-bold">{channel.name}</p>
+              </div>
+              <Image
+                src={channel.qrSrc}
+                alt={`${channel.name} donation QR code`}
+                width={180}
+                height={180}
+                className="mt-4 rounded-lg border border-[var(--line)] bg-white p-2"
+              />
+              <p className="mt-3 text-sm text-[var(--muted)]">{channel.description}</p>
+              <p className="mt-4 text-xs uppercase tracking-[0.16em] text-[var(--accent)]">{channel.status}</p>
             </article>
           ))}
         </div>
