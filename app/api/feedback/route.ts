@@ -65,18 +65,16 @@ export async function POST(req: Request) {
       attachmentUrl = storagePath;
     }
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("feedback")
       .insert({
         user_id: user?.id ?? null,
         ...parsed.data,
         attachment_url: attachmentUrl,
-      })
-      .select("id, status")
-      .single();
+      });
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ ok: true, feedback: data });
+    return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Feedback POST failed", error);
     return NextResponse.json({ error: "Feedback submission failed." }, { status: 500 });

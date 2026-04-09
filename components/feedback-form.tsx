@@ -99,7 +99,15 @@ export function FeedbackForm() {
     try {
       const formData = new FormData(e.currentTarget);
       const res = await fetch("/api/feedback", { method: "POST", body: formData });
-      const data = await res.json().catch(() => ({}));
+      const rawText = await res.text();
+      let data: { error?: unknown } = {};
+      if (rawText) {
+        try {
+          data = JSON.parse(rawText) as { error?: unknown };
+        } catch {
+          data = { error: rawText };
+        }
+      }
 
       if (!res.ok) {
         setStatus(typeof data.error === "string" ? data.error : "Feedback submission failed.");
@@ -117,8 +125,8 @@ export function FeedbackForm() {
         message: "",
       }));
       await loadHistory();
-    } catch {
-      setStatus("Feedback submission failed.");
+    } catch (error) {
+      setStatus(error instanceof Error && error.message ? error.message : "Feedback submission failed.");
       setStatusKind("error");
     } finally {
       setSaving(false);
