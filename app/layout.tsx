@@ -53,8 +53,7 @@ export default function RootLayout({
             <a href="https://www.russell-innovation-group.com" target="_blank" rel="noopener noreferrer">
               Russell Innovation Group LLC
             </a>{" "}
-            · <Link href="/platform">How MilVector Works</Link>
-            .
+            · <Link href="/platform">How MilVector Works</Link> · <Link href="/privacy">Privacy</Link>.
           </p>
         </footer>
       </body>

@@ -2,7 +2,7 @@ export type MessageBoardLinkOption = {
   key: string;
   label: string;
   path: string;
-  resourceType: "tool" | "knowledge_base" | "documents" | "library" | "profile" | "feedback";
+  resourceType: "tool" | "knowledge_base" | "documents" | "library" | "profile" | "support";
   toolSlug?: string | null;
 };
 
@@ -16,7 +16,7 @@ export const MESSAGE_BOARD_LINK_OPTIONS: MessageBoardLinkOption[] = [
   { key: "documents", label: "Documents Workspace", path: "/app/documents", resourceType: "documents" },
   { key: "library", label: "Library", path: "/app/library", resourceType: "library" },
   { key: "knowledge-base", label: "Knowledge Base", path: "/knowledge-base", resourceType: "knowledge_base" },
-  { key: "feedback", label: "Feedback", path: "/app/feedback", resourceType: "feedback" },
+  { key: "support", label: "Support Center", path: "/app/feedback", resourceType: "support" },
 ];
 
 export const MESSAGE_BOARD_REPORT_REASONS = [

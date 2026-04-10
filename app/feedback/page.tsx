@@ -2,12 +2,26 @@ import { FeedbackForm } from "@/components/feedback-form";
 
 export default function FeedbackPage() {
   return (
-    <main className="mx-auto max-w-3xl space-y-4 px-6 md:px-8">
-      <section className="panel p-6">
-        <h1 className="text-2xl font-bold">Feedback</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          Share platform suggestions, bug reports, and mission-impact feedback.
-        </p>
+    <main className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-grid">
+          <div className="relative z-10">
+            <p className="page-kicker">SUPPORT</p>
+            <h1 className="page-title">Reach the MilVector support center without losing the case trail.</h1>
+            <p className="page-description">
+              Submit bugs, improvement ideas, and platform issues here. Your request stays visible so you can track status and review follow-up in one place.
+            </p>
+          </div>
+          <aside className="page-hero-aside">
+            <p className="page-hero-aside-title">BEST REQUESTS INCLUDE</p>
+            <ul className="page-hero-list">
+              <li>What you were trying to do</li>
+              <li>What happened instead</li>
+              <li>What outcome would have helped most</li>
+              <li>Any screenshot that makes the issue clearer</li>
+            </ul>
+          </aside>
+        </div>
       </section>
       <FeedbackForm />
     </main>

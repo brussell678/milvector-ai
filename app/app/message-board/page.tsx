@@ -6,8 +6,8 @@ export default function AppMessageBoardPage() {
       <section className="page-hero">
         <div className="page-hero-grid">
           <div className="relative z-10">
-            <p className="page-kicker">MESSAGE BOARD</p>
-            <h1 className="page-title">Surface ideas, friction points, and community priorities.</h1>
+            <p className="page-kicker">COMMUNITY</p>
+            <h1 className="page-title">Surface field notes, friction points, and community priorities in one moderated board.</h1>
             <p className="page-description">
               Discuss what is working, what is missing, and what should matter most. Upvotes help useful ideas rise to the top, while notifications, linked workflows, and reporting keep the board active, actionable, and trustworthy.
             </p>

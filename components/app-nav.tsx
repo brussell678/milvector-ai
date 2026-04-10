@@ -12,6 +12,7 @@ type NavLink = {
 
 const workflowLinks: NavLink[] = [
   { href: "/app", label: "Dashboard" },
+  { href: "/app/metrics", label: "Insights" },
   { href: "/app/profile", label: "Profile" },
   { href: "/app/documents", label: "Documents" },
   { href: "/app/tools", label: "Tools" },

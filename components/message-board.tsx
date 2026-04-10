@@ -538,7 +538,10 @@ export function MessageBoard() {
         {loading ? (
           <div className="panel p-6 text-sm text-[var(--muted)]">Loading board...</div>
         ) : threads.length === 0 ? (
-          <div className="panel p-6 text-sm text-[var(--muted)]">No matching posts found. Try a different filter or start a new discussion.</div>
+          <div className="panel p-6">
+            <h3 className="text-base font-bold">No matching discussions yet.</h3>
+            <p className="mt-2 text-sm text-[var(--muted)]">Try a different filter, seed a starter prompt, or open a new thread with enough context for the community to respond well.</p>
+          </div>
         ) : (
           threads.map((thread) => (
             <article key={thread.id} id={`thread-${thread.id}`} className="panel p-5">

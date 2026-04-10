@@ -6,24 +6,24 @@ const channels = [
     status: "Live now",
     description: "Scan this QR code to donate through the shared Venmo / PayPal payment link.",
     qrSrc: "/assets/paypal-venmo-qr.png",
-    logoText: "V",
-    logoClass: "bg-[#008CFF] text-white",
+    logoText: "venmo",
+    logoClass: "bg-[#008CFF] text-white tracking-[0.16em]",
   },
   {
     name: "Cash App",
     status: "Live now",
     description: "Scan this QR code to donate directly through Cash App.",
     qrSrc: "/assets/cashapp-qr.png",
-    logoText: "$",
-    logoClass: "bg-[#00D632] text-[#0a2b12]",
+    logoText: "cash app",
+    logoClass: "bg-[#00D632] text-[#0a2b12] tracking-[0.12em]",
   },
   {
     name: "PayPal",
     status: "Live now",
     description: "Scan this QR code to donate through the shared PayPal / Venmo payment link.",
     qrSrc: "/assets/paypal-venmo-qr.png",
-    logoText: "P",
-    logoClass: "bg-[#003087] text-white",
+    logoText: "paypal",
+    logoClass: "bg-[#003087] text-white tracking-[0.12em]",
   },
 ] as const;
 
@@ -106,7 +106,7 @@ export default function DonatePage() {
               className="subtle-panel flex min-h-56 flex-col items-center justify-center p-5 text-center"
             >
               <div className="flex items-center gap-3">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-full text-lg font-bold ${channel.logoClass}`}>
+                <div className={`inline-flex min-h-10 items-center justify-center rounded-full px-4 text-[0.72rem] font-bold uppercase ${channel.logoClass}`}>
                   {channel.logoText}
                 </div>
                 <p className="text-lg font-bold">{channel.name}</p>

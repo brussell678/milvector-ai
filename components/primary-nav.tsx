@@ -2,13 +2,12 @@ import Link from "next/link";
 
 const links = [
   { href: "/", label: "Home" },
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/tools", label: "Tools" },
   { href: "/platform", label: "Why MilVector" },
+  { href: "/tools", label: "Tools" },
   { href: "/knowledge-base", label: "Knowledge Base" },
-  { href: "/library", label: "Library" },
-  { href: "/message-board", label: "Message Board" },
-  { href: "/feedback", label: "Feedback" },
+  { href: "/library", label: "Resource Library" },
+  { href: "/message-board", label: "Community" },
+  { href: "/feedback", label: "Support" },
   { href: "/donate", label: "Donate" },
 ];
 
