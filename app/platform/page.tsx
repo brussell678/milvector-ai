@@ -29,7 +29,7 @@ const trustPoints = [
 
 export default function PlatformPage() {
   return (
-    <main className="page-shell">
+    <main className="mx-auto flex max-w-5xl flex-col gap-4 px-6 md:px-8">
       <section className="page-hero">
         <div className="page-hero-grid">
           <div className="relative z-10">
@@ -54,14 +54,15 @@ export default function PlatformPage() {
       <section className="section-card">
         <h2 className="section-title">What Makes It Different</h2>
         <p className="section-description">MilVector is not meant to be a generic AI wrapper or another job board with military branding on top.</p>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          {principles.map((item) => (
-            <article key={item.title} className="subtle-panel p-5">
-              <h3 className="text-lg font-bold">{item.title}</h3>
-              <p className="mt-2 text-sm text-[var(--muted)]">{item.detail}</p>
-            </article>
-          ))}
-        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2">
+        {principles.map((item) => (
+          <article key={item.title} className="section-card">
+            <h3 className="text-lg font-bold">{item.title}</h3>
+            <p className="mt-2 text-sm text-[var(--muted)]">{item.detail}</p>
+          </article>
+        ))}
       </section>
 
       <section className="section-card">
