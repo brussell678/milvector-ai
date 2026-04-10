@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 import { daysUntilDate, phaseFromDays, phaseMonthFromDays, TIMELINE_MARKERS } from "@/lib/timeline";
 import { getLibraryLinkFallbacks, getTransitionTaskFallbacks, mergeDashboardTasks, mergeLibraryLinks } from "@/lib/transition-data";
@@ -54,7 +55,8 @@ export default async function DashboardPage() {
 
   const artifactTypes = new Set((artifactsRes.data ?? []).map((row) => row.artifact_type));
   const hasMasterResume = artifactTypes.has("master_resume") || artifactTypes.has("master_bullets");
-  const step = nextStep(!!profileRes.data, hasMasterResume, artifactTypes.has("targeted_resume"));
+  const hasTargetedResume = artifactTypes.has("targeted_resume");
+  const step = nextStep(!!profileRes.data, hasMasterResume, hasTargetedResume);
   const educationProfileSignals =
     (profileRes.data?.off_duty_education?.length ?? 0) +
     (profileRes.data?.civilian_certifications?.length ?? 0) +
@@ -66,6 +68,12 @@ export default async function DashboardPage() {
   const toolRunsCount = toolRunsCountRes.count ?? 0;
   const toolSuccessCount = toolSuccessCountRes.count ?? 0;
   const toolErrorCount = toolErrorCountRes.count ?? 0;
+  const timelineReadiness = [
+    !!profileRes.data,
+    hasMasterResume,
+    hasTargetedResume,
+    daysUntilEas !== null,
+  ].filter(Boolean).length;
 
   return (
     <main className="page-shell">
@@ -73,22 +81,109 @@ export default async function DashboardPage() {
         <div className="page-hero-grid">
           <div className="relative z-10">
             <p className="page-kicker">MISSION CONTROL</p>
-            <h1 className="page-title">Track your transition, tools, and next best move.</h1>
+            <h1 className="page-title">Keep your transition plan, work product, and next action in one operating picture.</h1>
             <p className="page-description">
-              Use the dashboard to stay oriented across your timeline, generated outputs, uploaded documents, and tool activity.
-              MilVector works best when your profile, source records, and next step stay connected.
+              Use the dashboard to stay oriented across readiness, saved work, timeline state, and workflow activity. MilVector works best when your profile, source records, and next move stay connected.
             </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Link href={step.href} className="btn btn-primary">
+                {step.label}
+              </Link>
+              <Link href="/app/tools" className="btn btn-secondary">
+                Open toolset
+              </Link>
+            </div>
           </div>
           <aside className="page-hero-aside">
-            <p className="page-hero-aside-title">NEXT PRIORITY</p>
-            <p className="mt-3 text-xl font-extrabold">{step.label}</p>
-            <ul className="page-hero-list">
-              <li>Current phase: {currentPhase}</li>
-              <li>{daysUntilEas === null ? "Add an EAS date in Profile to activate the timeline." : `${daysUntilEas} days until EAS`}</li>
-              <li>{hasMasterResume ? "Career foundation in place." : "Build your career foundation to unlock stronger outputs."}</li>
-            </ul>
+            <p className="page-hero-aside-title">CURRENT STATE</p>
+            <div className="mt-3 grid gap-3">
+              <div className="subtle-panel p-4">
+                <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">Current Phase</p>
+                <p className="mt-2 text-xl font-extrabold">{currentPhase}</p>
+              </div>
+              <div className="subtle-panel p-4">
+                <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">Days Until EAS</p>
+                <p className="mt-2 text-xl font-extrabold">{daysUntilEas === null ? "Set in Profile" : daysUntilEas}</p>
+              </div>
+              <div className="subtle-panel p-4">
+                <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">Readiness Signals</p>
+                <p className="mt-2 text-xl font-extrabold">{timelineReadiness}/4 core signals in place</p>
+              </div>
+            </div>
           </aside>
         </div>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-[1.15fr,0.85fr]">
+        <section className="section-card">
+          <h2 className="section-title">Priority View</h2>
+          <p className="section-description">Start with the next best move, then check the supporting signals underneath it.</p>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <article className="stat-card">
+              <p className="stat-label">Next Best Move</p>
+              <p className="mt-4 text-2xl font-extrabold leading-tight">{step.label}</p>
+              <p className="mt-3 text-sm text-[var(--muted)]">
+                {hasMasterResume
+                  ? hasTargetedResume
+                    ? "Your foundation is in place. Stay oriented through the library and timeline."
+                    : "Your foundation is ready. Move into job-specific application work next."
+                  : "Build the baseline material that makes the rest of the system stronger."}
+              </p>
+            </article>
+            <article className="stat-card">
+              <p className="stat-label">Workflow Health</p>
+              <div className="mt-4 grid gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-[var(--muted)]">Profile saved</span>
+                  <span className="font-semibold">{profileRes.data ? "Yes" : "No"}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-[var(--muted)]">Master resume</span>
+                  <span className="font-semibold">{hasMasterResume ? "Ready" : "Missing"}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-[var(--muted)]">Targeted resume</span>
+                  <span className="font-semibold">{hasTargetedResume ? "Ready" : "Not yet"}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-[var(--muted)]">Education signals</span>
+                  <span className="font-semibold">{educationProfileSignals}</span>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section className="section-card">
+          <h2 className="section-title">Activity Snapshot</h2>
+          <p className="section-description">A cleaner view of saved work and workflow performance.</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <article className="stat-card">
+              <p className="stat-label">Documents</p>
+              <p className="stat-value">{documentsCount}</p>
+            </article>
+            <article className="stat-card">
+              <p className="stat-label">Master Resumes</p>
+              <p className="stat-value">{masterResumeCount}</p>
+            </article>
+            <article className="stat-card">
+              <p className="stat-label">Targeted Resumes</p>
+              <p className="stat-value">{targetedResumesCount}</p>
+            </article>
+            <article className="stat-card">
+              <p className="stat-label">Tool Runs</p>
+              <p className="stat-value">{toolRunsCount}</p>
+            </article>
+            <article className="stat-card">
+              <p className="stat-label">Successful Runs</p>
+              <p className="stat-value text-[var(--accent)]">{toolSuccessCount}</p>
+            </article>
+            <article className="stat-card">
+              <p className="stat-label">Errors To Review</p>
+              <p className="stat-value text-[#a33b3b]">{toolErrorCount}</p>
+            </article>
+          </div>
+        </section>
       </section>
 
       <section className="section-card">
@@ -133,33 +228,6 @@ export default async function DashboardPage() {
         links={links}
         educationProfileSignals={educationProfileSignals}
       />
-
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <article className="stat-card">
-          <p className="stat-label">Documents Uploaded</p>
-          <p className="stat-value">{documentsCount}</p>
-        </article>
-        <article className="stat-card">
-          <p className="stat-label">Master Resumes</p>
-          <p className="stat-value">{masterResumeCount}</p>
-        </article>
-        <article className="stat-card">
-          <p className="stat-label">Targeted Resumes</p>
-          <p className="stat-value">{targetedResumesCount}</p>
-        </article>
-        <article className="stat-card">
-          <p className="stat-label">Tool Runs</p>
-          <p className="stat-value">{toolRunsCount}</p>
-        </article>
-        <article className="stat-card">
-          <p className="stat-label">Tool Successes</p>
-          <p className="stat-value text-[var(--accent)]">{toolSuccessCount}</p>
-        </article>
-        <article className="stat-card">
-          <p className="stat-label">Tool Errors</p>
-          <p className="stat-value text-[#a33b3b]">{toolErrorCount}</p>
-        </article>
-      </section>
     </main>
   );
 }

@@ -137,6 +137,12 @@ export function FeedbackForm() {
   return (
     <div className="space-y-4">
       <form className="panel mt-4 grid gap-3 p-6 md:grid-cols-2" onSubmit={onSubmit}>
+        <div className="md:col-span-2">
+          <h2 className="text-lg font-bold">Open A Support Case</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Submit a bug, product suggestion, or platform question. Cases stay visible below so you can track status and review any MilVector follow-up.
+          </p>
+        </div>
         <input name="name" className="input" placeholder="Name (optional)" value={form.name} onChange={(e) => setForm((current) => ({ ...current, name: e.target.value }))} />
         <input name="email" type="email" className="input" placeholder="Email (optional)" value={form.email} onChange={(e) => setForm((current) => ({ ...current, email: e.target.value }))} />
         <input name="branch" className="input" placeholder="Branch" value={form.branch} onChange={(e) => setForm((current) => ({ ...current, branch: e.target.value }))} />
@@ -161,7 +167,7 @@ export function FeedbackForm() {
         </label>
         <div className="md:col-span-2">
           <button className="btn btn-primary" type="submit" disabled={saving}>
-            {saving ? "Submitting..." : "Submit Feedback"}
+            {saving ? "Submitting..." : "Submit Support Case"}
           </button>
         </div>
         {status ? <div className={`alert-base md:col-span-2 ${statusKind === "error" ? "alert-error" : "alert-success"}`}>{status}</div> : null}
@@ -170,8 +176,8 @@ export function FeedbackForm() {
       <section className="panel p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-bold">Your Feedback Status</h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">Track the current state of your submissions and review any admin follow-up questions or notes here.</p>
+            <h2 className="text-lg font-bold">Your Support Cases</h2>
+            <p className="mt-1 text-sm text-[var(--muted)]">Track the current state of your submissions and review any MilVector follow-up questions or notes here.</p>
           </div>
           <button className="btn btn-secondary text-sm" type="button" onClick={() => void loadHistory()} disabled={loadingHistory}>
             {loadingHistory ? "Refreshing..." : "Refresh"}
@@ -179,7 +185,7 @@ export function FeedbackForm() {
         </div>
         <div className="mt-4 space-y-3">
           {loadingHistory ? <p className="text-sm text-[var(--muted)]">Loading your feedback history...</p> : null}
-          {!loadingHistory && history.length === 0 ? <p className="text-sm text-[var(--muted)]">No feedback submissions yet.</p> : null}
+          {!loadingHistory && history.length === 0 ? <p className="text-sm text-[var(--muted)]">No support cases yet.</p> : null}
           {history.map((item) => (
             <article key={item.id} className="rounded-md border border-[var(--line)] bg-[var(--surface)] p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -195,7 +201,7 @@ export function FeedbackForm() {
               {item.suggested_tool ? <p className="mt-3 text-xs text-[var(--muted)]">Suggested tool: {item.suggested_tool}</p> : null}
               {item.admin_response ? (
                 <div className="mt-4 rounded-md border border-[var(--line)] bg-[var(--background)] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">MilVector Response</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">MilVector Follow-Up</p>
                   <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--muted)]">{item.admin_response}</p>
                   {item.admin_response_updated_at ? <p className="mt-2 text-xs text-[var(--muted)]">Updated {formatDate(item.admin_response_updated_at)}</p> : null}
                 </div>

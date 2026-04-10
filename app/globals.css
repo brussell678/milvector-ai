@@ -305,6 +305,30 @@ body {
   background: var(--accent);
 }
 
+.app-nav-shell {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.app-nav-group {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.app-nav-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.app-nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .section-card {
   background: var(--panel);
   border: 1px solid var(--line);
