@@ -32,7 +32,7 @@ const commitments = [
 
 export default function PrivacyPage() {
   return (
-    <main className="page-shell">
+    <main className="mx-auto flex max-w-5xl flex-col gap-4 px-6 md:px-8">
       <section className="page-hero">
         <div className="page-hero-grid">
           <div className="relative z-10">
@@ -56,14 +56,15 @@ export default function PrivacyPage() {
       <section className="section-card">
         <h2 className="section-title">What This Means In Practice</h2>
         <p className="section-description">The goal is to be clear about how MilVector operates without burying people in legal-sounding language.</p>
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          {privacyPoints.map((item) => (
-            <article key={item.title} className="section-card">
-              <h3 className="text-lg font-bold">{item.title}</h3>
-              <p className="mt-2 text-sm text-[var(--muted)]">{item.detail}</p>
-            </article>
-          ))}
-        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2">
+        {privacyPoints.map((item) => (
+          <article key={item.title} className="section-card">
+            <h3 className="text-lg font-bold">{item.title}</h3>
+            <p className="mt-2 text-sm text-[var(--muted)]">{item.detail}</p>
+          </article>
+        ))}
       </section>
 
       <section className="section-card">
