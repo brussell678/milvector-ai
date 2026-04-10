@@ -1,6 +1,16 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
 
+function formatAuthErrorMessage(message: string) {
+  const lower = message.toLowerCase();
+
+  if (lower.includes("pkce code verifier not found")) {
+    return "That sign-in link was opened in a different browser or device than the one that requested it. Request a fresh link and open it on the same device, or switch the Supabase email template to the token-hash confirm flow for cross-device sign-in.";
+  }
+
+  return message;
+}
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
@@ -14,7 +24,7 @@ export async function GET(req: Request) {
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
-      return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(error.message)}`, origin));
+      return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(formatAuthErrorMessage(error.message))}`, origin));
     }
     return NextResponse.redirect(new URL(next, origin));
   }
@@ -26,7 +36,7 @@ export async function GET(req: Request) {
     });
 
     if (error) {
-      return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(error.message)}`, origin));
+      return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(formatAuthErrorMessage(error.message))}`, origin));
     }
     return NextResponse.redirect(new URL(next, origin));
   }
