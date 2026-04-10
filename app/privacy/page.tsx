@@ -58,7 +58,7 @@ export default function PrivacyPage() {
         <p className="section-description">The goal is to be clear about how MilVector operates without burying people in legal-sounding language.</p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           {privacyPoints.map((item) => (
-            <article key={item.title} className="subtle-panel p-5">
+            <article key={item.title} className="section-card">
               <h3 className="text-lg font-bold">{item.title}</h3>
               <p className="mt-2 text-sm text-[var(--muted)]">{item.detail}</p>
             </article>
