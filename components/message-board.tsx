@@ -570,7 +570,7 @@ export function MessageBoard() {
                         </span>
                       </div>
                       <p className="mt-1 text-sm text-[var(--muted)]">
-                        {thread.authorLabel} · {formatDate(thread.createdAt)}{thread.editedAt ? ` · edited ${formatDate(thread.editedAt)}` : ""} · active {formatDate(thread.lastActivityAt ?? thread.createdAt)}
+                        {thread.authorLabel} | {formatDate(thread.createdAt)}{thread.editedAt ? ` | edited ${formatDate(thread.editedAt)}` : ""} | active {formatDate(thread.lastActivityAt ?? thread.createdAt)}
                       </p>
                       <p className="mt-3 whitespace-pre-wrap text-sm leading-6">{thread.body}</p>
                       {renderLinkedReference(thread)}
@@ -678,7 +678,7 @@ export function MessageBoard() {
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <div>
                               <p className="text-sm font-semibold">{reply.authorLabel}</p>
-                              <p className="mt-1 text-xs text-[var(--muted)]">{formatDate(reply.createdAt)}{reply.editedAt ? ` · edited ${formatDate(reply.editedAt)}` : ""}</p>
+                              <p className="mt-1 text-xs text-[var(--muted)]">{formatDate(reply.createdAt)}{reply.editedAt ? ` | edited ${formatDate(reply.editedAt)}` : ""}</p>
                             </div>
                             <div className="flex flex-wrap gap-2">
                               {canManageOwn(reply, thread) ? (

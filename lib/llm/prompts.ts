@@ -567,7 +567,7 @@ Requirements:
 - style_notes: 3-6 concise notes
 - visual_focus: 3-6 focal elements or themes
 - Keep the result professional, modern, and aligned to civilian career branding
-- Avoid military clichés unless they are subtle and clearly relevant
+- Avoid military cliches unless they are subtle and clearly relevant
 - Do not reference copyrighted logos or brand marks
 
 Target role: ${args.targetRole}
