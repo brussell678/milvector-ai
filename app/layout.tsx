@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DesktopNav } from "@/components/layout/desktop-nav";
 import { MobileSiteHeader } from "@/components/layout/mobile-site-header";
+import { PublicSiteChrome } from "@/components/layout/public-site-chrome";
 
 const barlow = Barlow({
   variable: "--font-barlow",
@@ -35,14 +36,16 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${barlow.variable} ${plexMono.variable} antialiased`}>
         <div className="site-watermark" aria-hidden="true" />
-        <div className="site-top-banner">
-          <p>
-            Built by Marines for service members. MilVector keeps transition planning, documents, and AI tools in one connected workspace.{" "}
-            <Link href="/platform">How It Works</Link>
-          </p>
-        </div>
-        <MobileSiteHeader />
-        <DesktopNav />
+        <PublicSiteChrome>
+          <div className="site-top-banner">
+            <p>
+              Built by Marines for service members. MilVector keeps transition planning, documents, and AI tools in one connected workspace.{" "}
+              <Link href="/platform">How It Works</Link>
+            </p>
+          </div>
+          <MobileSiteHeader />
+          <DesktopNav />
+        </PublicSiteChrome>
         <div className="fixed right-4 top-32 z-50 md:top-24">
           <ThemeToggle />
         </div>
