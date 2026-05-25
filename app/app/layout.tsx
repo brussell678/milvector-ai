@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { ReactNode } from "react";
 import Image from "next/image";
 import { AppNav } from "@/components/app-nav";
+import { AppShell } from "@/components/layout/app-shell";
 import { isAdminEmail } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -21,7 +22,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const unreadBoardNotifications = notificationsCountRes.error ? 0 : notificationsCountRes.count ?? 0;
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-6 md:px-8">
+    <AppShell>
       <header className="panel mb-4 flex items-center justify-between gap-4 p-4">
         <div className="flex items-center gap-3">
           <Image
@@ -48,6 +49,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       </section>
 
       {children}
-    </div>
+    </AppShell>
   );
 }

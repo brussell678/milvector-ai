@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageContainer } from "@/components/layout/page-container";
 
 const principles = [
   {
@@ -29,7 +30,7 @@ const trustPoints = [
 
 export default function PlatformPage() {
   return (
-    <main className="mx-auto flex max-w-5xl flex-col gap-4 px-6 md:px-8">
+    <PageContainer className="flex flex-col gap-4" size="md">
       <section className="page-hero">
         <div className="page-hero-grid">
           <div className="relative z-10">
@@ -90,6 +91,6 @@ export default function PlatformPage() {
           </Link>
         </div>
       </section>
-    </main>
+    </PageContainer>
   );
 }

@@ -3,7 +3,7 @@ import { Barlow, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { PrimaryNav } from "@/components/primary-nav";
+import { DesktopNav } from "@/components/layout/desktop-nav";
 
 const barlow = Barlow({
   variable: "--font-barlow",
@@ -40,9 +40,7 @@ export default function RootLayout({
             <Link href="/platform">How It Works</Link>
           </p>
         </div>
-        <div className="hidden md:block">
-          <PrimaryNav />
-        </div>
+        <DesktopNav />
         <div className="fixed right-4 top-32 z-50 md:top-24">
           <ThemeToggle />
         </div>

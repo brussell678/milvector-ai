@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { redirect } from "next/navigation";
+import { PageContainer } from "@/components/layout/page-container";
 
 const features = [
   "Transition planning tools built for military-to-civilian moves",
@@ -63,7 +64,7 @@ export default async function Home({
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10 md:px-8">
+    <PageContainer className="py-6 sm:py-8 lg:py-10" size="lg">
       <section className="panel overflow-hidden">
         <div className="grid gap-8 p-8 md:grid-cols-[1.2fr_0.8fr] md:p-12">
           <div className="space-y-6">
@@ -161,7 +162,7 @@ export default async function Home({
           Built by Marines for service members. The goal is a trust-first workspace that feels closer to mission planning software than a generic job site.
         </p>
       </section>
-    </main>
+    </PageContainer>
   );
 }
 

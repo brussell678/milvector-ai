@@ -1,6 +1,7 @@
 import { supabaseServer } from "@/lib/supabase/server";
 import { getLibraryLinkFallbacks, mergeLibraryLinks } from "@/lib/transition-data";
 import { LibrarySubmissionForm } from "@/components/library-submission-form";
+import { PageContainer } from "@/components/layout/page-container";
 
 type LibraryDocument = {
   id: string;
@@ -57,7 +58,7 @@ export default async function LibraryPage() {
   );
 
   return (
-    <main className="mx-auto max-w-6xl space-y-4 px-6 md:px-8">
+    <PageContainer className="space-y-4" size="lg">
       <section className="panel p-6">
         <h1 className="text-2xl font-bold">Library</h1>
         <p className="mt-2 text-sm text-[var(--muted)]">
@@ -113,6 +114,6 @@ export default async function LibraryPage() {
           Sign in to submit documents for library review.
         </section>
       )}
-    </main>
+    </PageContainer>
   );
 }

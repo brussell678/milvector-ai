@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/login-form";
+import { PageContainer } from "@/components/layout/page-container";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export default async function LoginPage({
@@ -16,8 +17,8 @@ export default async function LoginPage({
   if (user) redirect("/app");
 
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-7rem)] max-w-5xl items-start px-6 pb-12 pt-6 md:px-8 md:pt-8">
+    <PageContainer className="flex min-h-[calc(100vh-7rem)] items-start pb-12 pt-4 sm:pt-6 md:pt-8" size="md">
       <LoginForm error={params.error} />
-    </main>
+    </PageContainer>
   );
 }

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { PageContainer } from "@/components/layout/page-container";
 
 const channels = [
   {
@@ -48,7 +49,7 @@ const reasons = [
 
 export default function DonatePage() {
   return (
-    <main className="mx-auto flex max-w-5xl flex-col gap-4 px-6 md:px-8">
+    <PageContainer className="flex flex-col gap-4" size="md">
       <section className="page-hero">
         <div className="page-hero-grid">
           <div className="relative z-10">
@@ -124,6 +125,6 @@ export default function DonatePage() {
           ))}
         </div>
       </section>
-    </main>
+    </PageContainer>
   );
 }

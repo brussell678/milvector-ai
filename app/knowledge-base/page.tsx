@@ -1,5 +1,6 @@
 import { supabaseServer } from "@/lib/supabase/server";
 import { KnowledgeBaseSections } from "@/components/knowledge-base-sections";
+import { PageContainer } from "@/components/layout/page-container";
 
 type Article = {
   id: string;
@@ -18,7 +19,7 @@ export default async function KnowledgeBasePage() {
   const articles = (data ?? []) as Article[];
 
   return (
-    <main className="page-shell">
+    <PageContainer className="page-shell" size="lg">
       <section className="page-hero">
         <div className="page-hero-grid">
           <div className="relative z-10">
@@ -40,6 +41,6 @@ export default async function KnowledgeBasePage() {
       </section>
 
       <KnowledgeBaseSections articles={articles} />
-    </main>
+    </PageContainer>
   );
 }

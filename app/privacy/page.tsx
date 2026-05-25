@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageContainer } from "@/components/layout/page-container";
 
 const privacyPoints = [
   {
@@ -32,7 +33,7 @@ const commitments = [
 
 export default function PrivacyPage() {
   return (
-    <main className="mx-auto flex max-w-5xl flex-col gap-4 px-6 md:px-8">
+    <PageContainer className="flex flex-col gap-4" size="md">
       <section className="page-hero">
         <div className="page-hero-grid">
           <div className="relative z-10">
@@ -79,6 +80,6 @@ export default function PrivacyPage() {
           </Link>
         </div>
       </section>
-    </main>
+    </PageContainer>
   );
 }

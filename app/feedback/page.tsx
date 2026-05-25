@@ -1,8 +1,9 @@
 import { FeedbackForm } from "@/components/feedback-form";
+import { PageContainer } from "@/components/layout/page-container";
 
 export default function FeedbackPage() {
   return (
-    <main className="page-shell">
+    <PageContainer className="page-shell" size="lg">
       <section className="page-hero">
         <div className="page-hero-grid">
           <div className="relative z-10">
@@ -24,6 +25,6 @@ export default function FeedbackPage() {
         </div>
       </section>
       <FeedbackForm />
-    </main>
+    </PageContainer>
   );
 }
