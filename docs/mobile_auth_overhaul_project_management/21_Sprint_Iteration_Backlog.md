@@ -2,7 +2,7 @@
 
 ## Active Sprint
 
-Sprint 1 complete. Ready for Sprint 2 validation or execution.
+Sprint 9 complete. Mobile/auth overhaul code is ready for controlled push/deploy, with live Supabase, Vercel, and Cloudflare checks still required before production release acceptance.
 
 ## Sprint Queue
 
@@ -38,4 +38,12 @@ Do not begin a new sprint until the current sprint has:
 
 - Roadmap drafted.
 - Sprint 1 executed and build verified.
-- Awaiting product owner direction before Sprint 2 authentication implementation.
+- Sprint 2 executed and build verified.
+- Sprint 3 executed and build verified.
+- Sprint 4 executed and build verified.
+- Sprint 5 executed and build verified.
+- Sprint 6 executed and build verified.
+- Sprint 7 executed and build verified.
+- Sprint 8 executed and build verified.
+- Sprint 9 executed and build verified.
+- Supabase migration/settings verification required before production auth rollout.

@@ -26,5 +26,11 @@ Stabilize the full overhaul before release.
 
 ## Closeout Notes
 
-Not started.
+Completed on 2026-05-25.
 
+- Ran `npm run lint` and `npm run build`; both passed.
+- Installed Playwright Chromium locally for screenshot QA.
+- Captured public route screenshots at 360px, 390px, 430px, 768px, and 1024px.
+- Found and fixed the fixed-footer overlay issue by moving `.site-footer` into normal document flow.
+- Verified unauthenticated `/app/*` route protection redirects to `/auth`.
+- Updated productization readiness and smoke-test checklist with local verification results and remaining live-environment checks.

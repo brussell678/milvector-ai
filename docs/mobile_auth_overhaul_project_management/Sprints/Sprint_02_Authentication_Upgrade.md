@@ -28,5 +28,27 @@ Add email/password authentication while preserving magic link authentication.
 
 ## Closeout Notes
 
-Not started.
+Completed.
 
+## Summary
+
+Sprint 2 introduced the new `/auth` route with password-first authentication while preserving magic link authentication.
+
+Completed:
+
+- Added `/auth` page.
+- Added password login.
+- Added email/password signup with onboarding fields.
+- Added magic link tab as alternate method.
+- Added forgot password request flow.
+- Added update password mode for password recovery callbacks.
+- Preserved `/login` as a compatibility redirect to `/auth`.
+- Updated protected route redirects to `/auth`.
+- Added server-side profile sync after auth callbacks and client-side auth success.
+- Added additive Supabase migration for auth onboarding profile fields.
+
+Manual follow-up required:
+
+- Apply `supabase/migrations/0024_auth_onboarding_profile_fields.sql`.
+- Verify Supabase email/password provider is enabled.
+- Verify Supabase redirect URLs include the local and production auth callback URLs.

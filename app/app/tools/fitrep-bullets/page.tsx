@@ -41,6 +41,7 @@ export default function FitrepBulletsPage() {
   const [result, setResult] = useState<BulletsOutput | MasterResumeOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [copyState, setCopyState] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [docs, setDocs] = useState<DocRow[]>([]);
   const [docsLoading, setDocsLoading] = useState(false);
@@ -122,6 +123,16 @@ export default function FitrepBulletsPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function copyText(label: string, value: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopyState(`${label} copied`);
+    } catch {
+      setCopyState(`Could not copy ${label.toLowerCase()}`);
+    }
+    window.setTimeout(() => setCopyState(null), 1500);
   }
 
   return (
@@ -255,7 +266,7 @@ export default function FitrepBulletsPage() {
                 </label>
               )}
 
-              <button className="btn btn-primary" disabled={loading} type="submit">
+              <button className="btn btn-primary w-full sm:w-auto" disabled={loading} type="submit">
                 {loading ? "Running..." : mode === "master_resume" ? "Generate Master Resume" : "Generate Master Bullets"}
               </button>
             </form>
@@ -263,17 +274,21 @@ export default function FitrepBulletsPage() {
         </section>
 
         <section className="space-y-4 xl:sticky xl:top-20 xl:self-start">
-          {(error || notice) && (
+          {(error || notice || copyState) && (
             <section className="section-card">
               {error && <p className="text-sm text-red-700">{error}</p>}
               {notice && <p className="text-sm text-[var(--accent)]">{notice}</p>}
+              {copyState && <p className="text-sm text-[var(--accent)]">{copyState}</p>}
             </section>
           )}
 
           {result && "master_resume" in result && (
             <section className="section-card space-y-3">
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                 <p className="text-sm font-semibold text-[var(--accent)]">Artifact ID: {result.artifactId}</p>
+                <button className="btn btn-secondary text-sm" type="button" onClick={() => void copyText("Master resume", result.master_resume)}>
+                  Copy Resume
+                </button>
                 <a className="btn btn-secondary text-sm" href={`/api/resume-artifacts/${result.artifactId}/download?format=docx`}>
                   Export Word (.docx)
                 </a>
@@ -291,7 +306,7 @@ export default function FitrepBulletsPage() {
                   {result.fitrepDocsTruncated ? " (truncated by input budget)" : ""}
                 </p>
               )}
-              <pre className="overflow-x-auto whitespace-pre-wrap rounded-md border border-[var(--line)] bg-[var(--surface)] p-3 text-sm text-[var(--foreground)]">
+              <pre className="max-h-[70vh] overflow-auto whitespace-pre-wrap rounded-md border border-[var(--line)] bg-[var(--surface)] p-3 text-sm leading-6 text-[var(--foreground)]">
                 {result.master_resume}
               </pre>
               {result.validation_questions?.length > 0 && (
@@ -314,6 +329,13 @@ export default function FitrepBulletsPage() {
                 <p className="section-title">Generated Bullets</p>
                 <p className="section-description">Use these as a starting point, then refine tone and evidence before reuse.</p>
               </div>
+              <button
+                className="btn btn-secondary text-sm"
+                type="button"
+                onClick={() => void copyText("Bullets", result.bullets.map((b) => b.bullet).join("\n"))}
+              >
+                Copy Bullets
+              </button>
               <ul className="list-disc space-y-1 pl-5 text-sm">
                 {result.bullets.map((b, idx) => (
                   <li key={`${b.category}-${idx}`}>{b.bullet}</li>

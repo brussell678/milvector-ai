@@ -128,7 +128,7 @@ export function PhaseObjectives({
         <section className="panel p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="font-bold">Phase Objectives</h2>
+              <h2 className="font-bold">Recommended Objectives</h2>
               <p className="mt-1 text-sm text-[var(--muted)]">Phase: {currentPhase}</p>
             </div>
             <div className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-xs text-[var(--muted)]">

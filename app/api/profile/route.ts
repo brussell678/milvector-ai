@@ -28,15 +28,26 @@ export async function POST(req: Request) {
   }
 
   const payload = parsed.data;
+  const profilePayload = {
+    id: userId,
+    ...payload,
+    eas_date: payload.eas_date ?? null,
+    separation_date: payload.eas_date ?? null,
+  };
+
+  if ("terminal_leave_start" in payload) {
+    Object.assign(profilePayload, { terminal_leave_start: payload.terminal_leave_start ?? null });
+  }
+  if ("ptad_start" in payload) {
+    Object.assign(profilePayload, { ptad_start: payload.ptad_start ?? null });
+  }
+  if ("retirement_ceremony_date" in payload) {
+    Object.assign(profilePayload, { retirement_ceremony_date: payload.retirement_ceremony_date ?? null });
+  }
 
   const { data, error } = await supabase
     .from("profiles")
-    .upsert({
-      id: userId,
-      ...payload,
-      eas_date: payload.eas_date ?? null,
-      separation_date: payload.eas_date ?? null,
-    })
+    .upsert(profilePayload)
     .select("*")
     .single();
 

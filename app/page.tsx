@@ -51,7 +51,7 @@ export default async function Home({
     const query = new URLSearchParams();
     const message = authErrorDescription ?? authErrorCode ?? authError ?? "Authentication link is invalid or expired. Request a new magic link.";
     query.set("error", message);
-    redirect(`/login?${query.toString()}`);
+    redirect(`/auth?${query.toString()}`);
   }
 
   if (code || (tokenHash && type)) {
@@ -87,7 +87,7 @@ export default async function Home({
               AI tools designed to help service members navigate the full transition to civilian life and work, from career translation and job targeting to documents, planning, and decision support.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Link href="/login" className="btn btn-primary">
+              <Link href="/auth" className="btn btn-primary">
                 Let&apos;s Go!
               </Link>
               <Link href="#how-it-works" className="btn btn-secondary">

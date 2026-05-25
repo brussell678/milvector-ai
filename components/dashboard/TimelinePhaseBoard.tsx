@@ -1,43 +1,39 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { TaskCard } from "./TaskCard";
 import { TaskDrawer } from "./TaskDrawer";
 import { getTaskLinks } from "./task-linking";
 import type { DashboardLink, DashboardTask } from "./types";
 
 const PHASE_ORDER = [24, 18, 12, 9, 6, 3, 0] as const;
 const PHASE_LABEL: Record<number, string> = {
-  24: "24 months",
-  18: "18 months",
-  12: "12 months",
-  9: "9 months",
-  6: "6 months",
-  3: "3 months",
-  0: "Final",
+  24: "24 Months",
+  18: "18 Months",
+  12: "12 Months",
+  9: "9 Months",
+  6: "6 Months",
+  3: "3 Months",
+  0: "Final Approach",
 };
-
-function assistanceText(task: DashboardTask) {
-  if (task.assistance_type === "tool" || task.tool_link) return "Tool";
-  if (task.assistance_type === "doc" || task.assistance_ref) return "File";
-  return "None";
-}
-
-function isFallbackTask(task: DashboardTask) {
-  return task.id.startsWith("fallback:");
-}
 
 export function TimelinePhaseBoard({
   tasks,
   initialCompletedTaskIds,
   links,
+  currentPhaseMonth,
 }: {
   tasks: DashboardTask[];
   initialCompletedTaskIds: string[];
   links: DashboardLink[];
+  currentPhaseMonth?: number;
 }) {
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set(initialCompletedTaskIds));
   const [savingId, setSavingId] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<DashboardTask | null>(null);
+  const [openPhases, setOpenPhases] = useState<Set<number>>(
+    () => new Set([currentPhaseMonth ?? 24])
+  );
 
   const grouped = useMemo(() => {
     const map = new Map<number, DashboardTask[]>();
@@ -74,63 +70,86 @@ export function TimelinePhaseBoard({
 
   const selectedLinks = selectedTask ? getTaskLinks(selectedTask, links) : [];
 
+  function togglePhase(month: number) {
+    setOpenPhases((current) => {
+      const next = new Set(current);
+      if (next.has(month)) next.delete(month);
+      else next.add(month);
+      return next;
+    });
+  }
+
   return (
-    <>
+    <section className="grid gap-4">
       {PHASE_ORDER.map((month) => {
         const phaseTasks = grouped.get(month) ?? [];
+        const completedCount = phaseTasks.filter((task) => completedIds.has(task.id)).length;
+        const isCurrent = currentPhaseMonth === month;
+        const isOpen = openPhases.has(month);
         return (
-          <section key={month} className="panel p-5">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="font-bold">Phase: {PHASE_LABEL[month]}</h2>
-              <p className="text-xs text-[var(--muted)]">{phaseTasks.length} milestones</p>
-            </div>
-            <div className="mt-3 space-y-2">
+          <section
+            key={month}
+            className={[
+              "panel overflow-hidden",
+              isCurrent ? "border-[var(--accent)] shadow-[0_0_0_1px_var(--accent)]" : "",
+            ].join(" ")}
+          >
+            <button
+              type="button"
+              className="flex min-h-16 w-full items-center justify-between gap-3 px-4 py-4 text-left sm:px-5"
+              aria-expanded={isOpen}
+              aria-controls={`timeline-phase-${month}`}
+              onClick={() => togglePhase(month)}
+            >
+              <span className="min-w-0">
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="font-bold">Phase: {PHASE_LABEL[month]}</span>
+                  {isCurrent ? (
+                    <span className="rounded-full bg-[var(--accent)] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white">
+                      Current
+                    </span>
+                  ) : null}
+                </span>
+                <span className="mt-1 block text-xs text-[var(--muted)]">
+                  {completedCount}/{phaseTasks.length} objectives complete
+                </span>
+              </span>
+              <span className="shrink-0 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-xs font-semibold text-[var(--muted)]">
+                {isOpen ? "Collapse" : "Expand"}
+              </span>
+            </button>
+
+            {isOpen ? (
+              <div id={`timeline-phase-${month}`} className="border-t border-[var(--line)] px-4 pb-4 pt-3 sm:px-5">
+                <div className="mb-3 h-2 rounded-full bg-[var(--surface)]">
+                  <div
+                    className="h-2 rounded-full bg-[var(--accent)]"
+                    style={{ width: `${phaseTasks.length > 0 ? Math.round((completedCount / phaseTasks.length) * 100) : 0}%` }}
+                  />
+                </div>
+                <div className="space-y-3">
               {phaseTasks.length === 0 && <p className="text-sm text-[var(--muted)]">No milestones in this phase.</p>}
               {phaseTasks.map((task) => {
                 const completed = completedIds.has(task.id);
-                const readOnly = isFallbackTask(task);
                 return (
-                  <article key={task.id} className="rounded-md border border-[var(--line)] p-3">
-                    <div className="flex items-start gap-3">
-                      <input
-                        type="checkbox"
-                        className="mt-1"
-                        checked={completed}
-                        disabled={savingId === task.id || readOnly}
-                        onChange={() => void toggle(task.id)}
-                      />
-                      <div className="w-full">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="font-semibold">{task.title}</p>
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                              completed ? "bg-[var(--accent-soft)] text-[var(--accent)]" : "bg-[var(--surface)] text-[var(--muted)]"
-                            }`}
-                          >
-                            {completed ? "Completed" : readOnly ? "Reference" : "Open"}
-                          </span>
-                        </div>
-                        <div className="mt-1 flex flex-wrap gap-2 text-xs text-[var(--muted)]">
-                          <span>{task.category ?? "Uncategorized"}</span>
-                          <span>Assist: {assistanceText(task)}</span>
-                          {typeof task.days_before_event === "number" && <span>{task.days_before_event} days before anchor</span>}
-                        </div>
-                        {task.description && <p className="mt-1 text-sm text-[var(--muted)]">{task.description}</p>}
-                        {readOnly && <p className="mt-1 text-xs text-[var(--muted)]">Fallback retirement-source task shown until timeline data is reseeded.</p>}
-                        <button className="btn btn-secondary mt-2 !py-1 text-xs" type="button" onClick={() => setSelectedTask(task)}>
-                          Open Task Details
-                        </button>
-                      </div>
-                    </div>
-                  </article>
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    checked={completed}
+                    busy={savingId === task.id}
+                    onToggle={(taskId) => void toggle(taskId)}
+                    onOpen={setSelectedTask}
+                  />
                 );
               })}
-            </div>
+                </div>
+              </div>
+            ) : null}
           </section>
         );
       })}
 
       <TaskDrawer task={selectedTask} links={selectedLinks} onClose={() => setSelectedTask(null)} />
-    </>
+    </section>
   );
 }

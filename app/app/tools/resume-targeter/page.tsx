@@ -97,6 +97,7 @@ export default function ResumeTargeterPage() {
   const [stage3, setStage3] = useState<Stage3Output | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [copyState, setCopyState] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeTask, setActiveTask] = useState<string | null>(null);
   const [decision, setDecision] = useState<"A" | "B" | "C">("A");
@@ -277,6 +278,16 @@ export default function ResumeTargeterPage() {
     }
   }
 
+  async function copyText(label: string, value: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopyState(`${label} copied`);
+    } catch {
+      setCopyState(`Could not copy ${label.toLowerCase()}`);
+    }
+    window.setTimeout(() => setCopyState(null), 1500);
+  }
+
   const checkpointClass =
     recommendedDecision === "C"
       ? "section-card border-[#d69f9f] bg-[#fff1f1] text-sm text-red-700"
@@ -332,7 +343,7 @@ export default function ResumeTargeterPage() {
 
             <form className="grid gap-3 md:grid-cols-3" onSubmit={runStage1}>
               <input className="input md:col-span-2" placeholder="Specific job title" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} required />
-              <button className="btn btn-primary" type="submit" disabled={loading}>
+              <button className="btn btn-primary w-full" type="submit" disabled={loading}>
                 Run Step 1
               </button>
             </form>
@@ -369,7 +380,7 @@ export default function ResumeTargeterPage() {
               <textarea className="input min-h-56" value={jobDescriptionText} onChange={(e) => setJobDescriptionText(e.target.value)} required />
             </label>
 
-            <button className="btn btn-primary" type="button" onClick={runStage2} disabled={loading}>
+            <button className="btn btn-primary w-full sm:w-auto" type="button" onClick={runStage2} disabled={loading}>
               Run Step 2
             </button>
 
@@ -385,7 +396,7 @@ export default function ResumeTargeterPage() {
                 <option value="B">B) Adjust assumptions before generating</option>
                 <option value="C">C) Stop / do not apply now</option>
               </select>
-              <button className="btn btn-primary" type="button" onClick={runGenerate} disabled={loading}>
+              <button className="btn btn-primary w-full sm:w-auto" type="button" onClick={runGenerate} disabled={loading}>
                 {loading ? "Running..." : "Step 4: Generate Resume (A only)"}
               </button>
             </section>
@@ -393,10 +404,11 @@ export default function ResumeTargeterPage() {
         </section>
 
         <section className="space-y-4 xl:sticky xl:top-20 xl:self-start">
-          {(error || notice) && (
+          {(error || notice || copyState) && (
             <section className="section-card">
               {error && <p className="text-sm text-red-700">{error}</p>}
               {notice && <p className="text-sm text-[var(--accent)]">{notice}</p>}
+              {copyState && <p className="text-sm text-[var(--accent)]">{copyState}</p>}
             </section>
           )}
 
@@ -467,8 +479,11 @@ export default function ResumeTargeterPage() {
                 <p className="section-title">Step 4 Output</p>
                 <p className="section-description">Preview the generated draft, then download the saved Word file from Documents.</p>
               </div>
-              <pre className="whitespace-pre-wrap text-sm leading-6">{stage3.targeted_resume}</pre>
-              <div className="flex flex-wrap gap-2 pt-2">
+              <pre className="max-h-[70vh] overflow-auto whitespace-pre-wrap rounded-md border border-[var(--line)] bg-[var(--surface)] p-3 text-sm leading-6">{stage3.targeted_resume}</pre>
+              <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:flex-wrap">
+                <button className="btn btn-secondary text-sm" type="button" onClick={() => void copyText("Targeted resume", stage3.targeted_resume)}>
+                  Copy Resume
+                </button>
                 <a className="btn btn-secondary text-sm" href={`/api/resume-artifacts/${stage3.artifactId}/download`}>
                   Export Text (.txt)
                 </a>

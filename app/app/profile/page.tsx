@@ -320,7 +320,7 @@ export default function ProfilePage() {
           />
         </label>
         <div className="md:col-span-2">
-          <button className="btn btn-primary" disabled={saving} type="submit">
+          <button className="btn btn-primary w-full sm:w-auto" disabled={saving} type="submit">
             {saving ? "Saving..." : "Save Profile"}
           </button>
         </div>

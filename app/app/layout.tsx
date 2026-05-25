@@ -3,6 +3,7 @@ import { ReactNode } from "react";
 import Image from "next/image";
 import { AppNav } from "@/components/app-nav";
 import { AppShell } from "@/components/layout/app-shell";
+import { MobileAppNav } from "@/components/layout/mobile-app-nav";
 import { isAdminEmail } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -12,7 +13,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  if (!user) redirect("/auth");
   const isAdmin = isAdminEmail(user.email);
   const notificationsCountRes = await supabase
     .from("message_board_notifications")
@@ -44,7 +45,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         </form>
       </header>
 
-      <section className="panel mb-6 p-3">
+      <MobileAppNav isAdmin={isAdmin} unreadBoardNotifications={unreadBoardNotifications} />
+
+      <section className="panel mb-6 hidden p-3 md:block">
         <AppNav isAdmin={isAdmin} unreadBoardNotifications={unreadBoardNotifications} />
       </section>
 

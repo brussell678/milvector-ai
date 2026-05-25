@@ -71,7 +71,7 @@ export default async function AdminPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  if (!user) redirect("/auth");
   if (!isAdminEmail(user.email)) redirect("/app");
 
   const [{ data: feedback }, { data: submissions }, { data: reports }, { data: blockedUsers }] = await Promise.all([

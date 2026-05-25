@@ -49,14 +49,14 @@ export function TaskDrawer({
   const requirements = buildRequirements(task);
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/40 p-2 sm:p-4">
-      <aside className="panel h-full w-full max-w-2xl overflow-y-auto p-5">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-2 sm:items-stretch sm:justify-end sm:p-4">
+      <aside className="panel max-h-[92vh] w-full max-w-2xl overflow-y-auto p-5 sm:h-full sm:max-h-none">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold tracking-widest text-[var(--accent)]">TASK DETAIL</p>
             <h3 className="mt-1 text-xl font-bold">{task.title}</h3>
           </div>
-          <button className="btn btn-secondary !py-1 text-xs" onClick={onClose} type="button">
+          <button className="btn btn-secondary text-xs" onClick={onClose} type="button">
             Close
           </button>
         </div>
@@ -84,7 +84,7 @@ export function TaskDrawer({
             {task.assistance_ref && (
               <a
                 href={task.assistance_ref}
-                className="btn btn-secondary !py-1 text-xs"
+                className="btn btn-secondary text-xs"
                 target={isExternal(task.assistance_ref) ? "_blank" : undefined}
                 rel={isExternal(task.assistance_ref) ? "noopener noreferrer" : undefined}
               >
@@ -92,12 +92,12 @@ export function TaskDrawer({
               </a>
             )}
             {task.tool_link && (
-              <a href={task.tool_link} className="btn btn-secondary !py-1 text-xs">
+              <a href={task.tool_link} className="btn btn-secondary text-xs">
                 Open Related Tool
               </a>
             )}
             {task.knowledge_article && (
-              <a href={task.knowledge_article} className="btn btn-secondary !py-1 text-xs">
+              <a href={task.knowledge_article} className="btn btn-secondary text-xs">
                 Read Knowledge Article
               </a>
             )}

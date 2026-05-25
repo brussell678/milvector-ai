@@ -6,6 +6,9 @@ export const ProfileUpsertSchema = z.object({
   mos: z.string().optional().nullable(),
   rank: z.string().optional().nullable(),
   eas_date: z.string().optional().nullable(), // ISO date
+  terminal_leave_start: z.string().optional().nullable(),
+  ptad_start: z.string().optional().nullable(),
+  retirement_ceremony_date: z.string().optional().nullable(),
   career_interests: z.array(z.string()).optional().nullable(),
   location_pref: z.string().optional().nullable(),
   phone_number: z.string().optional().nullable(),
@@ -18,4 +21,14 @@ export const ProfileUpsertSchema = z.object({
   off_duty_education: z.array(z.string()).optional().nullable(),
   civilian_certifications: z.array(z.string()).optional().nullable(),
   additional_training: z.array(z.string()).optional().nullable(),
+});
+
+export const AuthProfileSyncSchema = z.object({
+  branch: z.string().min(2).optional().nullable(),
+  eas_date: z.string().optional().nullable(),
+  rank: z.string().optional().nullable(),
+  mos: z.string().optional().nullable(),
+  terminal_leave_start: z.string().optional().nullable(),
+  ptad_start: z.string().optional().nullable(),
+  retirement_ceremony_date: z.string().optional().nullable(),
 });

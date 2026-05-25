@@ -4,6 +4,7 @@ import "./globals.css";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DesktopNav } from "@/components/layout/desktop-nav";
+import { MobileSiteHeader } from "@/components/layout/mobile-site-header";
 
 const barlow = Barlow({
   variable: "--font-barlow",
@@ -40,11 +41,12 @@ export default function RootLayout({
             <Link href="/platform">How It Works</Link>
           </p>
         </div>
+        <MobileSiteHeader />
         <DesktopNav />
         <div className="fixed right-4 top-32 z-50 md:top-24">
           <ThemeToggle />
         </div>
-        <div className="relative z-10 pb-16 pt-16 md:pt-10">{children}</div>
+        <div className="relative z-10 pb-16 pt-28 md:pt-10">{children}</div>
         <footer className="site-footer">
           <p>
             Copyright 2026 MilVector AI. Built by{" "}

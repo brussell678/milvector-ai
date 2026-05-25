@@ -288,6 +288,30 @@ export default function LinkedinBuilderPage() {
     setProfileOutput((current) => current ? { ...current, experience: current.experience.map((item, idx) => idx === index ? { ...item, bullets } : item) } : current);
   }
 
+  function buildProfileText(profile: LinkedinProfileOutput) {
+    return [
+      "Headlines",
+      ...profile.headlines,
+      "",
+      "About Versions",
+      ...profile.about_versions,
+      "",
+      "Experience",
+      ...profile.experience.flatMap((entry) => [entry.title, ...entry.bullets.map((bullet) => `- ${bullet}`), ""]),
+      "Skills",
+      ...profile.skills,
+      "",
+      "Connection Targets",
+      ...profile.networking_guidance.connection_targets,
+      "",
+      "Outreach Messages",
+      ...profile.networking_guidance.outreach_messages,
+      "",
+      "Activation Plan",
+      ...profile.networking_guidance.activation_plan,
+    ].join("\n");
+  }
+
   const tabs: Array<{ id: WorkspaceTab; label: string; disabled: boolean }> = [
     { id: "analysis", label: "Analysis", disabled: !analysis },
     { id: "career", label: "Career", disabled: !careerSuggestions },
@@ -328,7 +352,7 @@ export default function LinkedinBuilderPage() {
               <div className="subtle-panel p-3"><p className="text-xs font-semibold tracking-wide text-[var(--accent)]">Version</p><p className="mt-1 text-sm">{versionLabel || "Unsaved label"}</p></div>
               <div className="subtle-panel p-3"><p className="text-xs font-semibold tracking-wide text-[var(--accent)]">Saved Draft</p><p className="mt-1 text-sm">{documentId ? "Saved to Documents" : "Not saved yet"}</p></div>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               <button className="btn btn-primary" type="button" onClick={saveDraftToDocuments} disabled={loading || !profileOutput}>Save To Documents</button>
               {documentId ? <a className="btn btn-secondary" href={`/api/documents/${documentId}/download`}>Open Saved Draft</a> : null}
               <button className="btn btn-secondary" type="button" onClick={runProfileScoring} disabled={loading || !profileOutput}>Score</button>
@@ -350,7 +374,7 @@ export default function LinkedinBuilderPage() {
                 <span className="text-sm font-medium">Pasted Resume Text</span>
                 <textarea className="input min-h-40" value={pastedResumeText} onChange={(e) => setPastedResumeText(e.target.value)} placeholder="Paste resume text here if you want to work without a saved source." />
               </label>
-              <button className="btn btn-primary" type="submit" disabled={loading}>Run Step 1</button>
+              <button className="btn btn-primary w-full sm:w-auto" type="submit" disabled={loading}>Run Step 1</button>
             </form>
           </section>
 
@@ -364,12 +388,12 @@ export default function LinkedinBuilderPage() {
               <label className="block space-y-1"><span className="text-sm font-medium">Secondary Roles</span><input className="input" value={secondaryRoles} onChange={(e) => setSecondaryRoles(e.target.value)} placeholder="Operations Manager, Project Manager" /></label>
               <label className="block space-y-1"><span className="text-sm font-medium">Location Preference</span><input className="input" value={locationPref} onChange={(e) => setLocationPref(e.target.value)} placeholder="Remote-friendly, East Coast, DC area" /></label>
             </div>
-            <button className="btn btn-primary" type="button" onClick={runCareerSuggestions} disabled={loading}>Run Step 2</button>
+            <button className="btn btn-primary w-full sm:w-auto" type="button" onClick={runCareerSuggestions} disabled={loading}>Run Step 2</button>
           </section>
 
           <section className="section-card space-y-4">
             <div><p className="section-title">Step 3: Generate + Refine</p><p className="section-description">Generate the LinkedIn package, then refine it in the editable workspace before saving a draft document.</p></div>
-            <button className="btn btn-primary" type="button" onClick={runProfileGeneration} disabled={loading}>Generate LinkedIn Profile Package</button>
+            <button className="btn btn-primary w-full sm:w-auto" type="button" onClick={runProfileGeneration} disabled={loading}>Generate LinkedIn Profile Package</button>
           </section>
 
           <section className="section-card space-y-4">
@@ -379,7 +403,7 @@ export default function LinkedinBuilderPage() {
                 <article key={profile.id} className="subtle-panel p-4">
                   <p className="font-semibold">{profile.versionLabel || profile.targetRole || "Saved LinkedIn profile"}</p>
                   <p className="mt-1 text-xs text-[var(--muted)]">{profile.industry || "Industry not set"}{profile.industryTuning ? ` | ${profile.industryTuning}` : ""} | {new Date(profile.createdAt).toLocaleString()}</p>
-                  <button className="btn btn-secondary mt-3 text-sm" type="button" onClick={() => setWorkspaceFromProfile(profile)}>Load Version</button>
+                  <button className="btn btn-secondary mt-3 w-full text-sm sm:w-auto" type="button" onClick={() => setWorkspaceFromProfile(profile)}>Load Version</button>
                 </article>
               ))}
             </div>
@@ -390,7 +414,7 @@ export default function LinkedinBuilderPage() {
           {(error || notice || copyState) ? <section className="section-card">{error ? <p className="text-sm text-red-700">{error}</p> : null}{notice ? <p className="text-sm text-[var(--accent)]">{notice}</p> : null}{copyState ? <p className="text-sm text-[var(--accent)]">{copyState}</p> : null}</section> : null}
 
           <section className="section-card space-y-4">
-            <div className="flex flex-wrap gap-2">
+            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
               {tabs.map((tab) => <button key={tab.id} className={activeTab === tab.id ? "btn btn-primary text-sm" : "btn btn-secondary text-sm"} type="button" disabled={tab.disabled} onClick={() => setActiveTab(tab.id)}>{tab.label}</button>)}
             </div>
 
@@ -398,11 +422,11 @@ export default function LinkedinBuilderPage() {
 
             {activeTab === "career" && careerSuggestions ? <section className="space-y-4"><div className="flex flex-wrap gap-2"><button className="btn btn-secondary text-sm" type="button" onClick={() => void copyText("Career suggestions", careerSuggestions.suggested_roles.map((role) => `${role.title}: ${role.why_fit}`).join("\n"))}>Copy Career Matches</button><button className="btn btn-secondary text-sm" type="button" onClick={runProfileGeneration} disabled={loading}>Generate Profile</button></div><p className="section-title">Career Suggestions</p><p className="text-sm text-[var(--muted)]">Recommended seniority: {careerSuggestions.recommended_seniority || "Not specified"}</p>{careerSuggestions.location_strategy ? <p className="text-sm text-[var(--muted)]">{careerSuggestions.location_strategy}</p> : null}<div className="grid gap-3 lg:grid-cols-2">{careerSuggestions.suggested_roles.map((role) => <article key={role.title} className="subtle-panel p-4"><p className="font-semibold">{role.title}</p><p className="mt-1 text-sm text-[var(--muted)]">{role.why_fit}</p><p className="mt-2 text-xs text-[var(--muted)]">Industries: {role.target_industries.join(", ")} | Seniority: {role.seniority}</p></article>)}</div><ListBlock title="Positioning Advice" items={careerSuggestions.positioning_advice} /></section> : null}
 
-            {activeTab === "profile" && profileOutput ? <section className="space-y-4"><div className="flex flex-wrap gap-2"><button className="btn btn-secondary text-sm" type="button" onClick={() => void copyText("Headlines", profileOutput.headlines.join("\n"))}>Copy Headlines</button><button className="btn btn-secondary text-sm" type="button" onClick={saveDraftToDocuments} disabled={loading}>Save Draft Document</button></div><p className="section-title">Editable LinkedIn Profile</p><EditListArea label="Headline Options" value={profileOutput.headlines} onChange={(headlines) => setProfileOutput((current) => current ? { ...current, headlines } : current)} rows={6} /><EditListArea label="Prioritized Skills" value={profileOutput.skills} onChange={(skills) => setProfileOutput((current) => current ? { ...current, skills } : current)} rows={8} /><EditListArea label="Connection Targets" value={profileOutput.networking_guidance.connection_targets} onChange={(connection_targets) => setProfileOutput((current) => current ? { ...current, networking_guidance: { ...current.networking_guidance, connection_targets } } : current)} rows={5} /><EditListArea label="Activation Plan" value={profileOutput.networking_guidance.activation_plan} onChange={(activation_plan) => setProfileOutput((current) => current ? { ...current, networking_guidance: { ...current.networking_guidance, activation_plan } } : current)} rows={6} /><EditListArea label="Outreach Messages" value={profileOutput.networking_guidance.outreach_messages} onChange={(outreach_messages) => setProfileOutput((current) => current ? { ...current, networking_guidance: { ...current.networking_guidance, outreach_messages } } : current)} rows={6} /><section className="space-y-3"><h3 className="text-sm font-semibold">About Versions</h3>{profileOutput.about_versions.map((about, idx) => <label key={`about-${idx}`} className="block space-y-1"><span className="text-sm font-medium">About {idx + 1}</span><textarea className="input" rows={8} value={about} onChange={(e) => setProfileOutput((current) => current ? { ...current, about_versions: current.about_versions.map((item, itemIdx) => itemIdx === idx ? e.target.value : item) } : current)} /></label>)}</section><section className="space-y-3"><h3 className="text-sm font-semibold">Experience</h3>{profileOutput.experience.map((entry, idx) => <article key={`exp-${idx}`} className="subtle-panel p-4"><label className="block space-y-1"><span className="text-sm font-medium">Role Title</span><input className="input" value={entry.title} onChange={(e) => updateExperienceTitle(idx, e.target.value)} /></label><div className="mt-3"><EditListArea label="Bullets" value={entry.bullets} onChange={(bullets) => updateExperienceBullets(idx, bullets)} rows={6} /></div></article>)}</section></section> : null}
+            {activeTab === "profile" && profileOutput ? <section className="space-y-4"><div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap"><button className="btn btn-secondary text-sm" type="button" onClick={() => void copyText("Profile package", buildProfileText(profileOutput))}>Copy Profile</button><button className="btn btn-secondary text-sm" type="button" onClick={() => void copyText("Headlines", profileOutput.headlines.join("\n"))}>Copy Headlines</button><button className="btn btn-secondary text-sm" type="button" onClick={saveDraftToDocuments} disabled={loading}>Save Draft Document</button></div><p className="section-title">Editable LinkedIn Profile</p><EditListArea label="Headline Options" value={profileOutput.headlines} onChange={(headlines) => setProfileOutput((current) => current ? { ...current, headlines } : current)} rows={6} /><EditListArea label="Prioritized Skills" value={profileOutput.skills} onChange={(skills) => setProfileOutput((current) => current ? { ...current, skills } : current)} rows={8} /><EditListArea label="Connection Targets" value={profileOutput.networking_guidance.connection_targets} onChange={(connection_targets) => setProfileOutput((current) => current ? { ...current, networking_guidance: { ...current.networking_guidance, connection_targets } } : current)} rows={5} /><EditListArea label="Activation Plan" value={profileOutput.networking_guidance.activation_plan} onChange={(activation_plan) => setProfileOutput((current) => current ? { ...current, networking_guidance: { ...current.networking_guidance, activation_plan } } : current)} rows={6} /><EditListArea label="Outreach Messages" value={profileOutput.networking_guidance.outreach_messages} onChange={(outreach_messages) => setProfileOutput((current) => current ? { ...current, networking_guidance: { ...current.networking_guidance, outreach_messages } } : current)} rows={6} /><section className="space-y-3"><h3 className="text-sm font-semibold">About Versions</h3>{profileOutput.about_versions.map((about, idx) => <label key={`about-${idx}`} className="block space-y-1"><span className="text-sm font-medium">About {idx + 1}</span><textarea className="input" rows={8} value={about} onChange={(e) => setProfileOutput((current) => current ? { ...current, about_versions: current.about_versions.map((item, itemIdx) => itemIdx === idx ? e.target.value : item) } : current)} /></label>)}</section><section className="space-y-3"><h3 className="text-sm font-semibold">Experience</h3>{profileOutput.experience.map((entry, idx) => <article key={`exp-${idx}`} className="subtle-panel p-4"><label className="block space-y-1"><span className="text-sm font-medium">Role Title</span><input className="input" value={entry.title} onChange={(e) => updateExperienceTitle(idx, e.target.value)} /></label><div className="mt-3"><EditListArea label="Bullets" value={entry.bullets} onChange={(bullets) => updateExperienceBullets(idx, bullets)} rows={6} /></div></article>)}</section></section> : null}
 
             {activeTab === "score" && profileScore ? <section className="space-y-4"><p className="section-title">Profile Score</p><div className="subtle-panel p-4"><p className="text-3xl font-bold text-[var(--accent)]">{profileScore.overall_score}/100</p><p className="mt-2 text-sm text-[var(--muted)]">{profileScore.recruiter_readiness}</p></div><ListBlock title="Current Strengths" items={profileScore.strengths} /><ListBlock title="Improvement Priorities" items={profileScore.improvement_priorities} /><div className="space-y-3">{profileScore.section_scores.map((section) => <article key={section.section} className="subtle-panel p-4"><p className="font-semibold capitalize">{section.section} {section.score}/{section.max_score}</p><p className="mt-1 text-sm text-[var(--muted)]">{section.rationale}</p><ListBlock title="Recommended Actions" items={section.actions} /></article>)}</div></section> : null}
 
-            {activeTab === "banner" && bannerOutput ? <section className="space-y-4"><div className="flex flex-wrap gap-2"><button className="btn btn-secondary text-sm" type="button" onClick={() => void copyText("Banner prompt", bannerOutput.banner_prompt)}>Copy Banner Prompt</button><button className="btn btn-secondary text-sm" type="button" onClick={runBannerImageGeneration} disabled={loading}>Generate Banner Image</button></div><p className="section-title">Banner Workspace</p><label className="block space-y-1"><span className="text-sm font-medium">Tone</span><input className="input" value={tone} onChange={(e) => setTone(e.target.value)} /></label><label className="block space-y-1"><span className="text-sm font-medium">Banner Prompt</span><textarea className="input" rows={8} value={bannerOutput.banner_prompt} onChange={(e) => setBannerOutput((current) => current ? { ...current, banner_prompt: e.target.value } : current)} /></label><EditListArea label="Style Notes" value={bannerOutput.style_notes} onChange={(style_notes) => setBannerOutput((current) => current ? { ...current, style_notes } : current)} rows={5} /><EditListArea label="Visual Focus" value={bannerOutput.visual_focus} onChange={(visual_focus) => setBannerOutput((current) => current ? { ...current, visual_focus } : current)} rows={5} />{bannerImageUrl ? <section className="space-y-3"><h3 className="text-sm font-semibold">Generated Banner Image</h3><Image alt="Generated LinkedIn banner preview" className="w-full rounded-xl border border-[var(--line)] object-cover" height={512} src={bannerImageUrl} unoptimized width={1536} /><a className="btn btn-secondary text-sm" href={bannerImageUrl} target="_blank" rel="noopener noreferrer">Open Full Image</a></section> : null}</section> : null}
+            {activeTab === "banner" && bannerOutput ? <section className="space-y-4"><div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap"><button className="btn btn-secondary text-sm" type="button" onClick={() => void copyText("Banner prompt", bannerOutput.banner_prompt)}>Copy Banner Prompt</button><button className="btn btn-secondary text-sm" type="button" onClick={runBannerImageGeneration} disabled={loading}>Generate Banner Image</button></div><p className="section-title">Banner Workspace</p><label className="block space-y-1"><span className="text-sm font-medium">Tone</span><input className="input" value={tone} onChange={(e) => setTone(e.target.value)} /></label><label className="block space-y-1"><span className="text-sm font-medium">Banner Prompt</span><textarea className="input" rows={8} value={bannerOutput.banner_prompt} onChange={(e) => setBannerOutput((current) => current ? { ...current, banner_prompt: e.target.value } : current)} /></label><EditListArea label="Style Notes" value={bannerOutput.style_notes} onChange={(style_notes) => setBannerOutput((current) => current ? { ...current, style_notes } : current)} rows={5} /><EditListArea label="Visual Focus" value={bannerOutput.visual_focus} onChange={(visual_focus) => setBannerOutput((current) => current ? { ...current, visual_focus } : current)} rows={5} />{bannerImageUrl ? <section className="space-y-3"><h3 className="text-sm font-semibold">Generated Banner Image</h3><Image alt="Generated LinkedIn banner preview" className="w-full rounded-xl border border-[var(--line)] object-cover" height={512} src={bannerImageUrl} unoptimized width={1536} /><a className="btn btn-secondary text-sm" href={bannerImageUrl} target="_blank" rel="noopener noreferrer">Open Full Image</a></section> : null}</section> : null}
 
             {activeTab === "analysis" && !analysis ? <EmptyState title="Run Resume Analysis" body="Start with Step 1 to populate the analysis workspace." /> : null}
             {activeTab === "career" && !careerSuggestions ? <EmptyState title="Generate Career Matches" body="Run Step 2 after analysis to populate the career workspace." /> : null}

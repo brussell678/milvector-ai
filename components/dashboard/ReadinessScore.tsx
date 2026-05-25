@@ -10,7 +10,10 @@ export function ReadinessScore({
   return (
     <section className="panel p-5">
       <h2 className="font-bold">Readiness Score</h2>
-      <p className="mt-2 text-2xl font-extrabold text-[var(--accent)]">Transition Readiness: {readiness}%</p>
+      <div className="mt-3 rounded-md border border-[var(--line)] bg-[var(--surface)] p-4">
+        <p className="text-xs font-semibold tracking-wide text-[var(--muted)]">Transition Readiness</p>
+        <p className="mt-1 text-4xl font-extrabold text-[var(--accent)]">{readiness}%</p>
+      </div>
       <div className="mt-4 space-y-3">
         {categories.map((item) => (
           <article key={item.key}>

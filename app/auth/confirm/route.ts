@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { syncAuthenticatedProfile } from "@/lib/auth-profile";
 import { supabaseServer } from "@/lib/supabase/server";
 
 function formatAuthErrorMessage(message: string) {
@@ -24,8 +25,10 @@ export async function GET(req: Request) {
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
-      return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(formatAuthErrorMessage(error.message))}`, origin));
+      return NextResponse.redirect(new URL(`/auth?error=${encodeURIComponent(formatAuthErrorMessage(error.message))}`, origin));
     }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) await syncAuthenticatedProfile(supabase, user);
     return NextResponse.redirect(new URL(next, origin));
   }
 
@@ -36,10 +39,12 @@ export async function GET(req: Request) {
     });
 
     if (error) {
-      return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(formatAuthErrorMessage(error.message))}`, origin));
+      return NextResponse.redirect(new URL(`/auth?error=${encodeURIComponent(formatAuthErrorMessage(error.message))}`, origin));
     }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) await syncAuthenticatedProfile(supabase, user);
     return NextResponse.redirect(new URL(next, origin));
   }
 
-  return NextResponse.redirect(new URL("/login", origin));
+  return NextResponse.redirect(new URL("/auth", origin));
 }

@@ -135,9 +135,11 @@ export default function ToolsPage() {
         </div>
       </section>
 
-      <section className="section-card">
-        <h2 className="section-title">How To Choose Between Integrated Tools And GPT Links</h2>
-        <p className="section-description">Both are useful, but they serve different purposes in the MilVector system.</p>
+      <details className="section-card">
+        <summary className="cursor-pointer list-none">
+          <h2 className="section-title inline">How To Choose Between Integrated Tools And GPT Links</h2>
+          <p className="section-description">Both are useful, but they serve different purposes in the MilVector system.</p>
+        </summary>
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           <article className="subtle-panel p-5">
             <p className="text-xs font-semibold tracking-[0.18em] text-[var(--accent)]">INTEGRATED MILVECTOR TOOLS</p>
@@ -162,7 +164,7 @@ export default function ToolsPage() {
             </ul>
           </article>
         </div>
-      </section>
+      </details>
 
       <ToolGrid
         title="1. Build Your Foundation"

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { UploadWarning } from "@/components/upload-warning";
 
 export function LibrarySubmissionForm() {
   const [status, setStatus] = useState<string>("");
@@ -36,16 +37,17 @@ export function LibrarySubmissionForm() {
   }
 
   return (
-    <form className="panel space-y-3 p-5" onSubmit={onSubmit}>
-      <h2 className="font-bold">Submit Document</h2>
+    <form className="section-card space-y-3" onSubmit={onSubmit}>
+      <div>
+        <h2 className="section-title">Submit Document</h2>
+        <p className="section-description">Share a transition resource for admin review.</p>
+      </div>
       <input name="title" className="input" placeholder="Title" required />
       <input name="category" className="input" placeholder="Category" required />
       <textarea name="description" className="input min-h-24" placeholder="Description" />
       <input name="file" type="file" className="input" required />
-      <p className="text-xs text-[var(--warn)]">
-        Before uploading documents, redact any sensitive personal information such as SSN, full date of birth, or home address.
-      </p>
-      <button className="btn btn-primary" type="submit" disabled={saving}>
+      <UploadWarning />
+      <button className="btn btn-primary w-full sm:w-auto" type="submit" disabled={saving}>
         {saving ? "Submitting..." : "Submit for Approval"}
       </button>
       {status ? <div className={`alert-base ${statusKind === "error" ? "alert-error" : "alert-success"}`}>{status}</div> : null}

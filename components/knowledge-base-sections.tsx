@@ -57,6 +57,10 @@ function summarize(content: string) {
   return firstSentence && firstSentence.length >= 40 ? firstSentence : normalized;
 }
 
+function categoryId(category: string) {
+  return category.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+}
+
 export function KnowledgeBaseSections({ articles }: { articles: Article[] }) {
   const totalArticles = articles.length;
 
@@ -75,9 +79,9 @@ export function KnowledgeBaseSections({ articles }: { articles: Article[] }) {
             <p>{categories.length} mission categories</p>
           </div>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
           {categories.map((category) => (
-            <a key={category} href={`#${category.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`} className="btn btn-secondary inline-flex !py-1.5 text-sm">
+            <a key={category} href={`#${categoryId(category)}`} className="btn btn-secondary shrink-0 !py-1.5 text-sm">
               {category}
             </a>
           ))}
@@ -91,8 +95,8 @@ export function KnowledgeBaseSections({ articles }: { articles: Article[] }) {
         return (
           <section
             key={category}
-            id={category.toLowerCase().replace(/[^a-z0-9]+/g, "-")}
-            className="section-card"
+            id={categoryId(category)}
+            className="section-card scroll-mt-28"
           >
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
@@ -109,9 +113,9 @@ export function KnowledgeBaseSections({ articles }: { articles: Article[] }) {
               </div>
             </div>
 
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 grid gap-3 lg:grid-cols-2">
               {group.length === 0 && (
-                <article className="subtle-panel p-4">
+                <article className="subtle-panel p-4 lg:col-span-2">
                   <p className="text-sm text-[var(--muted)]">No articles published in this category yet.</p>
                 </article>
               )}
@@ -119,13 +123,13 @@ export function KnowledgeBaseSections({ articles }: { articles: Article[] }) {
               {group.map((article) => (
                 <details key={article.id} className="subtle-panel p-4">
                   <summary className="cursor-pointer">
-                    <p className="font-semibold">{article.title}</p>
-                    <p className="mt-2 text-sm text-[var(--muted)]">{summarize(article.content)}</p>
+                    <p className="text-base font-semibold leading-snug">{article.title}</p>
+                    <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{summarize(article.content)}</p>
                   </summary>
                   <div className="mt-4 border-t border-[var(--line)] pt-4">
-                    <p className="text-sm leading-6 text-[var(--muted)]">{article.content}</p>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <Link href={action.href} className="btn btn-secondary inline-flex text-sm">
+                    <p className="whitespace-pre-line text-base leading-7 text-[var(--foreground)]">{article.content}</p>
+                    <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                      <Link href={action.href} className="btn btn-secondary text-sm">
                         {action.label}
                       </Link>
                     </div>

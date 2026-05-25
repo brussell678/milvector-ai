@@ -23,5 +23,12 @@ Improve resource discovery and reading on mobile.
 
 ## Closeout Notes
 
-Not started.
+Completed on 2026-05-25.
 
+- Added app Library summary cards and section jump targets for personal resources, public documents, knowledge articles, and links.
+- Converted app Library resource groups to denser mobile-friendly card grids with full-width tap targets on phones.
+- Added category chips for Knowledge Base and Library link/resource groups.
+- Refreshed the public Library page into the shared page shell with category-grouped document and link cards.
+- Updated library submission form styling without changing submission or approval behavior.
+- Improved Knowledge Base category navigation, article card layout, and expanded article typography.
+- Verified with `npm run lint` and `npm run build`.

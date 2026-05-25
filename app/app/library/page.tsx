@@ -76,6 +76,10 @@ function formatBytes(value: number) {
   return `${mb.toFixed(1)} MB`;
 }
 
+function sectionId(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+}
+
 export default async function LibraryPage() {
   const supabase = await supabaseServer();
   const {
@@ -112,7 +116,14 @@ export default async function LibraryPage() {
   const knowledgeArticles = (knowledgeRes.data ?? []) as KnowledgeArticle[];
   const dbLinks = (linksRes.data ?? []) as LibraryLink[];
   const links = mergeLibraryLinks(dbLinks, linkFallbacks);
+  const knowledgeCategories = [...new Set(knowledgeArticles.map((article) => article.category))].sort((a, b) => a.localeCompare(b));
   const linkCategories = [...new Set(links.map((link) => link.category))].sort((a, b) => a.localeCompare(b));
+  const librarySections = [
+    { id: "personal-documents", label: "Personal", count: personalDocuments.length + resumeArtifacts.length },
+    { id: "public-documents", label: "Public", count: publicDocs.length },
+    { id: "knowledge-base", label: "Knowledge", count: knowledgeArticles.length },
+    { id: "links", label: "Links", count: links.length },
+  ];
 
   return (
     <main className="page-shell">
@@ -134,18 +145,30 @@ export default async function LibraryPage() {
         </div>
       </section>
 
-      <details className="section-card" id="personal-documents">
+      <section className="section-card">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {librarySections.map((section) => (
+            <a key={section.id} href={`#${section.id}`} className="subtle-panel block p-4">
+              <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">{section.label}</p>
+              <p className="mt-2 text-2xl font-bold">{section.count}</p>
+              <p className="mt-1 text-xs text-[var(--muted)]">Open section</p>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      <details className="section-card scroll-mt-28" id="personal-documents" open>
         <summary className="cursor-pointer text-lg font-bold">Personal Documents</summary>
         <p className="mt-2 text-sm text-[var(--muted)]">Files you uploaded to your account.</p>
-        <div className="mt-3 space-y-3">
+        <div className="mt-3 grid gap-3 lg:grid-cols-2">
           {personalDocuments.length === 0 && <p className="text-sm text-[var(--muted)]">No personal documents yet.</p>}
           {personalDocuments.map((doc) => (
-            <article key={doc.id} className="subtle-panel p-3">
+            <article key={doc.id} className="subtle-panel p-4">
               <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">{doc.doc_type}</p>
-              <p className="font-semibold">{doc.filename}</p>
-              <p className="text-xs text-[var(--muted)]">{new Date(doc.created_at).toLocaleString()}</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <a className="btn btn-secondary inline-flex text-sm" href={`/api/documents/${doc.id}/download`}>
+              <p className="mt-1 break-words font-semibold">{doc.filename}</p>
+              <p className="mt-1 text-xs text-[var(--muted)]">{new Date(doc.created_at).toLocaleString()}</p>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                <a className="btn btn-secondary text-sm" href={`/api/documents/${doc.id}/download`}>
                   Download
                 </a>
               </div>
@@ -156,22 +179,22 @@ export default async function LibraryPage() {
         <p className="mt-1 text-sm text-[var(--muted)]">
           Outputs produced by resume tools, including targeted resumes.
         </p>
-        <div className="mt-3 space-y-3">
+        <div className="mt-3 grid gap-3 lg:grid-cols-2">
           {resumeArtifacts.length === 0 && <p className="text-sm text-[var(--muted)]">No generated artifacts yet.</p>}
           {resumeArtifacts.map((artifact) => (
-            <article key={artifact.id} className="subtle-panel p-3">
+            <article key={artifact.id} className="subtle-panel p-4">
               <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">{artifact.artifact_type}</p>
-              <p className="font-semibold">{artifact.title}</p>
-              <p className="text-xs text-[var(--muted)]">{new Date(artifact.created_at).toLocaleString()}</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <a className="btn btn-secondary inline-flex text-sm" href={`/api/resume-artifacts/${artifact.id}/download`}>
+              <p className="mt-1 break-words font-semibold">{artifact.title}</p>
+              <p className="mt-1 text-xs text-[var(--muted)]">{new Date(artifact.created_at).toLocaleString()}</p>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                <a className="btn btn-secondary text-sm" href={`/api/resume-artifacts/${artifact.id}/download`}>
                   Export Text (.txt)
                 </a>
-                <a className="btn btn-secondary inline-flex text-sm" href={`/api/resume-artifacts/${artifact.id}/download?format=docx`}>
+                <a className="btn btn-secondary text-sm" href={`/api/resume-artifacts/${artifact.id}/download?format=docx`}>
                   Export Word (.docx)
                 </a>
                 {artifact.rendered_document_id && (
-                  <a className="btn btn-secondary inline-flex text-sm" href={`/api/documents/${artifact.rendered_document_id}/download`}>
+                  <a className="btn btn-secondary text-sm" href={`/api/documents/${artifact.rendered_document_id}/download`}>
                     Open Saved File
                   </a>
                 )}
@@ -179,27 +202,27 @@ export default async function LibraryPage() {
             </article>
           ))}
         </div>
-        <Link href="/app/documents" className="btn btn-secondary mt-3 inline-flex text-sm">
+        <Link href="/app/documents" className="btn btn-secondary mt-3 w-full text-sm sm:w-auto">
           Manage Personal Documents
         </Link>
       </details>
 
-      <details className="section-card" id="public-documents">
+      <details className="section-card scroll-mt-28" id="public-documents">
         <summary className="cursor-pointer text-lg font-bold">Public Documents</summary>
         <p className="mt-2 text-sm text-[var(--muted)]">
           Shared resources from <code>docs/public</code>.
         </p>
-        <div className="mt-3 space-y-3">
+        <div className="mt-3 grid gap-3 lg:grid-cols-2">
           {publicDocs.length === 0 && <p className="text-sm text-[var(--muted)]">No public documents found.</p>}
           {publicDocs.map((file) => (
-            <article key={file.name} className="subtle-panel p-3">
-              <p className="font-semibold">{file.name}</p>
+            <article key={file.name} className="subtle-panel p-4">
+              <p className="break-words font-semibold">{file.name}</p>
               <p className="text-xs text-[var(--muted)]">
                 {formatBytes(file.size)} - Updated {new Date(file.updatedAt).toLocaleDateString()}
               </p>
               <a
                 href={`/api/public-docs/${encodeURIComponent(file.name)}`}
-                className="btn btn-secondary mt-2 inline-flex text-sm"
+                className="btn btn-secondary mt-3 w-full text-sm sm:w-auto"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -210,41 +233,68 @@ export default async function LibraryPage() {
         </div>
       </details>
 
-      <details className="section-card" id="knowledge-base">
+      <details className="section-card scroll-mt-28" id="knowledge-base">
         <summary className="cursor-pointer text-lg font-bold">Knowledge Base</summary>
         <p className="mt-2 text-sm text-[var(--muted)]">Field-manual guidance organized by transition topic.</p>
-        <div className="mt-3 space-y-3">
-          {knowledgeArticles.length === 0 && <p className="text-sm text-[var(--muted)]">No knowledge articles yet.</p>}
-          {knowledgeArticles.map((article) => (
-            <article key={article.id} className="subtle-panel p-3">
-              <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">{article.category}</p>
-              <h3 className="font-semibold">{article.title}</h3>
-              <p className="mt-1 text-sm text-[var(--muted)]">{article.content}</p>
-            </article>
+        <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
+          {knowledgeCategories.map((category) => (
+            <a key={category} href={`#knowledge-${sectionId(category)}`} className="btn btn-secondary shrink-0 !py-1.5 text-sm">
+              {category}
+            </a>
           ))}
+        </div>
+        <div className="mt-3 space-y-4">
+          {knowledgeArticles.length === 0 && <p className="text-sm text-[var(--muted)]">No knowledge articles yet.</p>}
+          {knowledgeCategories.map((category) => {
+            const categoryArticles = knowledgeArticles.filter((article) => article.category === category);
+            return (
+              <section key={category} id={`knowledge-${sectionId(category)}`} className="scroll-mt-28">
+                <h3 className="text-base font-semibold">{category}</h3>
+                <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                  {categoryArticles.map((article) => (
+                    <article key={article.id} className="subtle-panel p-4">
+                      <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">{article.category}</p>
+                      <h4 className="mt-1 text-base font-semibold leading-snug">{article.title}</h4>
+                      <p className="mt-2 line-clamp-4 whitespace-pre-line text-sm leading-6 text-[var(--muted)]">{article.content}</p>
+                      <Link href="/app/knowledge-base" className="btn btn-secondary mt-3 w-full text-sm sm:w-auto">
+                        Read In Knowledge Base
+                      </Link>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            );
+          })}
         </div>
       </details>
 
-      <details className="section-card" id="links">
+      <details className="section-card scroll-mt-28" id="links">
         <summary className="cursor-pointer text-lg font-bold">Links</summary>
         <p className="mt-2 text-sm text-[var(--muted)]">External tools and reference sites.</p>
+        <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
+          {linkCategories.map((category) => (
+            <a key={category} href={`#links-${sectionId(category)}`} className="btn btn-secondary shrink-0 !py-1.5 text-sm">
+              {category}
+            </a>
+          ))}
+        </div>
         <div className="mt-3 space-y-3">
           {links.length === 0 && <p className="text-sm text-[var(--muted)]">No links yet.</p>}
           {linkCategories.map((category) => {
             const categoryLinks = links.filter((link) => link.category === category);
             return (
-              <details key={category} className="subtle-panel p-3">
+              <details key={category} id={`links-${sectionId(category)}`} className="subtle-panel scroll-mt-28 p-4">
                 <summary className="cursor-pointer font-semibold">
                   {category} <span className="text-xs text-[var(--muted)]">({categoryLinks.length})</span>
                 </summary>
-                <div className="mt-3 space-y-3">
+                <div className="mt-3 grid gap-3 lg:grid-cols-2">
                   {categoryLinks.map((link) => (
-                    <article key={link.id} className="subtle-panel p-3">
-                      <h3 className="font-semibold">{link.title}</h3>
+                    <article key={link.id} className="subtle-panel p-4">
+                      <h3 className="text-base font-semibold leading-snug">{link.title}</h3>
                       {link.description && <p className="mt-1 text-sm text-[var(--muted)]">{link.description}</p>}
                       {link.source && <p className="mt-1 text-xs text-[var(--muted)]">Source: {link.source}</p>}
                       {link.url ? (
-                        <a href={link.url} className="btn btn-secondary mt-2 inline-flex text-sm" target="_blank" rel="noopener noreferrer">
+                        <a href={link.url} className="btn btn-secondary mt-3 w-full text-sm sm:w-auto" target="_blank" rel="noopener noreferrer">
                           Visit Link
                         </a>
                       ) : (

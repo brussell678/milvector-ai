@@ -80,7 +80,7 @@ export default function PlatformPage() {
         <h2 className="section-title">Start With The Core System</h2>
         <p className="section-description">The best MilVector experience starts when your profile, source records, and foundation outputs are all in place before you begin targeting roles.</p>
         <div className="mt-4 flex flex-wrap gap-3">
-          <Link href="/login" className="btn btn-primary">
+          <Link href="/auth" className="btn btn-primary">
             Open Workspace
           </Link>
           <Link href="/tools" className="btn btn-secondary">

@@ -26,5 +26,11 @@ Before uploading documents, redact any sensitive personal information such as SS
 
 ## Closeout Notes
 
-Not started.
+Completed on 2026-05-25.
 
+- Added a shared `UploadWarning` component with the required redaction warning text.
+- Applied the shared warning to Documents upload, Library submission upload, and Feedback attachment upload.
+- Improved Documents upload mobile actions and selected-file display.
+- Added a mobile card layout for uploaded documents while preserving the existing desktop table.
+- Improved full-width mobile submit/refresh actions on Feedback and Profile forms.
+- Verified with `npm run lint` and `npm run build`.

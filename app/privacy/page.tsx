@@ -75,7 +75,7 @@ export default function PrivacyPage() {
           <Link href="/platform" className="btn btn-secondary">
             How MilVector Works
           </Link>
-          <Link href="/login" className="btn btn-primary">
+          <Link href="/auth" className="btn btn-primary">
             Open Workspace
           </Link>
         </div>

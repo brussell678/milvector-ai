@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { UploadWarning } from "@/components/upload-warning";
 
 type FeedbackRow = {
   id: string;
@@ -136,7 +137,7 @@ export function FeedbackForm() {
 
   return (
     <div className="space-y-4">
-      <form className="panel mt-4 grid gap-3 p-6 md:grid-cols-2" onSubmit={onSubmit}>
+      <form className="section-card mt-4 grid gap-3 md:grid-cols-2" onSubmit={onSubmit}>
         <div className="md:col-span-2">
           <h2 className="text-lg font-bold">Open A Support Case</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
@@ -166,20 +167,23 @@ export function FeedbackForm() {
           <p className="text-xs text-[var(--muted)]">Use this for screenshots, supporting files, or examples that make the issue clearer.</p>
         </label>
         <div className="md:col-span-2">
-          <button className="btn btn-primary" type="submit" disabled={saving}>
+          <UploadWarning />
+        </div>
+        <div className="md:col-span-2">
+          <button className="btn btn-primary w-full sm:w-auto" type="submit" disabled={saving}>
             {saving ? "Submitting..." : "Submit Support Case"}
           </button>
         </div>
         {status ? <div className={`alert-base md:col-span-2 ${statusKind === "error" ? "alert-error" : "alert-success"}`}>{status}</div> : null}
       </form>
 
-      <section className="panel p-6">
+      <section className="section-card">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-bold">Your Support Cases</h2>
             <p className="mt-1 text-sm text-[var(--muted)]">Track the current state of your submissions and review any MilVector follow-up questions or notes here.</p>
           </div>
-          <button className="btn btn-secondary text-sm" type="button" onClick={() => void loadHistory()} disabled={loadingHistory}>
+          <button className="btn btn-secondary w-full text-sm sm:w-auto" type="button" onClick={() => void loadHistory()} disabled={loadingHistory}>
             {loadingHistory ? "Refreshing..." : "Refresh"}
           </button>
         </div>

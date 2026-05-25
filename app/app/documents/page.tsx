@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { UploadWarning } from "@/components/upload-warning";
 
 type DocumentRow = {
   id: string;
@@ -192,12 +193,9 @@ export default function DocumentsPage() {
       <section className="section-card">
         <h2 className="section-title">Upload A Document</h2>
         <p className="section-description">Add the records and files you want MilVector to reference across the platform.</p>
-        <section className="mt-4 rounded-md border border-[var(--line)] bg-[var(--surface)] p-4">
-          <p className="text-sm font-semibold text-[var(--warn)]">Before You Upload</p>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Redact sensitive personal information such as SSN, full date of birth, and home address before uploading military records or resume files.
-          </p>
-        </section>
+        <div className="mt-4">
+          <UploadWarning />
+        </div>
         <form onSubmit={upload} className="mt-5 space-y-4">
           <div className="grid gap-3 md:grid-cols-[220px_1fr]">
             <label className="space-y-1">
@@ -212,7 +210,7 @@ export default function DocumentsPage() {
             </label>
             <div className="space-y-1">
               <span className="text-sm font-medium">File</span>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -220,14 +218,14 @@ export default function DocumentsPage() {
                   className="hidden"
                   onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                 />
-                <button className="btn btn-secondary" type="button" onClick={() => fileInputRef.current?.click()}>
+                <button className="btn btn-secondary w-full sm:w-auto" type="button" onClick={() => fileInputRef.current?.click()}>
                   Choose File
                 </button>
-                <span className="text-sm text-[var(--muted)]">{selectedFilename}</span>
+                <span className="break-words text-sm text-[var(--muted)]">{selectedFilename}</span>
               </div>
             </div>
           </div>
-          <button className="btn btn-primary" type="submit" disabled={busyUpload || !file}>
+          <button className="btn btn-primary w-full sm:w-auto" type="submit" disabled={busyUpload || !file}>
             {busyUpload ? "Uploading..." : "Upload Document"}
           </button>
         </form>
@@ -249,7 +247,75 @@ export default function DocumentsPage() {
         ) : documents.length === 0 ? (
           <p className="text-sm text-[var(--muted)]">No documents uploaded yet.</p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="grid gap-3 md:hidden">
+            {documents.map((doc) => {
+              const isExtracting = extractingId === doc.id;
+              const isSaving = savingId === doc.id;
+              const isDeleting = deletingId === doc.id;
+              const extractedClass = doc.text_extracted ? "btn btn-primary" : "btn btn-secondary";
+              const draft = drafts[doc.id] ?? { filename: doc.filename };
+              const isDirty = draft.filename.trim() !== doc.filename;
+              return (
+                <article key={doc.id} className="subtle-panel p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">{doc.doc_type}</p>
+                      <p className="mt-1 text-xs text-[var(--muted)]">
+                        Uploaded {new Date(doc.created_at).toLocaleDateString()} - {(doc.size_bytes / 1024).toFixed(0)} KB
+                      </p>
+                    </div>
+                    <span className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-2 py-1 text-xs text-[var(--muted)]">
+                      Extracted: {doc.text_extracted ? "Yes" : "No"}
+                    </span>
+                  </div>
+                  <label className="mt-3 block space-y-1">
+                    <span className="text-sm font-medium">Filename</span>
+                    <input
+                      className="input text-sm"
+                      value={draft.filename}
+                      onChange={(e) =>
+                        setDrafts((prev) => ({
+                          ...prev,
+                          [doc.id]: { ...draft, filename: e.target.value },
+                        }))
+                      }
+                    />
+                  </label>
+                  <div className="mt-3 grid gap-2">
+                    <button
+                      className="btn btn-secondary text-sm"
+                      type="button"
+                      onClick={() => saveMetadata(doc.id)}
+                      disabled={!isDirty || isSaving || isDeleting}
+                    >
+                      {isSaving ? "Saving..." : "Save"}
+                    </button>
+                    <button
+                      className={`${extractedClass} text-sm`}
+                      type="button"
+                      onClick={() => extract(doc.id)}
+                      disabled={isExtracting || isSaving || isDeleting}
+                    >
+                      {isExtracting ? "Extracting..." : doc.text_extracted ? "Re-Extract" : "Extract Text"}
+                    </button>
+                    <a className="btn btn-secondary text-sm" href={`/api/documents/${doc.id}/download`}>
+                      Download
+                    </a>
+                    <button
+                      className="btn btn-secondary text-sm"
+                      type="button"
+                      onClick={() => removeDocument(doc.id)}
+                      disabled={isDeleting || isSaving || isExtracting}
+                    >
+                      {isDeleting ? "Deleting..." : "Delete"}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-[var(--line)] text-left text-[var(--muted)]">
@@ -323,6 +389,7 @@ export default function DocumentsPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </section>
 

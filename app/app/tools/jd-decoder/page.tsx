@@ -80,14 +80,27 @@ export default function JobDescriptionDecoderPage() {
   }
 
   return (
-    <main className="space-y-4">
-      <section className="panel p-6">
-        <h1 className="text-2xl font-bold">Job Description Decoder</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          Deep role analysis with requirements, signals, and interview focus areas.
-        </p>
+    <main className="page-shell">
+      <section className="page-hero">
+        <div className="page-hero-grid">
+          <div className="relative z-10">
+            <p className="page-kicker">JOB DESCRIPTION DECODER</p>
+            <h1 className="page-title">Turn a posting into clear signals before you spend application time.</h1>
+            <p className="page-description">
+              Analyze requirements, implied expectations, interview focus areas, and ATS keywords from a full job description.
+            </p>
+          </div>
+          <aside className="page-hero-aside">
+            <p className="page-hero-aside-title">MOBILE FLOW</p>
+            <ul className="page-hero-list">
+              <li>Paste the complete posting</li>
+              <li>Generate the role analysis</li>
+              <li>Copy the summary or keywords</li>
+            </ul>
+          </aside>
+        </div>
       </section>
-      <section className="panel p-6">
+      <section className="section-card">
         <form className="space-y-4" onSubmit={onSubmit}>
           <label className="space-y-1 block">
             <span className="text-sm font-medium">Job Description</span>
@@ -98,16 +111,20 @@ export default function JobDescriptionDecoderPage() {
               required
             />
           </label>
-          <button className="btn btn-primary" type="submit" disabled={loading}>
+          <button className="btn btn-primary w-full sm:w-auto" type="submit" disabled={loading}>
             {loading ? "Analyzing..." : "Analyze Job Description"}
           </button>
         </form>
       </section>
-      {error && <p className="text-sm text-red-700">{error}</p>}
-      {copyState && <p className="text-sm text-[var(--accent)]">{copyState}</p>}
+      {(error || copyState) && (
+        <section className="section-card">
+          {error && <p className="text-sm text-red-700">{error}</p>}
+          {copyState && <p className="text-sm text-[var(--accent)]">{copyState}</p>}
+        </section>
+      )}
       {result && (
-        <section className="panel p-6 space-y-4">
-          <div className="flex flex-wrap gap-2">
+        <section className="section-card space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             <button className="btn btn-secondary text-sm" type="button" onClick={() => copyText("Summary", result.plain_english_summary)}>
               Copy Summary
             </button>

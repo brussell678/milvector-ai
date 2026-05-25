@@ -1,5 +1,6 @@
 import { supabaseServer } from "@/lib/supabase/server";
 import { getLibraryLinkFallbacks, getTransitionTaskFallbacks, mergeDashboardTasks, mergeLibraryLinks } from "@/lib/transition-data";
+import { daysUntilDate, phaseMonthFromDays } from "@/lib/timeline";
 import { TimelinePhaseBoard } from "@/components/dashboard/TimelinePhaseBoard";
 import type { DashboardLink, DashboardTask } from "@/components/dashboard/types";
 
@@ -11,7 +12,8 @@ export default async function TimelinePage() {
 
   if (!user) return null;
 
-  const [tasksRes, completedRes, linksRes, taskFallbacks, linkFallbacks] = await Promise.all([
+  const [profileRes, tasksRes, completedRes, linksRes, taskFallbacks, linkFallbacks] = await Promise.all([
+    supabase.from("profiles").select("eas_date,separation_date").eq("id", user.id).maybeSingle(),
     supabase
       .from("transition_tasks")
       .select(
@@ -30,6 +32,8 @@ export default async function TimelinePage() {
   const tasks = mergeDashboardTasks((tasksRes.data ?? []) as DashboardTask[], taskFallbacks);
   const completedTaskIds = (completedRes.data ?? []).map((x) => x.task_id);
   const links = mergeLibraryLinks((linksRes.data ?? []) as DashboardLink[], linkFallbacks);
+  const easDate = profileRes.data?.eas_date ?? profileRes.data?.separation_date ?? null;
+  const currentPhaseMonth = phaseMonthFromDays(daysUntilDate(easDate));
 
   return (
     <main className="page-shell">
@@ -53,7 +57,12 @@ export default async function TimelinePage() {
         </div>
       </section>
 
-      <TimelinePhaseBoard tasks={tasks} initialCompletedTaskIds={completedTaskIds} links={links} />
+      <TimelinePhaseBoard
+        tasks={tasks}
+        initialCompletedTaskIds={completedTaskIds}
+        links={links}
+        currentPhaseMonth={currentPhaseMonth}
+      />
     </main>
   );
 }
