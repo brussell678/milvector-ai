@@ -36,13 +36,13 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${barlow.variable} ${plexMono.variable} antialiased`}>
         <div className="site-watermark" aria-hidden="true" />
+        <div className="site-top-banner">
+          <p>
+            Built by Marines for service members. MilVector keeps transition planning, documents, and AI tools in one connected workspace.{" "}
+            <Link href="/platform">How It Works</Link>
+          </p>
+        </div>
         <PublicSiteChrome>
-          <div className="site-top-banner">
-            <p>
-              Built by Marines for service members. MilVector keeps transition planning, documents, and AI tools in one connected workspace.{" "}
-              <Link href="/platform">How It Works</Link>
-            </p>
-          </div>
           <MobileSiteHeader />
           <DesktopNav />
         </PublicSiteChrome>
