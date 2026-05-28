@@ -29,7 +29,7 @@ export function MobileSiteHeader() {
   }
 
   return (
-    <header className="fixed left-0 right-0 top-[2.35rem] z-50 border-b border-[var(--line)] bg-[color-mix(in_oklab,var(--panel)_94%,transparent)] px-4 py-2 backdrop-blur md:hidden">
+    <header className="relative z-50 border-b border-[var(--line)] bg-[color-mix(in_oklab,var(--panel)_94%,transparent)] px-4 py-2 md:hidden">
       <div className="mx-auto flex min-h-12 max-w-6xl items-center justify-between gap-3">
         <Link href="/" className="font-extrabold tracking-wide text-[var(--accent)]" onClick={() => setOpen(false)}>
           MILVECTOR AI
