@@ -14,7 +14,10 @@ const links = [
 
 export function PrimaryNav() {
   return (
-    <nav className="mx-auto flex w-full max-w-6xl flex-wrap gap-2 px-4 pb-3 sm:px-6 lg:px-8" aria-label="Primary">
+    <nav
+      className="panel mx-auto flex w-full max-w-5xl flex-wrap justify-center gap-1.5 px-2 py-2 sm:px-3"
+      aria-label="Primary"
+    >
       {links.map((link) => (
         <Link key={link.href} href={link.href} className="btn btn-secondary !py-1.5 text-sm">
           {link.label}
