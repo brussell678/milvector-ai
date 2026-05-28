@@ -4,6 +4,7 @@ import Image from "next/image";
 import { AppNav } from "@/components/app-nav";
 import { AppShell } from "@/components/layout/app-shell";
 import { MobileAppNav } from "@/components/layout/mobile-app-nav";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { isAdminEmail } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -38,11 +39,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             <p className="text-sm text-[var(--muted)]">{user.email}</p>
           </div>
         </div>
-        <form action="/api/auth/signout" method="post">
-          <button className="btn btn-secondary text-sm" type="submit">
-            Sign Out
-          </button>
-        </form>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <ThemeToggle />
+          <form action="/api/auth/signout" method="post">
+            <button className="btn btn-secondary w-full text-sm sm:w-auto" type="submit">
+              Sign Out
+            </button>
+          </form>
+        </div>
       </header>
 
       <MobileAppNav isAdmin={isAdmin} unreadBoardNotifications={unreadBoardNotifications} />

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Barlow, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { DesktopNav } from "@/components/layout/desktop-nav";
 import { MobileSiteHeader } from "@/components/layout/mobile-site-header";
 import { PublicSiteChrome } from "@/components/layout/public-site-chrome";
@@ -46,9 +45,6 @@ export default function RootLayout({
           <MobileSiteHeader />
           <DesktopNav />
         </PublicSiteChrome>
-        <div className="fixed right-4 top-32 z-50 md:top-24">
-          <ThemeToggle />
-        </div>
         <div className="relative z-10 pb-16 pt-28 md:pt-10">{children}</div>
         <footer className="site-footer">
           <p>

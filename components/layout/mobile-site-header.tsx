@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const publicLinks = [
   { href: "/", label: "Home" },
@@ -56,9 +57,9 @@ export function MobileSiteHeader() {
               {link.label}
             </Link>
           ))}
+          <ThemeToggle />
         </nav>
       ) : null}
     </header>
   );
 }
-
