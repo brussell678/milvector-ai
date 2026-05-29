@@ -415,16 +415,16 @@ export function AuthForm({ initialError, initialMode }: AuthFormProps) {
                 <summary className="cursor-pointer text-sm font-semibold">Refine Your Timeline</summary>
                 <p className="mt-2 text-sm text-[var(--muted)]">You can add these later as your transition plan becomes clearer.</p>
                 <div className="mt-4 grid gap-4 sm:grid-cols-3">
-                  <label className="block space-y-1">
-                    <span className="text-sm font-medium">Terminal Leave Start</span>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-sm font-medium sm:flex sm:min-h-10 sm:items-end">Terminal Leave Start</span>
                     <input className="input" type="date" value={signup.terminalLeaveStart} onChange={(e) => setSignup((s) => ({ ...s, terminalLeaveStart: e.target.value }))} />
                   </label>
-                  <label className="block space-y-1">
-                    <span className="text-sm font-medium">PTAD Start</span>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-sm font-medium sm:flex sm:min-h-10 sm:items-end">PTAD Start</span>
                     <input className="input" type="date" value={signup.ptadStart} onChange={(e) => setSignup((s) => ({ ...s, ptadStart: e.target.value }))} />
                   </label>
-                  <label className="block space-y-1">
-                    <span className="text-sm font-medium">Retirement Ceremony Date</span>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-sm font-medium sm:flex sm:min-h-10 sm:items-end">Retirement Ceremony Date</span>
                     <input className="input" type="date" value={signup.retirementCeremonyDate} onChange={(e) => setSignup((s) => ({ ...s, retirementCeremonyDate: e.target.value }))} />
                   </label>
                 </div>
@@ -494,4 +494,3 @@ export function AuthForm({ initialError, initialMode }: AuthFormProps) {
     </section>
   );
 }
-
