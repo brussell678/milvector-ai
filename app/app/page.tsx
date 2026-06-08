@@ -5,8 +5,9 @@ import { getLibraryLinkFallbacks, getTransitionTaskFallbacks, mergeDashboardTask
 import { PhaseObjectives } from "@/components/dashboard/PhaseObjectives";
 import type { DashboardLink, DashboardTask } from "@/components/dashboard/types";
 
-function nextStep(profileExists: boolean, hasMasterResume: boolean, hasTargetedResume: boolean) {
+function nextStep(profileExists: boolean, hasSourceDocuments: boolean, hasMasterResume: boolean, hasTargetedResume: boolean) {
   if (!profileExists) return { href: "/app/profile", label: "Complete profile" };
+  if (!hasSourceDocuments) return { href: "/app/documents", label: "Upload source documents" };
   if (!hasMasterResume) return { href: "/app/tools/fitrep-bullets", label: "Build career foundation" };
   if (!hasTargetedResume) return { href: "/app/tools/resume-targeter", label: "Build job-targeted application" };
   return { href: "/app/library", label: "Review your library" };
@@ -20,10 +21,15 @@ export default async function DashboardPage() {
 
   if (!user) return null;
 
-  const [profileRes, artifactsRes, docsCountRes, toolRunsCountRes, toolSuccessCountRes, toolErrorCountRes] = await Promise.all([
+  const [profileRes, artifactsRes, docsCountRes, sourceDocsCountRes, toolRunsCountRes, toolSuccessCountRes, toolErrorCountRes] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
     supabase.from("resume_artifacts").select("artifact_type").eq("user_id", user.id),
     supabase.from("documents").select("*", { count: "exact", head: true }).eq("user_id", user.id),
+    supabase
+      .from("documents")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .in("doc_type", ["FITREP", "EVAL", "VMET", "JST", "LINKEDIN_PROFILE", "OTHER"]),
     supabase.from("tool_runs").select("*", { count: "exact", head: true }).eq("user_id", user.id),
     supabase.from("tool_runs").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "success"),
     supabase.from("tool_runs").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "error"),
@@ -56,7 +62,9 @@ export default async function DashboardPage() {
   const artifactTypes = new Set((artifactsRes.data ?? []).map((row) => row.artifact_type));
   const hasMasterResume = artifactTypes.has("master_resume") || artifactTypes.has("master_bullets");
   const hasTargetedResume = artifactTypes.has("targeted_resume");
-  const step = nextStep(!!profileRes.data, hasMasterResume, hasTargetedResume);
+  const sourceDocumentsCount = sourceDocsCountRes.count ?? 0;
+  const hasSourceDocuments = sourceDocumentsCount > 0;
+  const step = nextStep(!!profileRes.data, hasSourceDocuments, hasMasterResume, hasTargetedResume);
   const educationProfileSignals =
     (profileRes.data?.off_duty_education?.length ?? 0) +
     (profileRes.data?.civilian_certifications?.length ?? 0) +
@@ -70,12 +78,14 @@ export default async function DashboardPage() {
   const toolErrorCount = toolErrorCountRes.count ?? 0;
   const timelineReadiness = [
     !!profileRes.data,
+    hasSourceDocuments,
     hasMasterResume,
     hasTargetedResume,
     daysUntilEas !== null,
   ].filter(Boolean).length;
   const workflowHealthItems = [
     { label: "Profile saved", value: profileRes.data ? "Yes" : "No" },
+    { label: "Source documents", value: hasSourceDocuments ? "Uploaded" : "Missing" },
     { label: "Master resume", value: hasMasterResume ? "Ready" : "Missing" },
     { label: "Targeted resume", value: hasTargetedResume ? "Ready" : "Not yet" },
     { label: "Education signals", value: String(educationProfileSignals) },
@@ -116,7 +126,9 @@ export default async function DashboardPage() {
                 ? hasTargetedResume
                   ? "Your foundation is in place. Stay oriented through the library and timeline."
                   : "Your foundation is ready. Move into job-specific application work next."
-                : "Build the baseline material that makes the rest of the system stronger."}
+                : hasSourceDocuments
+                  ? "Build the baseline material that makes the rest of the system stronger."
+                  : "Upload and extract source records first so the AI tools have evidence to work from."}
             </p>
           </aside>
         </div>
@@ -137,7 +149,7 @@ export default async function DashboardPage() {
             </article>
             <article className="stat-card">
               <p className="stat-label">Readiness Signals</p>
-              <p className="mt-3 text-2xl font-extrabold leading-tight text-[var(--accent)]">{timelineReadiness}/4</p>
+              <p className="mt-3 text-2xl font-extrabold leading-tight text-[var(--accent)]">{timelineReadiness}/5</p>
               <p className="mt-2 text-xs text-[var(--muted)]">core signals in place</p>
             </article>
           </div>

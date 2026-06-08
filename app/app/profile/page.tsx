@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import { supabaseBrowser } from "@/lib/supabase/client";
 
 type Profile = {
   full_name: string;
@@ -54,6 +55,12 @@ export default function ProfilePage() {
   const [status, setStatus] = useState<string | null>(null);
   const [statusKind, setStatusKind] = useState<"success" | "error" | null>(null);
   const [saving, setSaving] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordStatus, setPasswordStatus] = useState<string | null>(null);
+  const [passwordStatusKind, setPasswordStatusKind] = useState<"success" | "error" | null>(null);
+  const [savingPassword, setSavingPassword] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -131,6 +138,46 @@ export default function ProfilePage() {
     }
     setStatus("Profile saved.");
     setStatusKind("success");
+  }
+
+  async function updatePassword(e: FormEvent) {
+    e.preventDefault();
+    setSavingPassword(true);
+    setPasswordStatus(null);
+    setPasswordStatusKind(null);
+
+    if (password.length < 8) {
+      setPasswordStatus("Password must be at least 8 characters.");
+      setPasswordStatusKind("error");
+      setSavingPassword(false);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setPasswordStatus("Password and confirm password must match.");
+      setPasswordStatusKind("error");
+      setSavingPassword(false);
+      return;
+    }
+
+    try {
+      const supabase = supabaseBrowser();
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) {
+        setPasswordStatus(error.message);
+        setPasswordStatusKind("error");
+        return;
+      }
+      setPassword("");
+      setConfirmPassword("");
+      setPasswordStatus("Password updated. You can now sign in with password or magic link.");
+      setPasswordStatusKind("success");
+    } catch (error) {
+      setPasswordStatus(error instanceof Error ? error.message : "Unable to update password.");
+      setPasswordStatusKind("error");
+    } finally {
+      setSavingPassword(false);
+    }
   }
 
   return (
@@ -327,7 +374,52 @@ export default function ProfilePage() {
       </form>
 
       {status ? <div className={`alert-base mt-4 ${statusKind === "error" ? "alert-error" : "alert-success"}`}>{status}</div> : null}
-          </section>
+      </section>
+
+      <section className="section-card mt-4">
+        <h2 className="section-title">Password Access</h2>
+        <p className="section-description">
+          Add or change a password if you started with magic links and want another way to return to your workspace.
+        </p>
+        <form className="mt-5 grid gap-4 md:grid-cols-2" onSubmit={updatePassword}>
+          <label className="space-y-1">
+            <span className="text-sm font-medium">New Password</span>
+            <input
+              className="input"
+              type={showPassword ? "text" : "password"}
+              minLength={8}
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="text-sm font-medium">Confirm Password</span>
+            <input
+              className="input"
+              type={showPassword ? "text" : "password"}
+              minLength={8}
+              required
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+          </label>
+          <label className="flex items-center gap-2 text-sm text-[var(--muted)] md:col-span-2">
+            <input type="checkbox" checked={showPassword} onChange={(e) => setShowPassword(e.target.checked)} />
+            Show password
+          </label>
+          <div className="md:col-span-2">
+            <button className="btn btn-primary w-full sm:w-auto" disabled={savingPassword} type="submit">
+              {savingPassword ? "Updating..." : "Update Password"}
+            </button>
+          </div>
+        </form>
+        {passwordStatus ? (
+          <div className={`alert-base mt-4 ${passwordStatusKind === "error" ? "alert-error" : "alert-success"}`}>
+            {passwordStatus}
+          </div>
+        ) : null}
+      </section>
     </main>
   );
 }

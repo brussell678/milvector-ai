@@ -162,8 +162,14 @@ export default function FitrepBulletsPage() {
           </aside>
         </div>
         <section className="mt-6 rounded-md border border-[var(--line)] bg-[var(--accent-soft)] p-4">
-          <p className="text-sm font-semibold text-[var(--accent)]">Tool Notice</p>
+          <p className="text-sm font-semibold text-[var(--accent)]">Start With Source Documents</p>
           <p className="mt-1 text-sm text-[var(--foreground)]">
+            Upload and extract available source records in Documents before generating a master resume. FITREPs/EVALs are the strongest accomplishment source; VMET, JST, and LinkedIn profile documents improve context when available.
+          </p>
+          <a className="btn btn-secondary mt-3 w-full text-sm sm:w-auto" href="/app/documents">
+            Open Documents
+          </a>
+          <p className="mt-3 text-sm text-[var(--foreground)]">
             This tool generates a starting-point master resume, not a final version. Improve it now and save the refined copy in Documents so every downstream tool starts from a stronger source.
           </p>
         </section>
