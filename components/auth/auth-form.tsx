@@ -414,17 +414,17 @@ export function AuthForm({ initialError, initialMode }: AuthFormProps) {
               <details className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
                 <summary className="cursor-pointer text-sm font-semibold">Refine Your Timeline</summary>
                 <p className="mt-2 text-sm text-[var(--muted)]">You can add these later as your transition plan becomes clearer.</p>
-                <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <label className="flex flex-col gap-1">
-                    <span className="text-sm font-medium sm:flex sm:min-h-10 sm:items-end">Terminal Leave Start</span>
+                    <span className="text-sm font-medium">Terminal Leave</span>
                     <input className="input" type="date" value={signup.terminalLeaveStart} onChange={(e) => setSignup((s) => ({ ...s, terminalLeaveStart: e.target.value }))} />
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-sm font-medium sm:flex sm:min-h-10 sm:items-end">PTAD Start</span>
+                    <span className="text-sm font-medium">PTAD</span>
                     <input className="input" type="date" value={signup.ptadStart} onChange={(e) => setSignup((s) => ({ ...s, ptadStart: e.target.value }))} />
                   </label>
-                  <label className="flex flex-col gap-1">
-                    <span className="text-sm font-medium sm:flex sm:min-h-10 sm:items-end">Retirement Ceremony Date</span>
+                  <label className="flex flex-col gap-1 sm:col-span-2">
+                    <span className="text-sm font-medium">Retirement Ceremony</span>
                     <input className="input" type="date" value={signup.retirementCeremonyDate} onChange={(e) => setSignup((s) => ({ ...s, retirementCeremonyDate: e.target.value }))} />
                   </label>
                 </div>

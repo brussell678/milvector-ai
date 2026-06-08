@@ -24,7 +24,7 @@ type MasterResumeOutput = {
 
 type DocRow = {
   id: string;
-  doc_type: "FITREP" | "EVAL" | "VMET" | "JST" | "OTHER";
+  doc_type: "FITREP" | "EVAL" | "VMET" | "JST" | "MASTER_RESUME" | "RESUME_TEMPLATE" | "TARGETED_RESUME" | "LINKEDIN_PROFILE" | "OTHER";
   text_extracted: boolean;
   created_at: string;
   filename: string;
@@ -65,8 +65,9 @@ export default function FitrepBulletsPage() {
     const extracted = docs.filter((d) => d.text_extracted);
     const hasVmet = extracted.some((d) => d.doc_type === "VMET");
     const hasJst = extracted.some((d) => d.doc_type === "JST");
+    const linkedinCount = extracted.filter((d) => d.doc_type === "LINKEDIN_PROFILE").length;
     const fitrepCount = extracted.filter((d) => d.doc_type === "FITREP" || d.doc_type === "EVAL").length;
-    return { hasVmet, hasJst, fitrepCount };
+    return { hasVmet, hasJst, linkedinCount, fitrepCount };
   }, [docs]);
 
   async function onSubmit(e: FormEvent) {
@@ -75,6 +76,11 @@ export default function FitrepBulletsPage() {
     setError(null);
     setNotice(null);
     setResult(null);
+
+    const optionalText = (value: string) => {
+      const trimmed = value.trim();
+      return trimmed ? trimmed : undefined;
+    };
 
     const payload =
       mode === "master_resume"
@@ -86,9 +92,9 @@ export default function FitrepBulletsPage() {
           : {
               mode,
               targetRole: targetRole || null,
-              vmetText,
-              jstText,
-              fitrepsText,
+              vmetText: optionalText(vmetText),
+              jstText: optionalText(jstText),
+              fitrepsText: optionalText(fitrepsText),
             }
         : {
             mode,
@@ -143,14 +149,14 @@ export default function FitrepBulletsPage() {
             <p className="page-kicker">MASTER RESUME</p>
             <h1 className="page-title">Build the career foundation every downstream tool depends on.</h1>
             <p className="page-description">
-              Pull from service records and source documents to generate the master resume that powers targeting, interview prep, and future application work.
+              Pull from available service records, FITREPs, EVALs, LinkedIn drafts, and source documents to generate the master resume that powers targeting, interview prep, and future application work.
             </p>
           </div>
           <aside className="page-hero-aside">
             <p className="page-hero-aside-title">BEST INPUTS</p>
             <ul className="page-hero-list">
               <li>Extracted FITREPs and EVALs</li>
-              <li>JST and VMET</li>
+              <li>JST, VMET, and LinkedIn profile documents</li>
               <li>Updated target role if you have one</li>
             </ul>
           </aside>
@@ -170,7 +176,7 @@ export default function FitrepBulletsPage() {
               <div>
                 <p className="section-title">Inputs</p>
                 <p className="section-description">
-                  Use uploaded documents when possible so the tool can build a fuller record from your extracted sources.
+                  Use uploaded documents when possible. VMET, JST, LinkedIn profile documents, FITREPs, and EVALs all help, but the tool can run from whichever source records are available.
                 </p>
               </div>
 
@@ -209,10 +215,11 @@ export default function FitrepBulletsPage() {
                       <ul className="mt-2 space-y-1 text-sm text-[var(--muted)]">
                         <li>VMET extracted: {sourceSummary.hasVmet ? "Yes" : "No"}</li>
                         <li>JST extracted: {sourceSummary.hasJst ? "Yes" : "No"}</li>
+                        <li>LinkedIn profile documents extracted: {sourceSummary.linkedinCount}</li>
                         <li>FITREP/EVAL extracted count: {sourceSummary.fitrepCount}</li>
                       </ul>
                       <p className="mt-2 text-xs text-[var(--muted)]">
-                        Upload and extract missing records on the Documents page before running this tool.
+                        Upload and extract additional records on the Documents page when you have them. Missing sources become validation questions instead of blocking generation.
                       </p>
                       <p className="mt-1 text-xs text-[var(--muted)]">
                         If extracted text exceeds model limits, the system will prioritize the most recent source material.
@@ -221,35 +228,35 @@ export default function FitrepBulletsPage() {
                   ) : (
                     <div className="space-y-3">
                       <label className="block space-y-1">
-                        <span className="text-sm font-medium">1) VMET Text</span>
+                        <span className="text-sm font-medium">1) VMET Text (optional)</span>
                         <textarea
                           className="input min-h-40"
                           value={vmetText}
                           onChange={(e) => setVmetText(e.target.value)}
                           placeholder="Paste VMET (DD2586) text first"
-                          required
                         />
                       </label>
                       <label className="block space-y-1">
-                        <span className="text-sm font-medium">2) JST Text</span>
+                        <span className="text-sm font-medium">2) JST Text (optional)</span>
                         <textarea
                           className="input min-h-40"
                           value={jstText}
                           onChange={(e) => setJstText(e.target.value)}
                           placeholder="Paste JST text second"
-                          required
                         />
                       </label>
                       <label className="block space-y-1">
-                        <span className="text-sm font-medium">3) Observed FITREP Text (Chronological)</span>
+                        <span className="text-sm font-medium">3) Observed FITREP/EVAL Text (recommended)</span>
                         <textarea
                           className="input min-h-56"
                           value={fitrepsText}
                           onChange={(e) => setFitrepsText(e.target.value)}
                           placeholder="Paste all observed FITREP text in chronological order"
-                          required
                         />
                       </label>
+                      <p className="text-xs text-[var(--muted)]">
+                        Provide at least one substantive source. FITREPs/EVALs produce the strongest accomplishment evidence; VMET, JST, and LinkedIn profile documents add context when available.
+                      </p>
                     </div>
                   )}
                 </>

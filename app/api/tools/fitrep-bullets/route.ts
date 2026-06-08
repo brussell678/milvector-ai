@@ -296,18 +296,19 @@ export async function POST(req: Request) {
     let resolvedVmetText = vmetText ?? "";
     let resolvedJstText = jstText ?? "";
     let resolvedFitrepsText = fitrepsText ?? "";
+    let resolvedLinkedinProfileText = "";
     let sourceDocumentIdFromSet: string | null = null;
     let fitrepDocsDetected = 0;
     let fitrepDocsIncluded = 0;
 
-    if (!resolvedVmetText || !resolvedJstText || !resolvedFitrepsText) {
+    if (!resolvedVmetText || !resolvedJstText || !resolvedFitrepsText || !resolvedLinkedinProfileText) {
       const { data: docs, error: docsErr } = await supabase
         .from("documents")
         .select("id,doc_type,filename,created_at,extracted_text,text_extracted")
         .eq("user_id", userId)
         .eq("text_extracted", true)
         .not("extracted_text", "is", null)
-        .in("doc_type", ["VMET", "JST", "FITREP", "EVAL"])
+        .in("doc_type", ["VMET", "JST", "FITREP", "EVAL", "LINKEDIN_PROFILE"])
         .order("created_at", { ascending: true });
 
       if (docsErr) {
@@ -317,16 +318,22 @@ export async function POST(req: Request) {
       const vmetDoc = docs?.find((d) => d.doc_type === "VMET");
       const jstDoc = docs?.find((d) => d.doc_type === "JST");
       const fitrepDocs = docs?.filter((d) => d.doc_type === "FITREP" || d.doc_type === "EVAL") ?? [];
+      const linkedinProfileDocs = docs?.filter((d) => d.doc_type === "LINKEDIN_PROFILE") ?? [];
       fitrepDocsDetected = fitrepDocs.length;
 
       if (!resolvedVmetText && vmetDoc?.extracted_text) resolvedVmetText = vmetDoc.extracted_text;
       if (!resolvedJstText && jstDoc?.extracted_text) resolvedJstText = jstDoc.extracted_text;
+      if (!resolvedLinkedinProfileText) {
+        resolvedLinkedinProfileText = linkedinProfileDocs
+          .map((doc) => `### LINKEDIN_PROFILE: ${doc.filename}\n${doc.extracted_text ?? ""}`)
+          .join("\n\n");
+      }
       if (!resolvedFitrepsText) {
         const corpus = buildFitrepCorpus(fitrepDocs, 60000);
         resolvedFitrepsText = corpus.text;
         fitrepDocsIncluded = corpus.includedDocCount;
       }
-      sourceDocumentIdFromSet = fitrepDocs.at(-1)?.id ?? vmetDoc?.id ?? jstDoc?.id ?? null;
+      sourceDocumentIdFromSet = fitrepDocs.at(-1)?.id ?? vmetDoc?.id ?? jstDoc?.id ?? linkedinProfileDocs.at(-1)?.id ?? null;
     } else {
       fitrepDocsDetected = 0;
       fitrepDocsIncluded = 0;
@@ -341,10 +348,18 @@ export async function POST(req: Request) {
       60000,
       /(led|managed|oversaw|directed|improved|reduced|increased|trained|developed|implemented|readiness|maintenance|operations|logistics|budget|cost|savings|award|inspection|compliance|mission|deploy|%|\$|\d)/i
     );
+    resolvedLinkedinProfileText = compactTextByPriority(
+      resolvedLinkedinProfileText,
+      12000,
+      /(headline|about|summary|experience|skills|certifications|education|leadership|operations|program|project|management|strategy|profile)/i
+    );
 
-    if (!resolvedVmetText || !resolvedJstText || !resolvedFitrepsText) {
+    const availableSourceCount = [resolvedVmetText, resolvedJstText, resolvedFitrepsText, resolvedLinkedinProfileText]
+      .filter((text) => text.trim().length >= 100).length;
+
+    if (availableSourceCount === 0) {
       return NextResponse.json(
-        { error: "Missing source text. Upload/extract VMET + JST + FITREP/EVAL docs (or paste all three manually)." },
+        { error: "Missing source text. Upload/extract at least one source document, or paste source text manually." },
         { status: 400 }
       );
     }
@@ -354,6 +369,7 @@ export async function POST(req: Request) {
       vmetText: resolvedVmetText,
       jstText: resolvedJstText,
       fitrepsText: resolvedFitrepsText,
+      linkedinProfileText: resolvedLinkedinProfileText,
     });
 
     const started = Date.now();
@@ -371,6 +387,7 @@ export async function POST(req: Request) {
         mode,
         hasVmet: !!resolvedVmetText,
         hasJst: !!resolvedJstText,
+        hasLinkedinProfile: !!resolvedLinkedinProfileText,
         fitrepsLen: resolvedFitrepsText.length,
         targetRole: targetRole ?? null,
       },

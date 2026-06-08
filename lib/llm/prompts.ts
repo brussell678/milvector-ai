@@ -34,6 +34,7 @@ export function promptMasterResumeFromMilitaryDocs(args: {
   vmetText: string;
   jstText: string;
   fitrepsText: string;
+  linkedinProfileText?: string | null;
   branch?: string;
   mos?: string | null;
   rank?: string | null;
@@ -46,18 +47,19 @@ export function promptMasterResumeFromMilitaryDocs(args: {
 }) {
   return `
 You are a senior military-to-civilian career transition analyst and former military recruiter.
-Your job is to build a high-quality MASTER RESUME (not a job-specific resume) from military records.
+Your job is to build a high-quality MASTER RESUME (not a job-specific resume) from the available career source records.
 
-Mandatory ingestion order (do not violate):
-1) VMET (DD-2586)
-2) JST
-3) Observed FITREPs/EVALs (chronological)
+Source handling:
+- Use any provided VMET, JST, FITREP/EVAL, LinkedIn profile, and user profile context.
+- Do not require every source to be present. Build the strongest defensible master resume from the available evidence.
+- Treat missing source categories as gaps to capture in validation_questions when they materially limit confidence.
 
 Authority hierarchy and truth rules:
 - Never invent credentials, roles, dates, metrics, or achievements.
 - FITREP/EVAL observed periods are the only authoritative accomplishment windows.
 - VMET is context + role translation only. VMET cannot create accomplishments or dates.
 - JST is the authoritative training/certification source only. JST cannot create performance accomplishments.
+- LinkedIn profile documents are positioning context only. They can clarify civilian language, role framing, skills, and public-facing profile claims, but they cannot create unverified accomplishments, dates, credentials, or metrics.
 - User-provided Off-Duty Education / Civilian Certifications / Additional Training are authoritative for those specific items.
 - Service component and years of service at EAS are authoritative context for tenure framing.
 - RS/RO language is credibility/impact framing for accomplishments already grounded in observed periods.
@@ -143,6 +145,9 @@ ${args.jstText}
 
 FITREPs:
 ${args.fitrepsText}
+
+LinkedIn profile documents:
+${args.linkedinProfileText ?? ""}
 `.trim();
 }
 
