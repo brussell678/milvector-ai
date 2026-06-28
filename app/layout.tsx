@@ -45,7 +45,7 @@ export default function RootLayout({
           <MobileSiteHeader />
           <DesktopNav />
         </PublicSiteChrome>
-        <div className="relative z-10 pb-16 pt-2">{children}</div>
+        <div className="relative z-10 pb-16 pt-4">{children}</div>
         <footer className="site-footer">
           <p>
             Copyright 2026 MilVector AI. Built by{" "}

@@ -505,6 +505,104 @@ body {
   font-weight: 800;
 }
 
+/* ─── Site Navigation ────────────────────────────────────────────── */
+
+/* Glassmorphic sticky nav bar — shared by desktop and mobile header */
+.site-nav-glass {
+  background: color-mix(in oklab, var(--panel) 88%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+  transition: background-color var(--duration-base) var(--ease-default), border-color var(--duration-base) var(--ease-default);
+}
+
+/* Desktop nav links */
+.nav-link {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+  padding: 0.375rem 0.75rem;
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+  transition: background-color var(--duration-fast) var(--ease-default), color var(--duration-fast) var(--ease-default);
+}
+
+.nav-link:hover {
+  background: var(--surface);
+  color: var(--accent);
+}
+
+.nav-link-active {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--accent);
+  padding: 0.375rem 0.75rem;
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  white-space: nowrap;
+}
+
+/* Mobile drawer links (larger touch targets) */
+.nav-drawer-link {
+  display: flex;
+  align-items: center;
+  min-height: 3rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--foreground);
+  transition: background-color var(--duration-fast) var(--ease-default), color var(--duration-fast) var(--ease-default);
+}
+
+.nav-drawer-link:hover {
+  background: var(--surface);
+  color: var(--accent);
+}
+
+.nav-drawer-link-active {
+  display: flex;
+  align-items: center;
+  min-height: 3rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* Mobile drawer backdrop overlay */
+.nav-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: color-mix(in oklab, #000 50%, transparent);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+/* Mobile slide-in drawer panel */
+.nav-drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  width: 18rem;
+  max-width: 85vw;
+  background: var(--panel);
+  box-shadow: var(--shadow-lg);
+  transform: translateX(100%);
+  transition: transform var(--duration-slow) var(--ease-default);
+}
+
+.nav-drawer[data-open="true"] {
+  transform: translateX(0);
+}
+
 /* ─── App Nav ────────────────────────────────────────────────────── */
 
 .app-nav-shell {
