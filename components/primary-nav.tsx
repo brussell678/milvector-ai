@@ -59,10 +59,10 @@ export function PrimaryNav() {
             {link.label}
           </Link>
         ))}
-        <span className="ml-1 shrink-0">
-          <ThemeToggle />
-        </span>
       </div>
+
+      {/* Theme toggle — outside scrollable area, between links and CTA */}
+      <ThemeToggle />
 
       {/* Primary CTA — always visible */}
       <Link href="/auth" className="btn btn-primary ml-2 shrink-0 !min-h-9 !py-1.5 text-sm">

@@ -49,7 +49,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      {/* Inline theme init — runs before first paint to prevent FOUC */}
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `!function(){var t=localStorage.getItem('mv-theme')||(window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t)}();`,
+          }}
+        />
+      </head>
       <body className={`${barlow.variable} ${plexMono.variable} antialiased`}>
         <div className="site-watermark" aria-hidden="true" />
         <ScrollObserver />

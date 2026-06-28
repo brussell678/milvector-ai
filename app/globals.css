@@ -745,6 +745,68 @@ body {
   transform: translateX(0);
 }
 
+/* ─── Theme Toggle ───────────────────────────────────────────────── */
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    color var(--duration-base) var(--ease-default),
+    border-color var(--duration-base) var(--ease-default),
+    background var(--duration-base) var(--ease-default);
+}
+
+.theme-toggle:hover,
+.theme-toggle:focus-visible {
+  color: var(--foreground);
+  border-color: color-mix(in oklab, var(--accent) 55%, var(--line) 45%);
+  background: var(--surface);
+  outline: none;
+}
+
+/* Icon visibility — pure CSS, no React state needed */
+.theme-icon-sun  { display: none;  flex-shrink: 0; pointer-events: none; }
+.theme-icon-moon { display: block; flex-shrink: 0; pointer-events: none; }
+
+:root[data-theme="dark"] .theme-icon-sun  { display: block; }
+:root[data-theme="dark"] .theme-icon-moon { display: none; }
+
+/* Label text — hidden on desktop */
+.theme-label { display: none; }
+
+/* Label text swap: show what mode you'll switch TO */
+.theme-label-light-text { display: inline; } /* "Dark mode"  — visible in light */
+.theme-label-dark-text  { display: none; }   /* "Light mode" — visible in dark  */
+
+:root[data-theme="dark"] .theme-label-light-text { display: none; }
+:root[data-theme="dark"] .theme-label-dark-text  { display: inline; }
+
+/* Mobile drawer — expands toggle to full-width row with text label */
+.nav-drawer-footer .theme-toggle {
+  width: 100%;
+  height: auto;
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  gap: 10px;
+  justify-content: flex-start;
+}
+
+.nav-drawer-footer .theme-label {
+  display: inline;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
 /* ─── App Nav ────────────────────────────────────────────────────── */
 
 .app-nav-shell {

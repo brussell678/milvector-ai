@@ -141,7 +141,7 @@ export function MobileSiteHeader() {
         </div>
 
         {/* Drawer footer */}
-        <div className="grid gap-3 border-t border-[var(--line)] px-3 py-4">
+        <div className="nav-drawer-footer grid gap-3 border-t border-[var(--line)] px-3 py-4">
           <Link href="/auth" className="btn btn-primary w-full" onClick={() => setOpen(false)}>
             Open Workspace
           </Link>
