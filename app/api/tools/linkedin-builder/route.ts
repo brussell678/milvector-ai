@@ -698,6 +698,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ documentId: savedDocument.documentId, filename: `${filenameBase}.md` });
   }
 
+  if (workflowStage === "update_profile") {
+    if (!profileId || !profileJson) {
+      return NextResponse.json({ error: "profileId and profileJson are required." }, { status: 400 });
+    }
+    const normalizedForUpdate = normalizeLinkedinProfile(profileJson as Partial<LinkedinProfileOutput>);
+    await supabase
+      .from("linkedin_profiles")
+      .update({
+        generated_profile: toStoredJson(normalizedForUpdate),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", profileId)
+      .eq("user_id", userId);
+    return NextResponse.json({ ok: true });
+  }
+
   if (!targetRole || !industry) {
     return NextResponse.json({ error: "Target role and industry are required." }, { status: 400 });
   }

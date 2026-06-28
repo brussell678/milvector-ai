@@ -1,7 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { LoadingBlock } from "@/components/tools/loading-block";
+import { ToolAlert } from "@/components/tools/tool-alert";
+import { ActionBar } from "@/components/tools/action-bar";
+
+// ─── Types ────────────────────────────────────────────────────────────
 
 type Artifact = { id: string; title: string; created_at: string };
 type MasterResumeDocument = { id: string; doc_type: "MASTER_RESUME"; filename: string; created_at: string; text_extracted: boolean };
@@ -14,20 +19,30 @@ type BannerOutput = { banner_prompt: string; style_notes: string[]; visual_focus
 type ProfileScoreOutput = { overall_score: number; recruiter_readiness: string; strengths: string[]; improvement_priorities: string[]; section_scores: Array<{ section: string; score: number; max_score: number; rationale: string; actions: string[] }> };
 type SavedLinkedinProfile = { id: string; versionLabel: string | null; resumeText: string; targetRole: string | null; industry: string | null; industryTuning: string | null; locationPref: string | null; analysisContext: { analysis?: ResumeAnalysisOutput; careerSuggestions?: CareerSuggestionsOutput }; careerSuggestions: CareerSuggestionsOutput | Record<string, never>; generatedProfile: LinkedinProfileOutput | Record<string, never>; profileScore: ProfileScoreOutput | Record<string, never>; bannerOutput: BannerOutput | Record<string, never>; bannerImageUrl: string | null; createdAt: string };
 type WorkspaceTab = "analysis" | "career" | "profile" | "score" | "banner";
+type StageState = "pending" | "active" | "complete";
+
+// ─── Helpers ──────────────────────────────────────────────────────────
 
 function hasData(value: unknown) {
   return !!value && typeof value === "object" && Object.keys(value as Record<string, unknown>).length > 0;
 }
 
+// ─── Sub-components ───────────────────────────────────────────────────
+
 function ListBlock({ title, items }: { title: string; items: string[] }) {
-  if (!items.length) return null;
+  if (!items?.length) return null;
   return (
-    <section>
-      <h3 className="text-sm font-semibold">{title}</h3>
-      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
-        {items.map((item, idx) => <li key={`${title}-${idx}`}>{item}</li>)}
+    <div>
+      <p className="mb-1.5 text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">{title}</p>
+      <ul className="flex flex-col gap-1">
+        {items.map((item, idx) => (
+          <li key={`${title}-${idx}`} className="flex gap-2 text-sm">
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" aria-hidden="true" />
+            {item}
+          </li>
+        ))}
       </ul>
-    </section>
+    </div>
   );
 }
 
@@ -35,16 +50,49 @@ function EditListArea({ label, value, onChange, rows = 5 }: { label: string; val
   return (
     <label className="block space-y-1">
       <span className="text-sm font-medium">{label}</span>
-      <textarea className="input" rows={rows} value={value.join("\n")} onChange={(e) => onChange(e.target.value.split("\n").map((item) => item.trim()).filter(Boolean))} />
+      <textarea
+        className="input"
+        rows={rows}
+        value={value.join("\n")}
+        onChange={(e) => onChange(e.target.value.split("\n").map((item) => item.trim()).filter(Boolean))}
+      />
     </label>
   );
 }
 
-function EmptyState({ title, body }: { title: string; body: string }) {
-  return <section className="section-card"><p className="section-title">{title}</p><p className="mt-2 text-sm text-[var(--muted)]">{body}</p></section>;
+function ScoreRing({ score, size = 88 }: { score: number; size?: number }) {
+  const strokeW = 7;
+  const r = (size - strokeW * 2) / 2;
+  const cx = size / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (score / 100) * circ;
+  const color = score >= 75 ? "var(--accent)" : score >= 50 ? "#d4a017" : "#dc4c4c";
+  return (
+    <div className="relative inline-flex shrink-0 items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-label={`Score: ${score} out of 100`}>
+        <circle cx={cx} cy={cx} r={r} fill="none" stroke="var(--line)" strokeWidth={strokeW} />
+        <circle
+          cx={cx} cy={cx} r={r} fill="none"
+          stroke={color} strokeWidth={strokeW}
+          strokeDasharray={`${circ} ${circ}`}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          transform={`rotate(-90 ${cx} ${cx})`}
+          style={{ transition: "stroke-dashoffset 0.6s ease" }}
+        />
+      </svg>
+      <div className="absolute flex flex-col items-center leading-tight">
+        <span className="font-bold" style={{ fontSize: size * 0.23, color }}>{score}</span>
+        <span className="text-[var(--muted)]" style={{ fontSize: size * 0.12 }}>/100</span>
+      </div>
+    </div>
+  );
 }
 
+// ─── Page ─────────────────────────────────────────────────────────────
+
 export default function LinkedinBuilderPage() {
+  // ── State ──────────────────────────────────────────────────────────
   const [masterResumeSelection, setMasterResumeSelection] = useState("");
   const [masterResumeOptions, setMasterResumeOptions] = useState<MasterResumeOption[]>([]);
   const [savedProfiles, setSavedProfiles] = useState<SavedLinkedinProfile[]>([]);
@@ -71,7 +119,11 @@ export default function LinkedinBuilderPage() {
   const [loading, setLoading] = useState(false);
   const [activeTask, setActiveTask] = useState<string | null>(null);
   const [copyState, setCopyState] = useState("");
+  const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
 
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Initial data load ──────────────────────────────────────────────
   useEffect(() => {
     async function loadInitial() {
       const [artifactRes, docsRes, savedRes] = await Promise.all([
@@ -83,40 +135,82 @@ export default function LinkedinBuilderPage() {
       const docsData = await docsRes.json().catch(() => ({}));
       const savedData = await savedRes.json().catch(() => ({}));
       const nextOptions: MasterResumeOption[] = [];
-
       if (artifactRes.ok) {
-        nextOptions.push(...((artifactData.artifacts ?? []) as Artifact[]).map((artifact) => ({
-          value: `artifact:${artifact.id}`,
-          id: artifact.id,
+        nextOptions.push(...((artifactData.artifacts ?? []) as Artifact[]).map((a) => ({
+          value: `artifact:${a.id}`,
+          id: a.id,
           sourceType: "artifact" as const,
-          label: `${artifact.title} (${new Date(artifact.created_at).toLocaleDateString()}) - Saved master resume`,
+          label: `${a.title} (${new Date(a.created_at).toLocaleDateString()}) — Saved master resume`,
         })));
       }
-
       if (docsRes.ok) {
         nextOptions.push(...((docsData.documents ?? []) as MasterResumeDocument[])
-          .filter((doc) => doc.doc_type === "MASTER_RESUME")
-          .map((doc) => ({
-            value: `document:${doc.id}`,
-            id: doc.id,
+          .filter((d) => d.doc_type === "MASTER_RESUME")
+          .map((d) => ({
+            value: `document:${d.id}`,
+            id: d.id,
             sourceType: "document" as const,
-            label: `${doc.filename} (${new Date(doc.created_at).toLocaleDateString()})${doc.text_extracted ? "" : " - not extracted"} - Uploaded master resume`,
+            label: `${d.filename} (${new Date(d.created_at).toLocaleDateString()})${d.text_extracted ? "" : " — not extracted"} — Uploaded`,
           })));
       }
-
       setMasterResumeOptions(nextOptions);
-      if (nextOptions[0]) setMasterResumeSelection((current) => current || nextOptions[0].value);
+      if (nextOptions[0]) setMasterResumeSelection((c) => c || nextOptions[0].value);
       if (savedRes.ok) setSavedProfiles((savedData.profiles ?? []) as SavedLinkedinProfile[]);
     }
-
     void loadInitial();
   }, []);
 
+  // ── Navigation guard ───────────────────────────────────────────────
+  useEffect(() => {
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      if (profileOutput && !documentId) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    }
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [profileOutput, documentId]);
+
+  // ── 30s debounce auto-save ─────────────────────────────────────────
+  useEffect(() => {
+    if (!profileOutput || !currentProfileId) return;
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => {
+      void fetch("/api/tools/linkedin-builder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workflowStage: "update_profile",
+          profileId: currentProfileId,
+          profileJson: profileOutput,
+        }),
+      }).then((r) => { if (r.ok) setLastAutoSave(new Date()); });
+    }, 30000);
+    return () => {
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    };
+  }, [profileOutput, currentProfileId]);
+
+  // ── Derived ────────────────────────────────────────────────────────
   const selectedMasterResume = useMemo(
-    () => masterResumeOptions.find((option) => option.value === masterResumeSelection) ?? null,
+    () => masterResumeOptions.find((o) => o.value === masterResumeSelection) ?? null,
     [masterResumeOptions, masterResumeSelection]
   );
 
+  const stageBarStages = useMemo(
+    () =>
+      [
+        { label: "Analysis", state: (analysis ? "complete" : "active") as StageState },
+        { label: "Career", state: (careerSuggestions ? "complete" : analysis ? "active" : "pending") as StageState },
+        { label: "Profile", state: (profileOutput ? "complete" : careerSuggestions ? "active" : "pending") as StageState },
+        { label: "Score", state: (profileScore ? "complete" : profileOutput ? "active" : "pending") as StageState },
+        { label: "Banner", state: (bannerOutput ? "complete" : profileOutput ? "active" : "pending") as StageState },
+      ],
+    [analysis, careerSuggestions, profileOutput, profileScore, bannerOutput]
+  );
+
+  // ── Utilities ──────────────────────────────────────────────────────
   function buildSourcePayload() {
     return {
       masterResumeArtifactId: selectedMasterResume?.sourceType === "artifact" ? selectedMasterResume.id : undefined,
@@ -134,6 +228,7 @@ export default function LinkedinBuilderPage() {
   function setWorkspaceFromProfile(profile: SavedLinkedinProfile) {
     setCurrentProfileId(profile.id);
     setDocumentId(null);
+    setLastAutoSave(null);
     setResumeSourceText(profile.resumeText);
     setPastedResumeText(profile.resumeText);
     setVersionLabel(profile.versionLabel ?? "");
@@ -148,7 +243,7 @@ export default function LinkedinBuilderPage() {
     setBannerOutput(hasData(profile.bannerOutput) ? (profile.bannerOutput as BannerOutput) : null);
     setBannerImageUrl(profile.bannerImageUrl);
     setActiveTab("profile");
-    setNotice(`Loaded saved version${profile.versionLabel ? `: ${profile.versionLabel}` : ""}.`);
+    setNotice(`Loaded version${profile.versionLabel ? `: ${profile.versionLabel}` : ""}. Edits auto-save after 30 seconds.`);
     setError(null);
   }
 
@@ -168,12 +263,13 @@ export default function LinkedinBuilderPage() {
     setError(null);
     setNotice(null);
     try {
-      const res = await fetch("/api/tools/linkedin-builder", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const res = await fetch("/api/tools/linkedin-builder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(data.error ?? "Request failed.");
-        return null;
-      }
+      if (!res.ok) { setError(data.error ?? "Request failed."); return null; }
       return data;
     } catch {
       setError("Network error during tool run.");
@@ -184,30 +280,74 @@ export default function LinkedinBuilderPage() {
     }
   }
 
-  async function runResumeAnalysis(e: FormEvent) {
+  // ── Steps 1+2 auto-sequence ────────────────────────────────────────
+  async function runAnalysisAndCareer(e: FormEvent) {
     e.preventDefault();
     setCurrentProfileId("");
     setDocumentId(null);
+    setLastAutoSave(null);
+    setAnalysis(null);
+    setCareerSuggestions(null);
     setProfileOutput(null);
     setProfileScore(null);
     setBannerOutput(null);
     setBannerImageUrl(null);
-    const data = await postTool({ workflowStage: "resume_analysis", ...buildSourcePayload() }, "Running Step 1: Resume Analysis...");
-    if (!data) return;
-    setAnalysis(data as ResumeAnalysisOutput);
-    setActiveTab("analysis");
-    setNotice("Resume analysis complete. Review it, then move into career targeting.");
+    setError(null);
+    setNotice(null);
+    setLoading(true);
+
+    try {
+      // Step 1: Resume Analysis
+      setActiveTask("Running Step 1: Resume Analysis…");
+      const r1 = await fetch("/api/tools/linkedin-builder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workflowStage: "resume_analysis", ...buildSourcePayload() }),
+      });
+      const d1 = await r1.json().catch(() => ({}));
+      if (!r1.ok) { setError(d1.error ?? "Resume analysis failed."); return; }
+      const analysisResult = d1 as ResumeAnalysisOutput;
+      setAnalysis(analysisResult);
+
+      // Step 2: Career Suggestions (auto-chained)
+      setActiveTask("Running Step 2: Career Matching…");
+      const r2 = await fetch("/api/tools/linkedin-builder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workflowStage: "career_suggestions",
+          ...buildSourcePayload(),
+          analysisContext: analysisResult,
+          locationPref: locationPref || undefined,
+        }),
+      });
+      const d2 = await r2.json().catch(() => ({}));
+      if (!r2.ok) { setError(d2.error ?? "Career matching failed."); return; }
+      const careerResult = d2 as CareerSuggestionsOutput;
+      setCareerSuggestions(careerResult);
+      if (!targetRole && careerResult.suggested_roles[0]) setTargetRole(careerResult.suggested_roles[0].title);
+      if (!industry && careerResult.suggested_industries[0]) setIndustry(careerResult.suggested_industries[0]);
+      setActiveTab("career");
+      setNotice("Analysis and career matching complete. Review the career tab, adjust your target role and industry, then generate your profile.");
+    } catch {
+      setError("Network error during analysis.");
+    } finally {
+      setLoading(false);
+      setActiveTask(null);
+    }
   }
 
-  async function runCareerSuggestions() {
-    const data = await postTool({ workflowStage: "career_suggestions", ...buildSourcePayload(), analysisContext: analysis ?? undefined, locationPref: locationPref || undefined }, "Running Step 2: Career Suggestions...");
+  async function rerunCareerSuggestions() {
+    const data = await postTool(
+      { workflowStage: "career_suggestions", ...buildSourcePayload(), analysisContext: analysis ?? undefined, locationPref: locationPref || undefined },
+      "Running Step 2: Career Matching…"
+    );
     if (!data) return;
     const output = data as CareerSuggestionsOutput;
     setCareerSuggestions(output);
     if (!targetRole && output.suggested_roles[0]) setTargetRole(output.suggested_roles[0].title);
     if (!industry && output.suggested_industries[0]) setIndustry(output.suggested_industries[0]);
-    setActiveTab("career");
-    setNotice("Career suggestions ready. Select your target direction and industry tuning before generating the profile.");
+    setNotice("Career matching updated.");
   }
 
   async function runProfileGeneration() {
@@ -221,45 +361,55 @@ export default function LinkedinBuilderPage() {
       industryTuning,
       locationPref: locationPref || undefined,
       versionLabel: versionLabel || undefined,
-    }, "Running Step 3: LinkedIn Profile Generation...");
+    }, "Running Step 3: LinkedIn Profile Generation…");
     if (!data) return;
     setCurrentProfileId((data as LinkedinProfileOutput).profileId ?? "");
     setProfileOutput(data as LinkedinProfileOutput);
     setProfileScore(null);
     setBannerOutput(null);
     setBannerImageUrl(null);
+    setLastAutoSave(null);
+    setDocumentId(null);
     setActiveTab("profile");
-    setNotice("LinkedIn profile package generated. You can edit the sections below before saving a draft document.");
+    setNotice("Profile package generated. Edit the sections below — changes auto-save after 30 seconds.");
     void refreshSavedProfiles();
   }
 
   async function runProfileScoring() {
     if (!profileOutput) return;
-    const data = await postTool({ workflowStage: "score_profile", profileId: currentProfileId || undefined, profileJson: profileOutput, targetRole, industry, industryTuning }, "Running Phase 2: Profile Scoring...");
+    const data = await postTool(
+      { workflowStage: "score_profile", profileId: currentProfileId || undefined, profileJson: profileOutput, targetRole, industry, industryTuning },
+      "Scoring Profile…"
+    );
     if (!data) return;
     setProfileScore(data as ProfileScoreOutput);
     setActiveTab("score");
-    setNotice("Profile score generated. Use the recommendations to refine your editable draft.");
+    setNotice("Profile scored. Use the section feedback to refine your draft.");
     void refreshSavedProfiles();
   }
 
   async function runBannerPrompt() {
-    const data = await postTool({ workflowStage: "banner_prompt", profileId: currentProfileId || undefined, targetRole, industry, industryTuning, tone }, "Running Step 4: Banner Prompt...");
+    const data = await postTool(
+      { workflowStage: "banner_prompt", profileId: currentProfileId || undefined, targetRole, industry, industryTuning, tone },
+      "Generating Banner Prompt…"
+    );
     if (!data) return;
     setBannerOutput(data as BannerOutput);
     setBannerImageUrl(null);
     setActiveTab("banner");
-    setNotice("Banner prompt ready. You can adjust it, copy it, or generate an image.");
+    setNotice("Banner prompt ready. Edit and copy it, or generate an image.");
     void refreshSavedProfiles();
   }
 
   async function runBannerImageGeneration() {
     if (!bannerOutput?.banner_prompt) return;
-    const data = await postTool({ workflowStage: "banner_image", profileId: currentProfileId || undefined, bannerPrompt: bannerOutput.banner_prompt, targetRole, industry }, "Running Phase 2: Banner Image Generation...");
+    const data = await postTool(
+      { workflowStage: "banner_image", profileId: currentProfileId || undefined, bannerPrompt: bannerOutput.banner_prompt, targetRole, industry },
+      "Generating Banner Image…"
+    );
     if (!data) return;
     setBannerImageUrl((data as { imageUrl?: string | null }).imageUrl ?? null);
-    setActiveTab("banner");
-    setNotice("Banner image generated and attached to this workspace.");
+    setNotice("Banner image generated.");
     void refreshSavedProfiles();
   }
 
@@ -274,18 +424,19 @@ export default function LinkedinBuilderPage() {
       industryTuning,
       locationPref,
       versionLabel,
-    }, "Saving editable LinkedIn draft to Documents...");
+    }, "Saving draft to Documents…");
     if (!data) return;
     setDocumentId((data as { documentId: string }).documentId);
-    setNotice("Editable LinkedIn draft saved to Documents and your private library.");
+    setNotice("Draft saved to Documents. Navigation guard released.");
   }
 
+  // ── Profile editing helpers ────────────────────────────────────────
   function updateExperienceTitle(index: number, title: string) {
-    setProfileOutput((current) => current ? { ...current, experience: current.experience.map((item, idx) => idx === index ? { ...item, title } : item) } : current);
+    setProfileOutput((c) => c ? { ...c, experience: c.experience.map((item, idx) => idx === index ? { ...item, title } : item) } : c);
   }
 
   function updateExperienceBullets(index: number, bullets: string[]) {
-    setProfileOutput((current) => current ? { ...current, experience: current.experience.map((item, idx) => idx === index ? { ...item, bullets } : item) } : current);
+    setProfileOutput((c) => c ? { ...c, experience: c.experience.map((item, idx) => idx === index ? { ...item, bullets } : item) } : c);
   }
 
   function buildProfileText(profile: LinkedinProfileOutput) {
@@ -297,7 +448,7 @@ export default function LinkedinBuilderPage() {
       ...profile.about_versions,
       "",
       "Experience",
-      ...profile.experience.flatMap((entry) => [entry.title, ...entry.bullets.map((bullet) => `- ${bullet}`), ""]),
+      ...profile.experience.flatMap((e) => [e.title, ...e.bullets.map((b) => `- ${b}`), ""]),
       "Skills",
       ...profile.skills,
       "",
@@ -320,121 +471,536 @@ export default function LinkedinBuilderPage() {
     { id: "banner", label: "Banner", disabled: !bannerOutput },
   ];
 
+  // ─── JSX ──────────────────────────────────────────────────────────
+
   return (
     <main className="page-shell">
-      <section className="page-hero">
+
+      {/* ── Hero ──────────────────────────────────────────────────── */}
+      <section className="page-hero-dark">
         <div className="page-hero-grid">
           <div className="relative z-10">
-            <p className="page-kicker">LINKEDIN PROFILE BUILDER</p>
-            <h1 className="page-title">Build, refine, and preserve a stronger LinkedIn presence from your master resume.</h1>
-            <p className="page-description">This workspace keeps the flow connected across analysis, targeting, editing, scoring, and branding while also letting you save an editable draft into Documents so your work survives page changes.</p>
+            <p className="page-kicker-pill">LINKEDIN BUILDER</p>
+            <h1 className="page-title">
+              Build a stronger LinkedIn presence{" "}
+              <span className="gradient-text">from your master resume.</span>
+            </h1>
+            <p className="page-description">
+              Analysis and career matching run together automatically. Then generate, edit, score, and brand your profile — all in one connected workspace that auto-saves your edits.
+            </p>
           </div>
-          <aside className="page-hero-aside">
-            <p className="page-hero-aside-title">NEXT BEST ACTIONS</p>
+          <aside className="page-hero-aside relative z-10">
+            <p className="page-hero-aside-title">BEST PRACTICE</p>
             <ul className="page-hero-list">
-              <li>Generate a profile package, then edit the sections before saving.</li>
-              <li>Use the score tab to improve weak sections instead of rerunning blindly.</li>
-              <li>Save a draft document when you reach a version you want to keep working from.</li>
+              <li>Steps 1+2 run together — set location preference before starting</li>
+              <li>Edit headlines and about sections before scoring</li>
+              <li>Save to Documents when you reach a version worth keeping</li>
+              <li>Use the score tab to improve weak sections specifically</li>
             </ul>
           </aside>
         </div>
+        <div className="hero-trust-strip -mx-7 -mb-7 mt-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4">
+            {["Resume Analysis", "Career Matching", "Profile + Score", "Banner"].map((label) => (
+              <div key={label} className="hero-trust-item">
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "#39a67f" }} aria-hidden="true" />
+                <span className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.65)" }}>{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
-      {loading ? <section className="section-card border-[var(--accent)]"><p className="text-sm font-semibold text-[var(--accent)]">{activeTask ?? "Running request..."}</p><p className="mt-1 text-xs text-[var(--muted)]">AI processing is in progress. Please wait for the current step to finish.</p></section> : null}
+      {/* ── Stage bar ─────────────────────────────────────────────── */}
+      <div className="tool-stage-bar" role="list" aria-label="Workflow stages">
+        {stageBarStages.map((stage, idx) => (
+          <div
+            key={stage.label}
+            className="tool-stage-step"
+            data-state={stage.state}
+            role="listitem"
+            aria-current={stage.state === "active" ? "step" : undefined}
+          >
+            <span className="tool-stage-num" aria-hidden>
+              {stage.state === "complete" ? "✓" : idx + 1}
+            </span>
+            <span className="hidden sm:inline">{stage.label}</span>
+          </div>
+        ))}
+      </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
-        <section className="space-y-4">
-          <section className="section-card space-y-4">
-            <div><p className="section-title">Workspace Summary</p><p className="section-description">Keep your current target direction visible while you edit and save draft versions.</p></div>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-1">
-              <div className="subtle-panel p-3"><p className="text-xs font-semibold tracking-wide text-[var(--accent)]">Target Role</p><p className="mt-1 text-sm">{targetRole || "Not set"}</p></div>
-              <div className="subtle-panel p-3"><p className="text-xs font-semibold tracking-wide text-[var(--accent)]">Industry</p><p className="mt-1 text-sm">{industry || "Not set"}</p></div>
-              <div className="subtle-panel p-3"><p className="text-xs font-semibold tracking-wide text-[var(--accent)]">Version</p><p className="mt-1 text-sm">{versionLabel || "Unsaved label"}</p></div>
-              <div className="subtle-panel p-3"><p className="text-xs font-semibold tracking-wide text-[var(--accent)]">Saved Draft</p><p className="mt-1 text-sm">{documentId ? "Saved to Documents" : "Not saved yet"}</p></div>
+      {/* ── Main layout ────────────────────────────────────────────── */}
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,400px)_minmax(0,1fr)]">
+
+        {/* ── LEFT: Controls ─────────────────────────────────────── */}
+        <div className="flex flex-col gap-4">
+
+          {/* Workspace Summary */}
+          <section className="tool-section">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="tool-kicker">WORKSPACE</p>
+                <p className="section-title mt-0.5">{targetRole || "No target role set"}</p>
+                <p className="text-sm text-[var(--muted)]">{industry || "Industry not set"}{industryTuning && industryTuning !== "General civilian hiring" ? ` · ${industryTuning}` : ""}</p>
+              </div>
+              {profileScore && <ScoreRing score={profileScore.overall_score} size={72} />}
             </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-              <button className="btn btn-primary" type="button" onClick={saveDraftToDocuments} disabled={loading || !profileOutput}>Save To Documents</button>
-              {documentId ? <a className="btn btn-secondary" href={`/api/documents/${documentId}/download`}>Open Saved Draft</a> : null}
-              <button className="btn btn-secondary" type="button" onClick={runProfileScoring} disabled={loading || !profileOutput}>Score</button>
-              <button className="btn btn-secondary" type="button" onClick={runBannerPrompt} disabled={loading || !profileOutput}>Banner</button>
+
+            <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
+              {versionLabel && <span className="tool-badge tool-badge-success" style={{ fontSize: "0.65rem" }}>{versionLabel}</span>}
+              {documentId
+                ? <span className="tool-badge tool-badge-success" style={{ fontSize: "0.65rem" }}>Saved to Documents</span>
+                : profileOutput
+                ? <span className="tool-badge tool-badge-warn" style={{ fontSize: "0.65rem" }}>Unsaved — edits lost on close</span>
+                : null}
+              {lastAutoSave && (
+                <span>Auto-saved {lastAutoSave.toLocaleTimeString()}</span>
+              )}
             </div>
+
+            <ActionBar>
+              <button className="btn btn-primary text-sm" type="button" onClick={saveDraftToDocuments} disabled={loading || !profileOutput}>
+                Save to Documents
+              </button>
+              {documentId && (
+                <a className="btn btn-secondary text-sm" href={`/api/documents/${documentId}/download`}>
+                  Open Draft
+                </a>
+              )}
+              <button className="btn btn-secondary text-sm" type="button" onClick={runProfileScoring} disabled={loading || !profileOutput}>
+                Score
+              </button>
+              <button className="btn btn-secondary text-sm" type="button" onClick={runBannerPrompt} disabled={loading || !profileOutput}>
+                Banner
+              </button>
+            </ActionBar>
           </section>
 
-          <section className="section-card space-y-4">
-            <div><p className="section-title">Step 1: Resume Input</p><p className="section-description">Start with a saved master resume, uploaded document, or pasted text.</p></div>
-            <form className="space-y-4" onSubmit={runResumeAnalysis}>
+          {/* Steps 1+2: Resume Input */}
+          <section className="tool-section">
+            <div>
+              <p className="tool-kicker">STEPS 1+2</p>
+              <p className="section-title mt-0.5">Analysis + Career Matching</p>
+              <p className="section-description">
+                Both steps run together automatically. Set your location preference first if it matters to the career suggestions.
+              </p>
+            </div>
+
+            <form className="flex flex-col gap-3" onSubmit={runAnalysisAndCareer}>
               <label className="block space-y-1">
-                <span className="text-sm font-medium">Saved Master Resume</span>
+                <span className="text-sm font-medium">Master Resume</span>
                 <select className="input" value={masterResumeSelection} onChange={(e) => setMasterResumeSelection(e.target.value)}>
                   <option value="">Select a master resume</option>
-                  {masterResumeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  {masterResumeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
                 </select>
               </label>
+
               <label className="block space-y-1">
-                <span className="text-sm font-medium">Pasted Resume Text</span>
-                <textarea className="input min-h-40" value={pastedResumeText} onChange={(e) => setPastedResumeText(e.target.value)} placeholder="Paste resume text here if you want to work without a saved source." />
+                <span className="text-sm font-medium">
+                  Pasted Resume <span className="font-normal text-[var(--muted)]">(optional if source selected)</span>
+                </span>
+                <textarea
+                  className="input min-h-28"
+                  value={pastedResumeText}
+                  onChange={(e) => setPastedResumeText(e.target.value)}
+                  placeholder="Paste resume text if not using a saved source…"
+                />
               </label>
-              <button className="btn btn-primary w-full sm:w-auto" type="submit" disabled={loading}>Run Step 1</button>
+
+              <label className="block space-y-1">
+                <span className="text-sm font-medium">
+                  Location Preference <span className="font-normal text-[var(--muted)]">(optional)</span>
+                </span>
+                <input
+                  className="input"
+                  value={locationPref}
+                  onChange={(e) => setLocationPref(e.target.value)}
+                  placeholder="Remote, DC area, East Coast…"
+                />
+              </label>
+
+              <button className="btn btn-primary w-full sm:w-auto" type="submit" disabled={loading}>
+                Run Steps 1+2 (Analysis + Career)
+              </button>
             </form>
           </section>
 
-          <section className="section-card space-y-4">
-            <div><p className="section-title">Step 2: Career Targeting</p><p className="section-description">Pick your target direction and the industry lens you want the profile tuned for.</p></div>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-1">
-              <label className="block space-y-1"><span className="text-sm font-medium">Target Role</span><input className="input" value={targetRole} onChange={(e) => setTargetRole(e.target.value)} placeholder="Program Manager" /></label>
-              <label className="block space-y-1"><span className="text-sm font-medium">Industry</span><input className="input" value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="Defense Tech" /></label>
-              <label className="block space-y-1"><span className="text-sm font-medium">Industry Tuning</span><input className="input" value={industryTuning} onChange={(e) => setIndustryTuning(e.target.value)} placeholder="Federal consulting, SaaS operations, healthcare admin" /></label>
-              <label className="block space-y-1"><span className="text-sm font-medium">Version Label</span><input className="input" value={versionLabel} onChange={(e) => setVersionLabel(e.target.value)} placeholder="Federal PM v1" /></label>
-              <label className="block space-y-1"><span className="text-sm font-medium">Secondary Roles</span><input className="input" value={secondaryRoles} onChange={(e) => setSecondaryRoles(e.target.value)} placeholder="Operations Manager, Project Manager" /></label>
-              <label className="block space-y-1"><span className="text-sm font-medium">Location Preference</span><input className="input" value={locationPref} onChange={(e) => setLocationPref(e.target.value)} placeholder="Remote-friendly, East Coast, DC area" /></label>
+          {/* Step 3: Targeting + Generate */}
+          <section className="tool-section">
+            <div>
+              <p className="tool-kicker">STEP 3</p>
+              <p className="section-title mt-0.5">Generate Profile</p>
+              <p className="section-description">
+                These fields are pre-filled from Step 2. Adjust before generating.
+              </p>
             </div>
-            <button className="btn btn-primary w-full sm:w-auto" type="button" onClick={runCareerSuggestions} disabled={loading}>Run Step 2</button>
+
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+              <label className="block space-y-1">
+                <span className="text-sm font-medium">Target Role</span>
+                <input className="input" value={targetRole} onChange={(e) => setTargetRole(e.target.value)} placeholder="Program Manager" />
+              </label>
+              <label className="block space-y-1">
+                <span className="text-sm font-medium">Industry</span>
+                <input className="input" value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="Defense Tech" />
+              </label>
+              <label className="block space-y-1">
+                <span className="text-sm font-medium">Industry Tuning</span>
+                <input className="input" value={industryTuning} onChange={(e) => setIndustryTuning(e.target.value)} placeholder="Federal consulting, SaaS ops" />
+              </label>
+              <label className="block space-y-1">
+                <span className="text-sm font-medium">Version Label</span>
+                <input className="input" value={versionLabel} onChange={(e) => setVersionLabel(e.target.value)} placeholder="Federal PM v1" />
+              </label>
+              <label className="block space-y-1 sm:col-span-2 xl:col-span-1">
+                <span className="text-sm font-medium">
+                  Secondary Roles <span className="font-normal text-[var(--muted)]">(comma-separated)</span>
+                </span>
+                <input className="input" value={secondaryRoles} onChange={(e) => setSecondaryRoles(e.target.value)} placeholder="Ops Manager, Project Manager" />
+              </label>
+            </div>
+
+            <button className="btn btn-primary w-full sm:w-auto" type="button" onClick={runProfileGeneration} disabled={loading}>
+              Generate LinkedIn Profile Package
+            </button>
           </section>
 
-          <section className="section-card space-y-4">
-            <div><p className="section-title">Step 3: Generate + Refine</p><p className="section-description">Generate the LinkedIn package, then refine it in the editable workspace before saving a draft document.</p></div>
-            <button className="btn btn-primary w-full sm:w-auto" type="button" onClick={runProfileGeneration} disabled={loading}>Generate LinkedIn Profile Package</button>
+          {/* Version History */}
+          <section className="tool-section">
+            <p className="tool-kicker">VERSION HISTORY</p>
+            <p className="section-title mt-0.5">Saved Versions</p>
+            {savedProfiles.length === 0 ? (
+              <p className="text-sm text-[var(--muted)]">No saved LinkedIn versions yet. Generate a profile to start.</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {savedProfiles.map((profile) => {
+                  const score = hasData(profile.profileScore) ? (profile.profileScore as ProfileScoreOutput).overall_score : null;
+                  return (
+                    <article key={profile.id} className="subtle-panel p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-sm">
+                            {profile.versionLabel || profile.targetRole || "Saved LinkedIn profile"}
+                          </p>
+                          <p className="mt-0.5 text-xs text-[var(--muted)]">
+                            {profile.industry || "Industry not set"} · {new Date(profile.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        {score !== null && (
+                          <span className="tool-badge tool-badge-success shrink-0" style={{ fontSize: "0.65rem" }}>
+                            {score}/100
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        className="btn btn-secondary mt-3 w-full text-sm"
+                        type="button"
+                        onClick={() => setWorkspaceFromProfile(profile)}
+                      >
+                        Load Version
+                      </button>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
           </section>
+        </div>
 
-          <section className="section-card space-y-4">
-            <div><p className="section-title">Saved Versions</p><p className="section-description">Load previous LinkedIn profile packages and keep refining from that point.</p></div>
-            <div className="space-y-3">
-              {savedProfiles.length === 0 ? <p className="text-sm text-[var(--muted)]">No saved LinkedIn versions yet.</p> : savedProfiles.map((profile) => (
-                <article key={profile.id} className="subtle-panel p-4">
-                  <p className="font-semibold">{profile.versionLabel || profile.targetRole || "Saved LinkedIn profile"}</p>
-                  <p className="mt-1 text-xs text-[var(--muted)]">{profile.industry || "Industry not set"}{profile.industryTuning ? ` | ${profile.industryTuning}` : ""} | {new Date(profile.createdAt).toLocaleString()}</p>
-                  <button className="btn btn-secondary mt-3 w-full text-sm sm:w-auto" type="button" onClick={() => setWorkspaceFromProfile(profile)}>Load Version</button>
-                </article>
+        {/* ── RIGHT: Workspace ───────────────────────────────────── */}
+        <div className="flex flex-col gap-4">
+
+          {/* Loading */}
+          {loading && (
+            <LoadingBlock
+              task={activeTask ?? "Processing…"}
+              detail={
+                activeTask?.includes("1")
+                  ? "Analyzing your resume for strengths, skills, and role families. Usually 15–25 seconds."
+                  : activeTask?.includes("2")
+                  ? "Matching your profile to civilian career paths. Usually 15–20 seconds."
+                  : activeTask?.includes("3")
+                  ? "Generating your full LinkedIn profile package. Usually 30–60 seconds."
+                  : activeTask?.includes("Score") || activeTask?.includes("scor")
+                  ? "Scoring your profile against recruiter standards. Usually 15–25 seconds."
+                  : activeTask?.includes("Banner") || activeTask?.includes("banner")
+                  ? "Creating your banner assets. Image generation may take 20–40 seconds."
+                  : "AI processing is in progress — please wait."
+              }
+            />
+          )}
+
+          {/* Alerts */}
+          {!loading && error && (
+            <ToolAlert variant="error" title="Request failed">
+              <p className="text-sm">{error}</p>
+            </ToolAlert>
+          )}
+          {!loading && notice && (
+            <ToolAlert variant="info">
+              <p className="text-sm">{notice}</p>
+            </ToolAlert>
+          )}
+          {!loading && copyState && (
+            <ToolAlert variant="info">
+              <p className="text-sm">{copyState}</p>
+            </ToolAlert>
+          )}
+
+          {/* Workspace card with tabs */}
+          <div className="tool-output-card">
+            {/* Tab bar */}
+            <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                    activeTab === tab.id
+                      ? "bg-[var(--accent)] text-white"
+                      : "bg-[var(--surface)] text-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-40"
+                  }`}
+                  type="button"
+                  disabled={tab.disabled}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  {tab.label}
+                </button>
               ))}
             </div>
-          </section>
-        </section>
 
-        <section className="space-y-4">
-          {(error || notice || copyState) ? <section className="section-card">{error ? <p className="text-sm text-red-700">{error}</p> : null}{notice ? <p className="text-sm text-[var(--accent)]">{notice}</p> : null}{copyState ? <p className="text-sm text-[var(--accent)]">{copyState}</p> : null}</section> : null}
+            {/* ── Analysis tab ─────────────────────────────────── */}
+            {activeTab === "analysis" && analysis && (
+              <div className="flex flex-col gap-4 pt-1">
+                <p className="text-sm leading-relaxed text-[var(--muted)]">{analysis.positioning_summary}</p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <ListBlock title="Strengths" items={analysis.strengths} />
+                  <ListBlock title="Functional Areas" items={analysis.functional_areas} />
+                  <ListBlock title="Leadership Scope" items={analysis.leadership_scope} />
+                  <ListBlock title="Role Families" items={analysis.role_families} />
+                  <ListBlock title="Key Skills" items={analysis.skills} />
+                </div>
+                <ActionBar>
+                  <button className="btn btn-secondary text-sm" type="button" onClick={() => void copyText("Positioning summary", analysis.positioning_summary)}>
+                    Copy Summary
+                  </button>
+                  <button className="btn btn-secondary text-sm" type="button" onClick={rerunCareerSuggestions} disabled={loading}>
+                    Rerun Career Matching
+                  </button>
+                </ActionBar>
+              </div>
+            )}
+            {activeTab === "analysis" && !analysis && (
+              <div className="tool-empty">
+                <p className="font-medium">Run Steps 1+2 to populate analysis</p>
+                <p className="text-xs">Select your master resume and click the button in the left panel.</p>
+              </div>
+            )}
 
-          <section className="section-card space-y-4">
-            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
-              {tabs.map((tab) => <button key={tab.id} className={activeTab === tab.id ? "btn btn-primary text-sm" : "btn btn-secondary text-sm"} type="button" disabled={tab.disabled} onClick={() => setActiveTab(tab.id)}>{tab.label}</button>)}
-            </div>
+            {/* ── Career tab ───────────────────────────────────── */}
+            {activeTab === "career" && careerSuggestions && (
+              <div className="flex flex-col gap-4 pt-1">
+                <div className="flex flex-wrap gap-2 text-sm text-[var(--muted)]">
+                  <span>Recommended seniority: <strong className="text-[var(--foreground)]">{careerSuggestions.recommended_seniority || "Not specified"}</strong></span>
+                  {careerSuggestions.location_strategy && <span>· {careerSuggestions.location_strategy}</span>}
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {careerSuggestions.suggested_roles.map((role, idx) => (
+                    <article key={role.title} className="subtle-panel flex flex-col gap-1.5 p-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-semibold text-sm">{role.title}</p>
+                        {idx === 0 && <span className="tool-badge tool-badge-success shrink-0" style={{ fontSize: "0.6rem" }}>TOP</span>}
+                      </div>
+                      <p className="text-sm text-[var(--muted)]">{role.why_fit}</p>
+                      <p className="text-xs text-[var(--muted)]">{role.target_industries.join(" · ")} · {role.seniority}</p>
+                      <button
+                        className="btn btn-secondary mt-1 text-xs w-fit"
+                        type="button"
+                        onClick={() => setTargetRole(role.title)}
+                      >
+                        Set as Target Role
+                      </button>
+                    </article>
+                  ))}
+                </div>
+                <ListBlock title="Positioning Advice" items={careerSuggestions.positioning_advice} />
+                <ActionBar>
+                  <button className="btn btn-secondary text-sm" type="button" onClick={() => void copyText("Career matches", careerSuggestions.suggested_roles.map((r) => `${r.title}: ${r.why_fit}`).join("\n"))}>
+                    Copy Career Matches
+                  </button>
+                  <button className="btn btn-primary text-sm" type="button" onClick={runProfileGeneration} disabled={loading}>
+                    Generate Profile →
+                  </button>
+                </ActionBar>
+              </div>
+            )}
+            {activeTab === "career" && !careerSuggestions && (
+              <div className="tool-empty">
+                <p className="font-medium">Run Steps 1+2 first</p>
+                <p className="text-xs">Career matching runs automatically after resume analysis.</p>
+              </div>
+            )}
 
-            {activeTab === "analysis" && analysis ? <section className="space-y-4"><div className="flex flex-wrap gap-2"><button className="btn btn-secondary text-sm" type="button" onClick={() => void copyText("Positioning summary", analysis.positioning_summary)}>Copy Summary</button><button className="btn btn-secondary text-sm" type="button" onClick={runCareerSuggestions} disabled={loading}>See Career Matches</button></div><p className="section-title">Resume Analysis</p><p className="text-sm text-[var(--muted)]">{analysis.positioning_summary}</p><ListBlock title="Strengths" items={analysis.strengths} /><ListBlock title="Functional Areas" items={analysis.functional_areas} /><ListBlock title="Leadership Scope" items={analysis.leadership_scope} /><ListBlock title="Role Families" items={analysis.role_families} /><ListBlock title="Skills" items={analysis.skills} /></section> : null}
+            {/* ── Profile edit tab ─────────────────────────────── */}
+            {activeTab === "profile" && profileOutput && (
+              <div className="flex flex-col gap-5 pt-1">
+                <ActionBar>
+                  <button className="btn btn-secondary text-sm" type="button" onClick={() => void copyText("Profile package", buildProfileText(profileOutput))}>Copy All</button>
+                  <button className="btn btn-secondary text-sm" type="button" onClick={() => void copyText("Headlines", profileOutput.headlines.join("\n"))}>Copy Headlines</button>
+                  <button className="btn btn-primary text-sm" type="button" onClick={saveDraftToDocuments} disabled={loading}>Save Draft →</button>
+                </ActionBar>
 
-            {activeTab === "career" && careerSuggestions ? <section className="space-y-4"><div className="flex flex-wrap gap-2"><button className="btn btn-secondary text-sm" type="button" onClick={() => void copyText("Career suggestions", careerSuggestions.suggested_roles.map((role) => `${role.title}: ${role.why_fit}`).join("\n"))}>Copy Career Matches</button><button className="btn btn-secondary text-sm" type="button" onClick={runProfileGeneration} disabled={loading}>Generate Profile</button></div><p className="section-title">Career Suggestions</p><p className="text-sm text-[var(--muted)]">Recommended seniority: {careerSuggestions.recommended_seniority || "Not specified"}</p>{careerSuggestions.location_strategy ? <p className="text-sm text-[var(--muted)]">{careerSuggestions.location_strategy}</p> : null}<div className="grid gap-3 lg:grid-cols-2">{careerSuggestions.suggested_roles.map((role) => <article key={role.title} className="subtle-panel p-4"><p className="font-semibold">{role.title}</p><p className="mt-1 text-sm text-[var(--muted)]">{role.why_fit}</p><p className="mt-2 text-xs text-[var(--muted)]">Industries: {role.target_industries.join(", ")} | Seniority: {role.seniority}</p></article>)}</div><ListBlock title="Positioning Advice" items={careerSuggestions.positioning_advice} /></section> : null}
+                {/* Headlines + Skills */}
+                <div>
+                  <p className="tool-kicker mb-3">CORE SECTIONS</p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <EditListArea label="Headline Options" value={profileOutput.headlines} onChange={(headlines) => setProfileOutput((c) => c ? { ...c, headlines } : c)} rows={6} />
+                    <EditListArea label="Skills" value={profileOutput.skills} onChange={(skills) => setProfileOutput((c) => c ? { ...c, skills } : c)} rows={6} />
+                  </div>
+                </div>
 
-            {activeTab === "profile" && profileOutput ? <section className="space-y-4"><div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap"><button className="btn btn-secondary text-sm" type="button" onClick={() => void copyText("Profile package", buildProfileText(profileOutput))}>Copy Profile</button><button className="btn btn-secondary text-sm" type="button" onClick={() => void copyText("Headlines", profileOutput.headlines.join("\n"))}>Copy Headlines</button><button className="btn btn-secondary text-sm" type="button" onClick={saveDraftToDocuments} disabled={loading}>Save Draft Document</button></div><p className="section-title">Editable LinkedIn Profile</p><EditListArea label="Headline Options" value={profileOutput.headlines} onChange={(headlines) => setProfileOutput((current) => current ? { ...current, headlines } : current)} rows={6} /><EditListArea label="Prioritized Skills" value={profileOutput.skills} onChange={(skills) => setProfileOutput((current) => current ? { ...current, skills } : current)} rows={8} /><EditListArea label="Connection Targets" value={profileOutput.networking_guidance.connection_targets} onChange={(connection_targets) => setProfileOutput((current) => current ? { ...current, networking_guidance: { ...current.networking_guidance, connection_targets } } : current)} rows={5} /><EditListArea label="Activation Plan" value={profileOutput.networking_guidance.activation_plan} onChange={(activation_plan) => setProfileOutput((current) => current ? { ...current, networking_guidance: { ...current.networking_guidance, activation_plan } } : current)} rows={6} /><EditListArea label="Outreach Messages" value={profileOutput.networking_guidance.outreach_messages} onChange={(outreach_messages) => setProfileOutput((current) => current ? { ...current, networking_guidance: { ...current.networking_guidance, outreach_messages } } : current)} rows={6} /><section className="space-y-3"><h3 className="text-sm font-semibold">About Versions</h3>{profileOutput.about_versions.map((about, idx) => <label key={`about-${idx}`} className="block space-y-1"><span className="text-sm font-medium">About {idx + 1}</span><textarea className="input" rows={8} value={about} onChange={(e) => setProfileOutput((current) => current ? { ...current, about_versions: current.about_versions.map((item, itemIdx) => itemIdx === idx ? e.target.value : item) } : current)} /></label>)}</section><section className="space-y-3"><h3 className="text-sm font-semibold">Experience</h3>{profileOutput.experience.map((entry, idx) => <article key={`exp-${idx}`} className="subtle-panel p-4"><label className="block space-y-1"><span className="text-sm font-medium">Role Title</span><input className="input" value={entry.title} onChange={(e) => updateExperienceTitle(idx, e.target.value)} /></label><div className="mt-3"><EditListArea label="Bullets" value={entry.bullets} onChange={(bullets) => updateExperienceBullets(idx, bullets)} rows={6} /></div></article>)}</section></section> : null}
+                {/* About Versions */}
+                <div>
+                  <p className="tool-kicker mb-3">ABOUT VERSIONS</p>
+                  <div className="flex flex-col gap-3">
+                    {profileOutput.about_versions.map((about, idx) => (
+                      <label key={`about-${idx}`} className="block space-y-1">
+                        <span className="text-sm font-medium">About {idx + 1}</span>
+                        <textarea
+                          className="input"
+                          rows={7}
+                          value={about}
+                          onChange={(e) => setProfileOutput((c) => c ? { ...c, about_versions: c.about_versions.map((item, i) => i === idx ? e.target.value : item) } : c)}
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </div>
 
-            {activeTab === "score" && profileScore ? <section className="space-y-4"><p className="section-title">Profile Score</p><div className="subtle-panel p-4"><p className="text-3xl font-bold text-[var(--accent)]">{profileScore.overall_score}/100</p><p className="mt-2 text-sm text-[var(--muted)]">{profileScore.recruiter_readiness}</p></div><ListBlock title="Current Strengths" items={profileScore.strengths} /><ListBlock title="Improvement Priorities" items={profileScore.improvement_priorities} /><div className="space-y-3">{profileScore.section_scores.map((section) => <article key={section.section} className="subtle-panel p-4"><p className="font-semibold capitalize">{section.section} {section.score}/{section.max_score}</p><p className="mt-1 text-sm text-[var(--muted)]">{section.rationale}</p><ListBlock title="Recommended Actions" items={section.actions} /></article>)}</div></section> : null}
+                {/* Experience */}
+                <div>
+                  <p className="tool-kicker mb-3">EXPERIENCE</p>
+                  <div className="flex flex-col gap-4">
+                    {profileOutput.experience.map((entry, idx) => (
+                      <article key={`exp-${idx}`} className="subtle-panel flex flex-col gap-3 p-4">
+                        <label className="block space-y-1">
+                          <span className="text-sm font-medium">Role Title</span>
+                          <input className="input" value={entry.title} onChange={(e) => updateExperienceTitle(idx, e.target.value)} />
+                        </label>
+                        <EditListArea label="Bullets" value={entry.bullets} onChange={(bullets) => updateExperienceBullets(idx, bullets)} rows={6} />
+                      </article>
+                    ))}
+                  </div>
+                </div>
 
-            {activeTab === "banner" && bannerOutput ? <section className="space-y-4"><div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap"><button className="btn btn-secondary text-sm" type="button" onClick={() => void copyText("Banner prompt", bannerOutput.banner_prompt)}>Copy Banner Prompt</button><button className="btn btn-secondary text-sm" type="button" onClick={runBannerImageGeneration} disabled={loading}>Generate Banner Image</button></div><p className="section-title">Banner Workspace</p><label className="block space-y-1"><span className="text-sm font-medium">Tone</span><input className="input" value={tone} onChange={(e) => setTone(e.target.value)} /></label><label className="block space-y-1"><span className="text-sm font-medium">Banner Prompt</span><textarea className="input" rows={8} value={bannerOutput.banner_prompt} onChange={(e) => setBannerOutput((current) => current ? { ...current, banner_prompt: e.target.value } : current)} /></label><EditListArea label="Style Notes" value={bannerOutput.style_notes} onChange={(style_notes) => setBannerOutput((current) => current ? { ...current, style_notes } : current)} rows={5} /><EditListArea label="Visual Focus" value={bannerOutput.visual_focus} onChange={(visual_focus) => setBannerOutput((current) => current ? { ...current, visual_focus } : current)} rows={5} />{bannerImageUrl ? <section className="space-y-3"><h3 className="text-sm font-semibold">Generated Banner Image</h3><Image alt="Generated LinkedIn banner preview" className="w-full rounded-xl border border-[var(--line)] object-cover" height={512} src={bannerImageUrl} unoptimized width={1536} /><a className="btn btn-secondary text-sm" href={bannerImageUrl} target="_blank" rel="noopener noreferrer">Open Full Image</a></section> : null}</section> : null}
+                {/* Networking */}
+                <div>
+                  <p className="tool-kicker mb-3">NETWORKING</p>
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    <EditListArea label="Connection Targets" value={profileOutput.networking_guidance.connection_targets} onChange={(v) => setProfileOutput((c) => c ? { ...c, networking_guidance: { ...c.networking_guidance, connection_targets: v } } : c)} rows={5} />
+                    <EditListArea label="Outreach Messages" value={profileOutput.networking_guidance.outreach_messages} onChange={(v) => setProfileOutput((c) => c ? { ...c, networking_guidance: { ...c.networking_guidance, outreach_messages: v } } : c)} rows={5} />
+                    <EditListArea label="Activation Plan" value={profileOutput.networking_guidance.activation_plan} onChange={(v) => setProfileOutput((c) => c ? { ...c, networking_guidance: { ...c.networking_guidance, activation_plan: v } } : c)} rows={5} />
+                  </div>
+                </div>
+              </div>
+            )}
+            {activeTab === "profile" && !profileOutput && (
+              <div className="tool-empty">
+                <p className="font-medium">Generate a profile first</p>
+                <p className="text-xs">Set your target role and industry in Step 3, then click Generate.</p>
+              </div>
+            )}
 
-            {activeTab === "analysis" && !analysis ? <EmptyState title="Run Resume Analysis" body="Start with Step 1 to populate the analysis workspace." /> : null}
-            {activeTab === "career" && !careerSuggestions ? <EmptyState title="Generate Career Matches" body="Run Step 2 after analysis to populate the career workspace." /> : null}
-            {activeTab === "profile" && !profileOutput ? <EmptyState title="Generate A Profile Package" body="Run Step 3 to create an editable LinkedIn workspace." /> : null}
-            {activeTab === "score" && !profileScore ? <EmptyState title="Score Your Draft" body="Generate a profile first, then run scoring to get section-by-section guidance." /> : null}
-            {activeTab === "banner" && !bannerOutput ? <EmptyState title="Create Banner Assets" body="Generate a banner prompt to populate the branding workspace." /> : null}
-          </section>
-        </section>
+            {/* ── Score tab ────────────────────────────────────── */}
+            {activeTab === "score" && profileScore && (
+              <div className="flex flex-col gap-5 pt-1">
+                <div className="flex items-center gap-6">
+                  <ScoreRing score={profileScore.overall_score} size={100} />
+                  <div>
+                    <p className="font-bold text-lg">{profileScore.overall_score}/100</p>
+                    <p className="text-sm text-[var(--muted)] mt-1 max-w-xs leading-relaxed">{profileScore.recruiter_readiness}</p>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <ListBlock title="Strengths" items={profileScore.strengths} />
+                  <ListBlock title="Improvement Priorities" items={profileScore.improvement_priorities} />
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">Section Scores</p>
+                  {profileScore.section_scores.map((section) => {
+                    const pct = Math.round((section.score / section.max_score) * 100);
+                    return (
+                      <article key={section.section} className="subtle-panel flex flex-col gap-2 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="font-semibold text-sm capitalize">{section.section}</p>
+                          <span className={`tool-badge ${pct >= 75 ? "tool-badge-success" : pct >= 50 ? "tool-badge-warn" : "tool-badge-error"} shrink-0`} style={{ fontSize: "0.65rem" }}>
+                            {section.score}/{section.max_score}
+                          </span>
+                        </div>
+                        {/* mini progress bar */}
+                        <div className="h-1.5 overflow-hidden rounded-full bg-[var(--line)]">
+                          <div className="h-full rounded-full bg-[var(--accent)] transition-all" style={{ width: `${pct}%` }} />
+                        </div>
+                        <p className="text-sm text-[var(--muted)]">{section.rationale}</p>
+                        <ListBlock title="Actions" items={section.actions} />
+                      </article>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {activeTab === "score" && !profileScore && (
+              <div className="tool-empty">
+                <p className="font-medium">Score your draft</p>
+                <p className="text-xs">Generate a profile first, then click Score in the workspace summary.</p>
+              </div>
+            )}
+
+            {/* ── Banner tab ───────────────────────────────────── */}
+            {activeTab === "banner" && bannerOutput && (
+              <div className="flex flex-col gap-4 pt-1">
+                <ActionBar>
+                  <button className="btn btn-secondary text-sm" type="button" onClick={() => void copyText("Banner prompt", bannerOutput.banner_prompt)}>Copy Prompt</button>
+                  <button className="btn btn-secondary text-sm" type="button" onClick={runBannerImageGeneration} disabled={loading}>Generate Image</button>
+                </ActionBar>
+
+                <label className="block space-y-1">
+                  <span className="text-sm font-medium">Tone</span>
+                  <input className="input" value={tone} onChange={(e) => setTone(e.target.value)} />
+                </label>
+
+                <label className="block space-y-1">
+                  <span className="text-sm font-medium">Banner Prompt</span>
+                  <textarea className="input" rows={7} value={bannerOutput.banner_prompt} onChange={(e) => setBannerOutput((c) => c ? { ...c, banner_prompt: e.target.value } : c)} />
+                </label>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <EditListArea label="Style Notes" value={bannerOutput.style_notes} onChange={(style_notes) => setBannerOutput((c) => c ? { ...c, style_notes } : c)} rows={4} />
+                  <EditListArea label="Visual Focus" value={bannerOutput.visual_focus} onChange={(visual_focus) => setBannerOutput((c) => c ? { ...c, visual_focus } : c)} rows={4} />
+                </div>
+
+                {bannerImageUrl && (
+                  <div className="flex flex-col gap-3">
+                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">Generated Banner</p>
+                    <Image alt="Generated LinkedIn banner" className="w-full rounded-xl border border-[var(--line)] object-cover" height={512} src={bannerImageUrl} unoptimized width={1536} />
+                    <a className="btn btn-secondary text-sm w-fit" href={bannerImageUrl} target="_blank" rel="noopener noreferrer">
+                      Open Full Image
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+            {activeTab === "banner" && !bannerOutput && (
+              <div className="tool-empty">
+                <p className="font-medium">Generate banner assets</p>
+                <p className="text-xs">Generate a profile first, then click Banner in the workspace summary.</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </main>
   );

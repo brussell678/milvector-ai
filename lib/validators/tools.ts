@@ -26,7 +26,7 @@ export const ResumeTargeterInputSchema = z.object({
 });
 
 export const LinkedinBuilderInputSchema = z.object({
-  workflowStage: z.enum(["resume_analysis", "career_suggestions", "generate_profile", "score_profile", "banner_prompt", "banner_image", "save_document"]),
+  workflowStage: z.enum(["resume_analysis", "career_suggestions", "generate_profile", "score_profile", "banner_prompt", "banner_image", "save_document", "update_profile"]),
   masterResumeArtifactId: z.string().uuid().optional(),
   masterResumeDocumentId: z.string().uuid().optional(),
   pastedResumeText: z.string().min(100).optional(),
