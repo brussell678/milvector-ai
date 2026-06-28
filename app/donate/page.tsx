@@ -58,14 +58,26 @@ const reasons: Reason[] = [
   },
 ];
 
+const heroStrip = [
+  { label: "Tools stay free" },
+  { label: "AI costs covered" },
+  { label: "No data sold" },
+  { label: "Built by Marines" },
+];
+
 export default function DonatePage() {
   return (
-    <PageContainer className="flex flex-col gap-4" size="md">
-      <section className="page-hero">
+    <PageContainer className="flex flex-col gap-8" size="md">
+
+      {/* ── Dark Hero ──────────────────────────────────────────── */}
+      <section className="page-hero-dark">
         <div className="page-hero-grid">
-          <div className="relative z-10">
-            <p className="page-kicker">SUPPORT THE MISSION</p>
-            <h1 className="page-title">Help keep MilVector free, useful, and built around trust.</h1>
+          <div>
+            <p className="page-kicker-pill">SUPPORT THE MISSION</p>
+            <h1 className="page-title">
+              Help keep MilVector free, useful, and{" "}
+              <span className="gradient-text">built around trust.</span>
+            </h1>
             <p className="page-description">
               MilVector was built to give service members practical transition tools without turning their process into a lead list,
               a paywall, or another subscription trap. Donations help keep the platform accessible while covering real operating costs.
@@ -80,8 +92,30 @@ export default function DonatePage() {
             </ul>
           </aside>
         </div>
+
+        {/* Mission strip */}
+        <div className="hero-trust-strip -mx-7 -mb-7 mt-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4">
+            {heroStrip.map((item) => (
+              <div key={item.label} className="hero-trust-item">
+                <span
+                  className="h-1.5 w-1.5 shrink-0 rounded-full"
+                  style={{ background: "#39a67f" }}
+                  aria-hidden="true"
+                />
+                <span
+                  className="text-sm font-medium"
+                  style={{ color: "rgba(255,255,255,0.65)" }}
+                >
+                  {item.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
+      {/* ── Why This Exists ────────────────────────────────────── */}
       <section className="section-card observe-fade">
         <p className="section-kicker">THE MISSION</p>
         <h2 className="section-title mt-1">Why This Exists</h2>
@@ -95,22 +129,31 @@ export default function DonatePage() {
         </div>
       </section>
 
+      {/* ── 4 Reasons Grid ─────────────────────────────────────── */}
       <section className="grid gap-4 md:grid-cols-2 observe-fade">
         {reasons.map((reason) => (
           <article key={reason.title} className="section-card card-hover">
             <reason.Icon size={20} className="text-[var(--accent)]" aria-hidden="true" />
-            <h3 className="mt-3 font-bold leading-snug">{reason.title}</h3>
-            <p className="mt-2 text-sm text-[var(--muted)]">{reason.body}</p>
+            <h3
+              className="mt-3 font-bold leading-snug"
+              style={{ letterSpacing: "-0.015em" }}
+            >
+              {reason.title}
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{reason.body}</p>
           </article>
         ))}
       </section>
 
+      {/* ── Donation Channels ──────────────────────────────────── */}
       <section className="section-card observe-fade">
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="section-kicker">GIVE</p>
             <h2 className="section-title mt-1">Donation Channels</h2>
-            <p className="section-description">Venmo, Cash App, and PayPal can all be supported from this page using the QR codes below.</p>
+            <p className="section-description">
+              Venmo, Cash App, and PayPal can all be supported from this page using the QR codes below.
+            </p>
           </div>
           <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Scan To Donate</p>
         </div>
@@ -121,7 +164,9 @@ export default function DonatePage() {
               className="subtle-panel flex min-h-56 flex-col items-center justify-center p-5 text-center"
             >
               <div className="flex items-center gap-3">
-                <div className={`inline-flex min-h-10 items-center justify-center rounded-full px-4 text-[0.72rem] font-bold uppercase ${channel.logoClass}`}>
+                <div
+                  className={`inline-flex min-h-10 items-center justify-center rounded-full px-4 text-[0.72rem] font-bold uppercase ${channel.logoClass}`}
+                >
                   {channel.logoText}
                 </div>
                 <p className="text-lg font-bold">{channel.name}</p>
@@ -134,11 +179,14 @@ export default function DonatePage() {
                 className="mt-4 rounded-lg border border-[var(--line)] bg-white p-2"
               />
               <p className="mt-3 text-sm text-[var(--muted)]">{channel.description}</p>
-              <p className="mt-4 text-xs uppercase tracking-[0.16em] text-[var(--accent)]">{channel.status}</p>
+              <p className="mt-4 text-xs uppercase tracking-[0.16em] text-[var(--accent)]">
+                {channel.status}
+              </p>
             </article>
           ))}
         </div>
       </section>
+
     </PageContainer>
   );
 }
