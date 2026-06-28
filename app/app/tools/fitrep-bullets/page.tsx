@@ -1,6 +1,11 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { LoadingBlock } from "@/components/tools/loading-block";
+import { ToolAlert } from "@/components/tools/tool-alert";
+import { ActionBar } from "@/components/tools/action-bar";
+
+// ─── Types ────────────────────────────────────────────────────────────
 
 type BulletsOutput = {
   artifactId: string;
@@ -24,11 +29,22 @@ type MasterResumeOutput = {
 
 type DocRow = {
   id: string;
-  doc_type: "FITREP" | "EVAL" | "VMET" | "JST" | "MASTER_RESUME" | "RESUME_TEMPLATE" | "TARGETED_RESUME" | "LINKEDIN_PROFILE" | "OTHER";
+  doc_type:
+    | "FITREP"
+    | "EVAL"
+    | "VMET"
+    | "JST"
+    | "MASTER_RESUME"
+    | "RESUME_TEMPLATE"
+    | "TARGETED_RESUME"
+    | "LINKEDIN_PROFILE"
+    | "OTHER";
   text_extracted: boolean;
   created_at: string;
   filename: string;
 };
+
+// ─── Page ─────────────────────────────────────────────────────────────
 
 export default function FitrepBulletsPage() {
   const [mode, setMode] = useState<"bullets" | "master_resume">("master_resume");
@@ -70,6 +86,32 @@ export default function FitrepBulletsPage() {
     return { hasVmet, hasJst, linkedinCount, fitrepCount };
   }, [docs]);
 
+  const sourceRows = useMemo(
+    () => [
+      {
+        label: "FITREP / EVAL",
+        ready: sourceSummary.fitrepCount > 0,
+        detail: sourceSummary.fitrepCount > 0 ? `${sourceSummary.fitrepCount} extracted` : "Not found",
+      },
+      {
+        label: "VMET",
+        ready: sourceSummary.hasVmet,
+        detail: sourceSummary.hasVmet ? "Extracted" : "Not found",
+      },
+      {
+        label: "JST",
+        ready: sourceSummary.hasJst,
+        detail: sourceSummary.hasJst ? "Extracted" : "Not found",
+      },
+      {
+        label: "LinkedIn Profile",
+        ready: sourceSummary.linkedinCount > 0,
+        detail: sourceSummary.linkedinCount > 0 ? `${sourceSummary.linkedinCount} extracted` : "Not found",
+      },
+    ],
+    [sourceSummary]
+  );
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -85,10 +127,7 @@ export default function FitrepBulletsPage() {
     const payload =
       mode === "master_resume"
         ? useUploadedDocs
-          ? {
-              mode,
-              targetRole: targetRole || null,
-            }
+          ? { mode, targetRole: targetRole || null }
           : {
               mode,
               targetRole: targetRole || null,
@@ -96,11 +135,7 @@ export default function FitrepBulletsPage() {
               jstText: optionalText(jstText),
               fitrepsText: optionalText(fitrepsText),
             }
-        : {
-            mode,
-            targetRole: targetRole || null,
-            pastedText,
-          };
+        : { mode, targetRole: targetRole || null, pastedText };
 
     try {
       const res = await fetch("/api/tools/fitrep-bullets", {
@@ -141,18 +176,25 @@ export default function FitrepBulletsPage() {
     window.setTimeout(() => setCopyState(null), 1500);
   }
 
+  const noDocsYet = mode === "master_resume" && useUploadedDocs && !docsLoading && docs.length === 0;
+
   return (
     <main className="page-shell">
-      <section className="page-hero">
+
+      {/* ── Hero ──────────────────────────────────────────────────── */}
+      <section className="page-hero-dark">
         <div className="page-hero-grid">
           <div className="relative z-10">
-            <p className="page-kicker">MASTER RESUME</p>
-            <h1 className="page-title">Build the career foundation every downstream tool depends on.</h1>
+            <p className="page-kicker-pill">MASTER RESUME</p>
+            <h1 className="page-title">
+              Build the career foundation{" "}
+              <span className="gradient-text">every downstream tool depends on.</span>
+            </h1>
             <p className="page-description">
-              Pull from available service records, FITREPs, EVALs, LinkedIn drafts, and source documents to generate the master resume that powers targeting, interview prep, and future application work.
+              Pull from FITREPs, EVALs, JST, VMET, and LinkedIn drafts to generate the master resume that powers targeting, interview prep, and future application work.
             </p>
           </div>
-          <aside className="page-hero-aside">
+          <aside className="page-hero-aside relative z-10">
             <p className="page-hero-aside-title">BEST INPUTS</p>
             <ul className="page-hero-list">
               <li>Extracted FITREPs and EVALs</li>
@@ -161,80 +203,144 @@ export default function FitrepBulletsPage() {
             </ul>
           </aside>
         </div>
-        <section className="mt-6 rounded-md border border-[var(--line)] bg-[var(--accent-soft)] p-4">
-          <p className="text-sm font-semibold text-[var(--accent)]">Start With Source Documents</p>
-          <p className="mt-1 text-sm text-[var(--foreground)]">
-            Upload and extract available source records in Documents before generating a master resume. FITREPs/EVALs are the strongest accomplishment source; VMET, JST, and LinkedIn profile documents improve context when available.
-          </p>
-          <a className="btn btn-secondary mt-3 w-full text-sm sm:w-auto" href="/app/documents">
-            Open Documents
-          </a>
-          <p className="mt-3 text-sm text-[var(--foreground)]">
-            This tool generates a starting-point master resume, not a final version. Improve it now and save the refined copy in Documents so every downstream tool starts from a stronger source.
-          </p>
-        </section>
+        <div className="hero-trust-strip -mx-7 -mb-7 mt-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4">
+            {["FITREPs / EVALs", "JST · VMET", "LinkedIn profile docs", "Auto-saved to Library"].map(
+              (label) => (
+                <div key={label} className="hero-trust-item">
+                  <span
+                    className="h-1.5 w-1.5 shrink-0 rounded-full"
+                    style={{ background: "#39a67f" }}
+                    aria-hidden="true"
+                  />
+                  <span className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.65)" }}>
+                    {label}
+                  </span>
+                </div>
+              )
+            )}
+          </div>
+        </div>
       </section>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)]">
-        <section className="space-y-4">
-          <section className="section-card p-6">
-            <form className="space-y-4" onSubmit={onSubmit}>
+      {/* ── Tool layout ────────────────────────────────────────────── */}
+      <div className="tool-shell">
+
+        {/* ── INPUT PANEL ────────────────────────────────────────── */}
+        <div className="tool-input-panel">
+
+          {noDocsYet && (
+            <ToolAlert variant="info" title="Upload source records first">
+              <p className="text-sm">
+                Upload and extract FITREPs, EVALs, JST, or VMET in{" "}
+                <a href="/app/documents" className="font-semibold underline">
+                  Documents
+                </a>{" "}
+                before generating. Missing sources become validation questions instead of blocking generation.
+              </p>
+            </ToolAlert>
+          )}
+
+          <section className="tool-section">
+            <form className="flex flex-col gap-4" onSubmit={onSubmit}>
               <div>
-                <p className="section-title">Inputs</p>
-                <p className="section-description">
-                  Use uploaded documents when possible. VMET, JST, LinkedIn profile documents, FITREPs, and EVALs all help, but the tool can run from whichever source records are available.
+                <p className="tool-kicker">INPUTS</p>
+                <p className="section-description mt-1">
+                  Use uploaded documents when possible — the tool runs from whichever source records are available.
                 </p>
               </div>
 
+              {/* Mode */}
               <label className="block space-y-1">
                 <span className="text-sm font-medium">Mode</span>
-                <select className="input" value={mode} onChange={(e) => setMode(e.target.value as "bullets" | "master_resume")}>
+                <select
+                  className="input"
+                  value={mode}
+                  onChange={(e) => setMode(e.target.value as "bullets" | "master_resume")}
+                >
                   <option value="master_resume">Master Resume</option>
                   <option value="bullets">Legacy Bullets Only</option>
                 </select>
               </label>
 
+              {/* Target role */}
               <label className="block space-y-1">
-                <span className="text-sm font-medium">Target Role (optional)</span>
-                <input className="input" value={targetRole} onChange={(e) => setTargetRole(e.target.value)} />
+                <span className="text-sm font-medium">
+                  Target Role{" "}
+                  <span className="font-normal text-[var(--muted)]">(optional)</span>
+                </span>
+                <input
+                  className="input"
+                  placeholder="e.g. Program Manager, Operations Director"
+                  value={targetRole}
+                  onChange={(e) => setTargetRole(e.target.value)}
+                />
               </label>
 
               {mode === "master_resume" ? (
                 <>
-                  <label className="flex items-center gap-2 text-sm font-medium">
+                  <label className="flex cursor-pointer items-center gap-2.5 text-sm font-medium">
                     <input
                       type="checkbox"
                       checked={useUploadedDocs}
                       onChange={(e) => setUseUploadedDocs(e.target.checked)}
                     />
-                    Build from uploaded documents (recommended)
+                    Build from uploaded documents{" "}
+                    <span className="font-semibold text-[var(--accent)]">(recommended)</span>
                   </label>
 
                   {useUploadedDocs ? (
-                    <section className="subtle-panel p-4">
+                    /* ── Source readiness panel ─────────────────── */
+                    <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="font-semibold">Source Readiness</p>
-                        <button className="btn btn-secondary text-sm" type="button" onClick={loadDocs} disabled={docsLoading}>
-                          {docsLoading ? "Refreshing..." : "Refresh"}
+                        <p className="tool-kicker">SOURCE READINESS</p>
+                        <button
+                          className="btn btn-secondary !min-h-8 !py-1 text-xs"
+                          type="button"
+                          onClick={loadDocs}
+                          disabled={docsLoading}
+                        >
+                          {docsLoading ? "Refreshing…" : "Refresh"}
                         </button>
                       </div>
-                      <ul className="mt-2 space-y-1 text-sm text-[var(--muted)]">
-                        <li>VMET extracted: {sourceSummary.hasVmet ? "Yes" : "No"}</li>
-                        <li>JST extracted: {sourceSummary.hasJst ? "Yes" : "No"}</li>
-                        <li>LinkedIn profile documents extracted: {sourceSummary.linkedinCount}</li>
-                        <li>FITREP/EVAL extracted count: {sourceSummary.fitrepCount}</li>
-                      </ul>
-                      <p className="mt-2 text-xs text-[var(--muted)]">
-                        Upload and extract additional records on the Documents page when you have them. Missing sources become validation questions instead of blocking generation.
+                      <div className="mt-3 grid gap-2.5">
+                        {sourceRows.map((row) => (
+                          <div
+                            key={row.label}
+                            className="flex items-center justify-between gap-2 text-sm"
+                          >
+                            <span className="text-[var(--foreground)]">{row.label}</span>
+                            <span
+                              className={`flex items-center gap-1.5 font-medium ${
+                                row.ready ? "text-[var(--accent)]" : "text-[var(--muted)]"
+                              }`}
+                            >
+                              <span
+                                className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                                  row.ready ? "bg-[var(--accent)]" : "bg-[var(--muted)]"
+                                }`}
+                                aria-hidden="true"
+                              />
+                              {row.detail}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="mt-3 text-xs text-[var(--muted)]">
+                        Missing sources become validation questions. If extracted text exceeds model limits, the system prioritizes the most recent material.
                       </p>
-                      <p className="mt-1 text-xs text-[var(--muted)]">
-                        If extracted text exceeds model limits, the system will prioritize the most recent source material.
-                      </p>
-                    </section>
+                      <a className="btn btn-secondary mt-3 w-full text-xs" href="/app/documents">
+                        Manage Documents
+                      </a>
+                    </div>
                   ) : (
-                    <div className="space-y-3">
+                    /* ── Manual paste inputs ────────────────────── */
+                    <div className="flex flex-col gap-3">
                       <label className="block space-y-1">
-                        <span className="text-sm font-medium">1) VMET Text (optional)</span>
+                        <span className="text-sm font-medium">
+                          1) VMET Text{" "}
+                          <span className="font-normal text-[var(--muted)]">(optional)</span>
+                        </span>
                         <textarea
                           className="input min-h-40"
                           value={vmetText}
@@ -243,7 +349,10 @@ export default function FitrepBulletsPage() {
                         />
                       </label>
                       <label className="block space-y-1">
-                        <span className="text-sm font-medium">2) JST Text (optional)</span>
+                        <span className="text-sm font-medium">
+                          2) JST Text{" "}
+                          <span className="font-normal text-[var(--muted)]">(optional)</span>
+                        </span>
                         <textarea
                           className="input min-h-40"
                           value={jstText}
@@ -252,7 +361,10 @@ export default function FitrepBulletsPage() {
                         />
                       </label>
                       <label className="block space-y-1">
-                        <span className="text-sm font-medium">3) Observed FITREP/EVAL Text (recommended)</span>
+                        <span className="text-sm font-medium">
+                          3) FITREP / EVAL Text{" "}
+                          <span className="text-xs font-semibold text-[var(--accent)]">(recommended)</span>
+                        </span>
                         <textarea
                           className="input min-h-56"
                           value={fitrepsText}
@@ -261,14 +373,14 @@ export default function FitrepBulletsPage() {
                         />
                       </label>
                       <p className="text-xs text-[var(--muted)]">
-                        Provide at least one substantive source. FITREPs/EVALs produce the strongest accomplishment evidence; VMET, JST, and LinkedIn profile documents add context when available.
+                        Provide at least one substantive source. FITREPs/EVALs produce the strongest accomplishment evidence.
                       </p>
                     </div>
                   )}
                 </>
               ) : (
                 <label className="block space-y-1">
-                  <span className="text-sm font-medium">FITREP/EVAL Text</span>
+                  <span className="text-sm font-medium">FITREP / EVAL Text</span>
                   <textarea
                     className="input min-h-56"
                     value={pastedText}
@@ -280,89 +392,178 @@ export default function FitrepBulletsPage() {
               )}
 
               <button className="btn btn-primary w-full sm:w-auto" disabled={loading} type="submit">
-                {loading ? "Running..." : mode === "master_resume" ? "Generate Master Resume" : "Generate Master Bullets"}
+                {loading
+                  ? "Running…"
+                  : mode === "master_resume"
+                  ? "Generate Master Resume"
+                  : "Generate Master Bullets"}
               </button>
             </form>
           </section>
-        </section>
+        </div>
 
-        <section className="space-y-4 xl:sticky xl:top-20 xl:self-start">
-          {(error || notice || copyState) && (
-            <section className="section-card">
-              {error && <p className="text-sm text-red-700">{error}</p>}
-              {notice && <p className="text-sm text-[var(--accent)]">{notice}</p>}
-              {copyState && <p className="text-sm text-[var(--accent)]">{copyState}</p>}
-            </section>
+        {/* ── OUTPUT PANEL ───────────────────────────────────────── */}
+        <div className="tool-output-panel">
+
+          {/* Loading */}
+          {loading && (
+            <LoadingBlock
+              task={
+                mode === "master_resume" ? "Generating master resume…" : "Generating master bullets…"
+              }
+              detail="Analyzing source records and translating military experience. This typically takes 30–60 seconds."
+            />
           )}
 
-          {result && "master_resume" in result && (
-            <section className="section-card space-y-3">
-              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-                <p className="text-sm font-semibold text-[var(--accent)]">Artifact ID: {result.artifactId}</p>
-                <button className="btn btn-secondary text-sm" type="button" onClick={() => void copyText("Master resume", result.master_resume)}>
-                  Copy Resume
-                </button>
-                <a className="btn btn-secondary text-sm" href={`/api/resume-artifacts/${result.artifactId}/download?format=docx`}>
-                  Export Word (.docx)
-                </a>
-                <a className="btn btn-secondary text-sm" href={`/api/resume-artifacts/${result.artifactId}/download`}>
-                  Export Text (.txt)
-                </a>
-              </div>
+          {/* Error */}
+          {!loading && error && (
+            <ToolAlert variant="error" title="Generation failed">
+              <p className="text-sm">{error}</p>
+            </ToolAlert>
+          )}
+
+          {/* Success notice */}
+          {!loading && !error && notice && (
+            <ToolAlert variant="info">
+              <p className="text-sm">{notice}</p>
+            </ToolAlert>
+          )}
+
+          {/* Copy feedback */}
+          {copyState && (
+            <ToolAlert variant="info">
+              <p className="text-sm">{copyState}</p>
+            </ToolAlert>
+          )}
+
+          {/* ── Master resume output ─────────────────────────────── */}
+          {!loading && result && "master_resume" in result && (
+            <div className="tool-output-card">
               <div>
-                <p className="section-title">Generated Master Resume</p>
-                <p className="section-description">Review this draft, refine it, and keep your best version current in Documents.</p>
-              </div>
-              {typeof result.fitrepDocsDetected === "number" && typeof result.fitrepDocsIncluded === "number" && (
-                <p className="text-sm text-[var(--muted)]">
-                  FITREP/EVAL sources included: {result.fitrepDocsIncluded} of {result.fitrepDocsDetected}
-                  {result.fitrepDocsTruncated ? " (truncated by input budget)" : ""}
+                <p className="tool-kicker">OUTPUT</p>
+                <p className="section-title mt-0.5">Generated Master Resume</p>
+                <p className="section-description">
+                  Review this draft, refine it, and save your best version in Documents so every downstream tool starts from a stronger source.
                 </p>
-              )}
-              <pre className="max-h-[70vh] overflow-auto whitespace-pre-wrap rounded-md border border-[var(--line)] bg-[var(--surface)] p-3 text-sm leading-6 text-[var(--foreground)]">
-                {result.master_resume}
-              </pre>
+              </div>
+
+              {typeof result.fitrepDocsDetected === "number" &&
+                typeof result.fitrepDocsIncluded === "number" && (
+                  <p className="text-xs text-[var(--muted)]">
+                    FITREP/EVAL sources: {result.fitrepDocsIncluded} of {result.fitrepDocsDetected}{" "}
+                    included
+                    {result.fitrepDocsTruncated ? " — truncated by input budget" : ""}
+                  </p>
+                )}
+
+              <pre className="tool-resume-preview">{result.master_resume}</pre>
+
               {result.validation_questions?.length > 0 && (
-                <div>
-                  <h3 className="font-semibold">Validation Questions</h3>
-                  <ul className="mt-2 list-disc pl-5 text-sm">
-                    {result.validation_questions.map((q, idx) => (
-                      <li key={`${q}-${idx}`}>{q}</li>
-                    ))}
-                  </ul>
+                <div className="flex flex-col gap-2">
+                  <p className="tool-kicker">GAPS TO FILL</p>
+                  {result.validation_questions.map((q, idx) => (
+                    <ToolAlert key={`${q}-${idx}`} variant="warn">
+                      <p className="text-sm">{q}</p>
+                    </ToolAlert>
+                  ))}
                 </div>
               )}
-            </section>
+
+              <ActionBar>
+                <button
+                  className="btn btn-primary text-sm"
+                  type="button"
+                  onClick={() => void copyText("Master resume", result.master_resume)}
+                >
+                  Copy Resume
+                </button>
+                <a
+                  className="btn btn-secondary text-sm"
+                  href={`/api/resume-artifacts/${result.artifactId}/download?format=docx`}
+                >
+                  Export Word
+                </a>
+                <a
+                  className="btn btn-secondary text-sm"
+                  href={`/api/resume-artifacts/${result.artifactId}/download`}
+                >
+                  Export Text
+                </a>
+              </ActionBar>
+            </div>
           )}
 
-          {result && "bullets" in result && (
-            <section className="section-card space-y-3">
-              <p className="text-sm font-semibold text-[var(--accent)]">Artifact ID: {result.artifactId}</p>
+          {/* ── Bullets output ───────────────────────────────────── */}
+          {!loading && result && "bullets" in result && (
+            <div className="tool-output-card">
               <div>
-                <p className="section-title">Generated Bullets</p>
-                <p className="section-description">Use these as a starting point, then refine tone and evidence before reuse.</p>
+                <p className="tool-kicker">OUTPUT</p>
+                <p className="section-title mt-0.5">Generated Bullets</p>
+                <p className="section-description">
+                  Use these as a starting point, then refine tone and evidence before reuse.
+                </p>
               </div>
-              <button
-                className="btn btn-secondary text-sm"
-                type="button"
-                onClick={() => void copyText("Bullets", result.bullets.map((b) => b.bullet).join("\n"))}
-              >
-                Copy Bullets
-              </button>
-              <ul className="list-disc space-y-1 pl-5 text-sm">
+
+              <ul className="flex flex-col gap-1.5 text-sm">
                 {result.bullets.map((b, idx) => (
-                  <li key={`${b.category}-${idx}`}>{b.bullet}</li>
+                  <li key={`${b.category}-${idx}`} className="flex gap-2">
+                    <span
+                      className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]"
+                      aria-hidden="true"
+                    />
+                    {b.bullet}
+                  </li>
                 ))}
               </ul>
-              <p className="text-sm">
-                <span className="font-semibold">Suggested roles:</span> {result.suggested_job_titles.join(", ")}
-              </p>
-              <p className="text-sm">
-                <span className="font-semibold">Keywords:</span> {result.core_keywords.join(", ")}
-              </p>
-            </section>
+
+              <div className="flex flex-col gap-1 text-sm">
+                <p>
+                  <span className="font-semibold">Suggested roles:</span>{" "}
+                  {result.suggested_job_titles.join(", ")}
+                </p>
+                <p>
+                  <span className="font-semibold">Keywords:</span>{" "}
+                  {result.core_keywords.join(", ")}
+                </p>
+              </div>
+
+              <ActionBar>
+                <button
+                  className="btn btn-primary text-sm"
+                  type="button"
+                  onClick={() =>
+                    void copyText("Bullets", result.bullets.map((b) => b.bullet).join("\n"))
+                  }
+                >
+                  Copy Bullets
+                </button>
+              </ActionBar>
+            </div>
           )}
-        </section>
+
+          {/* ── Empty state ──────────────────────────────────────── */}
+          {!loading && !result && !error && (
+            <div className="tool-empty">
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-[var(--line)]"
+                aria-hidden="true"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M7 8h10M7 12h10M7 16h6" />
+              </svg>
+              <p className="font-medium">Output will appear here</p>
+              <p className="text-xs">Fill in your inputs and run generation to see your master resume.</p>
+            </div>
+          )}
+        </div>
       </div>
     </main>
   );
