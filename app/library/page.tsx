@@ -64,24 +64,56 @@ export default async function LibraryPage() {
   );
 
   return (
-    <PageContainer className="page-shell" size="lg">
-      <section className="page-hero">
+    <PageContainer className="flex flex-col gap-6" size="lg">
+
+      {/* ── Dark Hero ──────────────────────────────────────────── */}
+      <section className="page-hero-dark">
         <div className="page-hero-grid">
-          <div className="relative z-10">
-            <p className="page-kicker">LIBRARY</p>
-            <h1 className="page-title">Find curated transition documents and useful links fast.</h1>
+          <div>
+            <p className="page-kicker-pill">LIBRARY</p>
+            <h1 className="page-title">
+              Find{" "}
+              <span className="gradient-text">curated transition</span>
+              {" "}documents and useful links fast.
+            </h1>
             <p className="page-description">
               Browse approved documents, open vetted references, and submit new resources for review when signed in.
             </p>
           </div>
           <aside className="page-hero-aside">
-            <p className="page-hero-aside-title">MOBILE FLOW</p>
+            <p className="page-hero-aside-title">HOW TO USE</p>
             <ul className="page-hero-list">
-              <li>Jump by category</li>
-              <li>Open resources from cards</li>
-              <li>Submit additions for review</li>
+              <li>Jump to a category using the filter buttons</li>
+              <li>Open documents or visit reference links directly from cards</li>
+              <li>Sign in to submit additions for review</li>
             </ul>
           </aside>
+        </div>
+
+        {/* Resource type strip */}
+        <div className="hero-trust-strip -mx-7 -mb-7 mt-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4">
+            {[
+              { label: "Approved documents" },
+              { label: "Vetted links" },
+              { label: "Submit resources" },
+              { label: "By category" },
+            ].map((item) => (
+              <div key={item.label} className="hero-trust-item">
+                <span
+                  className="h-1.5 w-1.5 shrink-0 rounded-full"
+                  style={{ background: "#39a67f" }}
+                  aria-hidden="true"
+                />
+                <span
+                  className="text-sm font-medium"
+                  style={{ color: "rgba(255,255,255,0.65)" }}
+                >
+                  {item.label}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
