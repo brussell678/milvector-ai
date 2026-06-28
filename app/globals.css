@@ -466,6 +466,90 @@ body {
   background: var(--accent);
 }
 
+/* ─── Page Hero Dark (interior pages) ───────────────────────────── */
+
+/* Dark immersive variant of .page-hero for interior pages.
+   Same visual language as the homepage dark hero but container-
+   constrained with rounded corners. Swap class on any page hero
+   to get the full dark treatment — all child classes auto-adapt. */
+.page-hero-dark {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(-45deg, #061209, #0a1c10, #06120a, #081510);
+  background-size: 400% 400%;
+  animation: hero-bg-shift 18s ease infinite;
+  border-radius: var(--radius-2xl);
+  padding: 1.75rem;
+}
+
+/* Dot-grid overlay */
+.page-hero-dark::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* Accent glow orb top-right */
+.page-hero-dark::after {
+  content: "";
+  position: absolute;
+  top: -20%;
+  right: -5%;
+  width: 55%;
+  height: 150%;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(57, 166, 127, 0.22) 0%, transparent 65%);
+}
+
+/* Push grid content above the pseudo-element overlays */
+.page-hero-dark .page-hero-grid {
+  position: relative;
+  z-index: 1;
+}
+
+/* Text color overrides inside the dark hero */
+.page-hero-dark .page-kicker,
+.page-hero-dark .page-kicker-pill {
+  color: #39a67f;
+}
+
+.page-hero-dark .page-title {
+  color: #ffffff;
+}
+
+.page-hero-dark .page-description {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+/* Aside card inside dark hero */
+.page-hero-dark .page-hero-aside {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.page-hero-dark .page-hero-aside-title {
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.page-hero-dark .page-hero-list {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.page-hero-dark .page-hero-list li::before {
+  background: #39a67f;
+}
+
+/* Pill eyebrow inside dark hero */
+.page-hero-dark .page-kicker-pill {
+  background: rgba(57, 166, 127, 0.1);
+  border-color: rgba(57, 166, 127, 0.35);
+}
+
 /* ─── Typography ─────────────────────────────────────────────────── */
 
 .page-kicker {
@@ -474,6 +558,25 @@ body {
   font-weight: 700;
   letter-spacing: 0.22em;
   text-transform: uppercase;
+}
+
+/* Bordered pill variant of page-kicker — for use in page heroes.
+   Works on both light (uses tokens) and dark (overridden above) backgrounds. */
+.page-kicker-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid color-mix(in oklab, var(--accent) 35%, transparent);
+  border-radius: var(--radius-full);
+  padding: 5px 14px;
+  background: var(--accent-soft);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  width: fit-content;
+  margin-bottom: 0.65rem;
 }
 
 .section-kicker {
