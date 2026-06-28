@@ -82,7 +82,7 @@ export default function DonatePage() {
         </div>
       </section>
 
-      <section className="section-card">
+      <section className="section-card observe-fade">
         <p className="section-kicker">THE MISSION</p>
         <h2 className="section-title mt-1">Why This Exists</h2>
         <div className="mt-3 space-y-3 text-sm text-[var(--muted)]">
@@ -95,7 +95,7 @@ export default function DonatePage() {
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2">
+      <section className="grid gap-4 md:grid-cols-2 observe-fade">
         {reasons.map((reason) => (
           <article key={reason.title} className="section-card card-hover">
             <reason.Icon size={20} className="text-[var(--accent)]" aria-hidden="true" />
@@ -105,7 +105,7 @@ export default function DonatePage() {
         ))}
       </section>
 
-      <section className="section-card">
+      <section className="section-card observe-fade">
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="section-kicker">GIVE</p>

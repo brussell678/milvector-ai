@@ -63,13 +63,13 @@ export default function PlatformPage() {
         </div>
       </section>
 
-      <section className="section-card">
+      <section className="section-card observe-fade">
         <p className="section-kicker">THE DIFFERENCE</p>
         <h2 className="section-title mt-1">What Makes It Different</h2>
         <p className="section-description">MilVector is not meant to be a generic AI wrapper or another job board with military branding on top.</p>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2">
+      <section className="grid gap-4 md:grid-cols-2 observe-fade">
         {principles.map((item) => (
           <article key={item.title} className="section-card card-hover">
             <item.Icon size={20} className="text-[var(--accent)]" aria-hidden="true" />
@@ -79,7 +79,7 @@ export default function PlatformPage() {
         ))}
       </section>
 
-      <section className="section-card">
+      <section className="section-card observe-fade">
         <p className="section-kicker">TRANSPARENCY</p>
         <h2 className="section-title mt-1">How Access And AI Usage Work</h2>
         <p className="section-description">MilVector is designed to be transparent about how the platform works and why some workflows live inside the product while others open in ChatGPT.</p>
@@ -93,7 +93,7 @@ export default function PlatformPage() {
         </ul>
       </section>
 
-      <section className="section-card">
+      <section className="section-card observe-fade">
         <p className="section-kicker">GET STARTED</p>
         <h2 className="section-title mt-1">Start With The Core System</h2>
         <p className="section-description">The best MilVector experience starts when your profile, source records, and foundation outputs are all in place before you begin targeting roles.</p>

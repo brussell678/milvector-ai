@@ -186,7 +186,7 @@ export default async function Home({
       </section>
 
       {/* ── Features: Diagonal Bento ───────────────────────────── */}
-      <section className="mt-6" aria-label="Platform features">
+      <section className="mt-6 observe-fade" aria-label="Platform features">
         <div className="grid gap-3 md:grid-cols-3">
 
           {/* Hero tile: Connected system — spans 2 cols */}
@@ -236,7 +236,7 @@ export default async function Home({
       </section>
 
       {/* ── How It Works ───────────────────────────────────────── */}
-      <section id="how-it-works" className="section-card mt-6 scroll-mt-28">
+      <section id="how-it-works" className="section-card mt-6 scroll-mt-28 observe-fade">
         <p className="section-kicker">THE PROCESS</p>
         <h2 className="section-title mt-1">How It Works</h2>
         <p className="section-description">
@@ -270,7 +270,7 @@ export default async function Home({
       </section>
 
       {/* ── Example Transformation ─────────────────────────────── */}
-      <section className="section-card mt-6">
+      <section className="section-card mt-6 observe-fade">
         <p className="section-kicker">IN PRACTICE</p>
         <h2 className="section-title mt-1">Example Transformation</h2>
         <p className="section-description">
@@ -297,7 +297,7 @@ export default async function Home({
       </section>
 
       {/* ── Mission ────────────────────────────────────────────── */}
-      <section className="section-card mt-6">
+      <section className="section-card mt-6 observe-fade">
         <p className="section-kicker">WHY WE BUILT IT</p>
         <h2 className="section-title mt-1">Mission</h2>
         <p className="section-description">
