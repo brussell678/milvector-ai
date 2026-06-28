@@ -58,11 +58,13 @@ export default function RootLayout({
           <MobileSiteHeader />
           <DesktopNav />
         </PublicSiteChrome>
-        <div className="relative z-10 pb-16 pt-4">{children}</div>
+        <div className="relative z-10 pb-0 pt-4">{children}</div>
 
         <footer className="site-footer">
           <div className="mx-auto max-w-6xl">
-            <div className="grid gap-8 sm:grid-cols-3">
+
+            {/* 3-column grid */}
+            <div className="grid gap-10 sm:grid-cols-3">
 
               {/* Brand */}
               <div>
@@ -72,25 +74,38 @@ export default function RootLayout({
                     alt=""
                     width={24}
                     height={24}
-                    className="object-contain"
+                    className="object-contain opacity-80"
                     aria-hidden="true"
                   />
-                  <span className="font-extrabold tracking-wide text-[var(--accent)]">
+                  <span className="font-extrabold tracking-wide text-white">
                     MILVECTOR AI
                   </span>
                 </Link>
-                <p className="mt-2 text-xs leading-relaxed text-[var(--muted)]">
+                <p
+                  className="mt-1 text-xs font-bold uppercase tracking-[0.16em]"
+                  style={{ color: "#39a67f" }}
+                >
+                  Built for service members
+                </p>
+                <p className="mt-3 text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.35)" }}>
                   Career translation, job targeting, and transition planning — AI-powered and built for service members.
                 </p>
               </div>
 
               {/* Navigate */}
               <nav aria-label="Footer navigation">
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--muted)]">Navigate</p>
-                <ul className="mt-3 space-y-1.5">
+                <p
+                  className="text-xs font-bold uppercase tracking-[0.16em]"
+                  style={{ color: "rgba(255,255,255,0.32)" }}
+                >
+                  Navigate
+                </p>
+                <ul className="mt-4 space-y-2.5">
                   {footerNav.map((link) => (
                     <li key={link.href}>
-                      <Link href={link.href}>{link.label}</Link>
+                      <Link href={link.href} className="text-sm">
+                        {link.label}
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -98,11 +113,18 @@ export default function RootLayout({
 
               {/* Support */}
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--muted)]">Support</p>
-                <ul className="mt-3 space-y-1.5">
+                <p
+                  className="text-xs font-bold uppercase tracking-[0.16em]"
+                  style={{ color: "rgba(255,255,255,0.32)" }}
+                >
+                  Support
+                </p>
+                <ul className="mt-4 space-y-2.5">
                   {footerSupport.map((link) => (
                     <li key={link.href}>
-                      <Link href={link.href}>{link.label}</Link>
+                      <Link href={link.href} className="text-sm">
+                        {link.label}
+                      </Link>
                     </li>
                   ))}
                   <li>
@@ -110,6 +132,7 @@ export default function RootLayout({
                       href="https://www.russell-innovation-group.com"
                       target="_blank"
                       rel="noopener noreferrer"
+                      className="text-sm"
                     >
                       Russell Innovation Group
                     </a>
@@ -119,10 +142,14 @@ export default function RootLayout({
             </div>
 
             {/* Bottom bar */}
-            <div className="mt-8 border-t border-[var(--line)] pt-4">
-              <p className="text-xs text-[var(--muted)]">
-                Copyright 2026 MilVector AI · Built by Russell Innovation Group LLC
-              </p>
+            <div
+              className="mt-10 pt-5 text-xs"
+              style={{
+                borderTop: "1px solid rgba(255,255,255,0.07)",
+                color: "rgba(255,255,255,0.22)",
+              }}
+            >
+              <p>Copyright 2026 MilVector AI · Built by Russell Innovation Group LLC</p>
             </div>
           </div>
         </footer>

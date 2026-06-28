@@ -16,10 +16,10 @@
   --muted: #5b6960;
   --surface: #f5f8f6;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 color-mix(in oklab, #1a1f1b 7%, transparent);
-  --shadow-md: 0 4px 12px 0 color-mix(in oklab, #1a1f1b 9%, transparent), 0 1px 3px 0 color-mix(in oklab, #1a1f1b 6%, transparent);
-  --shadow-lg: 0 8px 24px 0 color-mix(in oklab, #1a1f1b 12%, transparent), 0 2px 6px 0 color-mix(in oklab, #1a1f1b 8%, transparent);
+  /* Shadows — lifted from 2px to give real depth */
+  --shadow-sm: 0 2px 8px 0 color-mix(in oklab, #1a1f1b 10%, transparent), 0 1px 2px 0 color-mix(in oklab, #1a1f1b 6%, transparent);
+  --shadow-md: 0 8px 24px 0 color-mix(in oklab, #1a1f1b 13%, transparent), 0 2px 6px 0 color-mix(in oklab, #1a1f1b 8%, transparent);
+  --shadow-lg: 0 16px 40px 0 color-mix(in oklab, #1a1f1b 18%, transparent), 0 4px 10px 0 color-mix(in oklab, #1a1f1b 10%, transparent);
 
   /* Border radius scale */
   --radius-sm: 8px;
@@ -58,10 +58,10 @@
   --muted: #b8c7be;
   --surface: #101612;
 
-  /* Shadows (darker in dark mode) */
-  --shadow-sm: 0 1px 3px 0 color-mix(in oklab, #000 22%, transparent);
-  --shadow-md: 0 4px 14px 0 color-mix(in oklab, #000 30%, transparent), 0 1px 4px 0 color-mix(in oklab, #000 20%, transparent);
-  --shadow-lg: 0 8px 28px 0 color-mix(in oklab, #000 38%, transparent), 0 2px 8px 0 color-mix(in oklab, #000 24%, transparent);
+  /* Shadows darker in dark mode */
+  --shadow-sm: 0 2px 8px 0 color-mix(in oklab, #000 28%, transparent), 0 1px 2px 0 color-mix(in oklab, #000 18%, transparent);
+  --shadow-md: 0 8px 24px 0 color-mix(in oklab, #000 38%, transparent), 0 2px 6px 0 color-mix(in oklab, #000 24%, transparent);
+  --shadow-lg: 0 16px 40px 0 color-mix(in oklab, #000 48%, transparent), 0 4px 10px 0 color-mix(in oklab, #000 28%, transparent);
 }
 
 /* ─── Animations ─────────────────────────────────────────────────── */
@@ -75,6 +75,11 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes hero-bg-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50%       { background-position: 100% 50%; }
 }
 
 /* Immediate entrance animation — use on hero elements */
@@ -128,6 +133,7 @@ body {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
   transition: background-color var(--duration-base) var(--ease-default), border-color var(--duration-base) var(--ease-default);
 }
 
@@ -142,8 +148,9 @@ body {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius-xl);
-  padding: 1.25rem;
+  padding: 1.5rem;
   min-width: 0;
+  box-shadow: var(--shadow-sm);
   transition: background-color var(--duration-base) var(--ease-default), border-color var(--duration-base) var(--ease-default);
 }
 
@@ -152,8 +159,9 @@ body {
   border-radius: var(--radius-xl);
   background:
     linear-gradient(180deg, color-mix(in oklab, var(--surface) 85%, var(--panel) 15%), var(--panel));
-  padding: 1.25rem;
+  padding: 1.5rem;
   min-width: 0;
+  box-shadow: var(--shadow-sm);
 }
 
 /* Interactive card hover lift */
@@ -167,7 +175,7 @@ body {
 
 .card-hover:hover {
   box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   border-color: color-mix(in oklab, var(--accent) 30%, var(--line) 70%);
 }
 
@@ -235,6 +243,19 @@ body {
 .btn-ghost:hover {
   background: color-mix(in oklab, var(--surface) 80%, transparent);
   border-color: var(--line);
+}
+
+/* Ghost button for dark hero backgrounds */
+.btn-hero-ghost {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.btn-hero-ghost:hover {
+  background: rgba(255, 255, 255, 0.13);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #ffffff;
 }
 
 /* ─── Form Inputs ────────────────────────────────────────────────── */
@@ -308,24 +329,24 @@ body {
   text-decoration: underline;
 }
 
+/* Dark footer — always dark regardless of theme */
 .site-footer {
   position: relative;
   z-index: 10;
-  border-top: 1px solid var(--line);
-  background: color-mix(in oklab, var(--panel) 88%, transparent);
-  padding: 2.5rem 1.5rem 1.5rem;
+  background: #06100a;
+  padding: 3rem 1.5rem 1.5rem;
   font-size: 0.875rem;
-  transition: background-color var(--duration-base) var(--ease-default), border-color var(--duration-base) var(--ease-default);
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .site-footer a {
-  color: var(--foreground);
+  color: rgba(255, 255, 255, 0.6);
   text-decoration: none;
   transition: color var(--duration-fast) var(--ease-default);
 }
 
 .site-footer a:hover {
-  color: var(--accent);
+  color: #ffffff;
 }
 
 /* ─── Alerts ─────────────────────────────────────────────────────── */
@@ -376,7 +397,8 @@ body {
     linear-gradient(135deg, color-mix(in oklab, var(--panel) 90%, var(--surface) 10%), var(--panel));
   border: 1px solid var(--line);
   border-radius: var(--radius-2xl);
-  padding: 1.5rem;
+  padding: 1.75rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .page-hero::after {
@@ -467,6 +489,7 @@ body {
   font-size: clamp(1.8rem, 2.4vw, 2.65rem);
   line-height: 1.02;
   font-weight: 800;
+  letter-spacing: -0.025em;
   max-width: min(100%, 14ch);
   overflow-wrap: anywhere;
 }
@@ -483,6 +506,7 @@ body {
   font-size: clamp(1.3rem, 2vw, 1.6rem);
   font-weight: 800;
   line-height: 1.15;
+  letter-spacing: -0.018em;
 }
 
 /* Optional accent underline — add class alongside .section-title */
@@ -644,6 +668,145 @@ body {
   gap: 0.5rem;
 }
 
+/* ─── Dark Hero ──────────────────────────────────────────────────── */
+
+/* Full-bleed dark immersive hero — fixed colors, theme-independent */
+.hero-dark {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(-45deg, #061209, #0a1c10, #06120a, #081510);
+  background-size: 400% 400%;
+  animation: hero-bg-shift 18s ease infinite;
+}
+
+/* Subtle dot-grid overlay */
+.hero-dot-grid {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* Teal-green glow orb top-right */
+.hero-glow {
+  position: absolute;
+  top: -15%;
+  right: -8%;
+  width: 55%;
+  height: 130%;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(57, 166, 127, 0.2) 0%, transparent 65%);
+}
+
+/* Second glow — lower left for depth */
+.hero-glow-2 {
+  position: absolute;
+  bottom: -20%;
+  left: -5%;
+  width: 40%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(57, 166, 127, 0.09) 0%, transparent 65%);
+}
+
+/* Pill badge eyebrow for dark hero */
+.hero-eyebrow-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(57, 166, 127, 0.35);
+  border-radius: var(--radius-full);
+  padding: 5px 14px;
+  background: rgba(57, 166, 127, 0.08);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #39a67f;
+  width: fit-content;
+}
+
+/* Gradient accent text for dark hero headline */
+.gradient-text {
+  background: linear-gradient(135deg, #5ddea8 0%, #39a67f 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Trust strip at bottom of dark hero */
+.hero-trust-strip {
+  position: relative;
+  z-index: 1;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* Trust strip item — borders adapt from 2-col mobile to 4-col desktop */
+.hero-trust-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px;
+}
+
+/* Col 1 items (odd) get a right border in 2-col layout */
+.hero-trust-item:nth-child(odd) {
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* Row 2 items get a top border in 2-col layout */
+.hero-trust-item:nth-child(n+3) {
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* At sm (4-col): all but last get right border, no top borders */
+@media (min-width: 640px) {
+  .hero-trust-item:not(:last-child) {
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  .hero-trust-item:nth-child(n+3) {
+    border-top: none;
+  }
+}
+
+/* ─── CTA Band ───────────────────────────────────────────────────── */
+
+/* Dark immersive CTA section above footer */
+.cta-band {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #061209 0%, #0d2218 45%, #071510 100%);
+  border-radius: var(--radius-2xl);
+}
+
+.cta-band::before {
+  content: "";
+  position: absolute;
+  top: -60%;
+  right: -8%;
+  width: 50%;
+  height: 220%;
+  background: radial-gradient(ellipse at center, rgba(57, 166, 127, 0.22) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.cta-band::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+}
+
 /* ─── Bento Feature Tile (hero variant) ─────────────────────────── */
 
 .bento-hero-tile {
@@ -652,6 +815,7 @@ body {
     var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
   transition: background-color var(--duration-base) var(--ease-default), border-color var(--duration-base) var(--ease-default);
 }
 
