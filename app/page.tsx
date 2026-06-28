@@ -1,13 +1,51 @@
 import Link from "next/link";
 import Image from "next/image";
 import { redirect } from "next/navigation";
+import { type LucideIcon, Zap, ArrowRightLeft, Target, FolderOpen } from "lucide-react";
 import { PageContainer } from "@/components/layout/page-container";
 
+type OutcomeItem = {
+  Icon: LucideIcon;
+  label: string;
+  detail: string;
+};
+
+const outcomeItems: OutcomeItem[] = [
+  {
+    Icon: Zap,
+    label: "Quick Start",
+    detail: "Transition support ready in under 10 minutes",
+  },
+  {
+    Icon: ArrowRightLeft,
+    label: "Career Translation",
+    detail: "Civilian language built from your service records",
+  },
+  {
+    Icon: Target,
+    label: "Job Targeting",
+    detail: "Resumes and applications sharpened per role",
+  },
+  {
+    Icon: FolderOpen,
+    label: "Saved Library",
+    detail: "Outputs, documents, and tools all in one place",
+  },
+];
+
 const features = [
-  "Transition planning tools built for military-to-civilian moves",
-  "MOS Translator for role mapping and civilian career pathways",
-  "Job Description Decoder for must-haves, risks, and application prep",
-  "Resume, document, and decision-support workflows in one place",
+  {
+    label: "Transition planning tools built for military-to-civilian moves",
+  },
+  {
+    label: "MOS Translator for role mapping and civilian career pathways",
+  },
+  {
+    label: "Job Description Decoder for must-haves, risks, and application prep",
+  },
+  {
+    label: "Resume, document, and decision-support workflows in one place",
+  },
 ];
 
 const workflowSteps = [
@@ -36,7 +74,15 @@ const workflowSteps = [
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ code?: string; token_hash?: string; type?: string; next?: string; error?: string; error_code?: string; error_description?: string }>;
+  searchParams: Promise<{
+    code?: string;
+    token_hash?: string;
+    type?: string;
+    next?: string;
+    error?: string;
+    error_code?: string;
+    error_description?: string;
+  }>;
 }) {
   const params = await searchParams;
   const code = params.code;
@@ -49,7 +95,11 @@ export default async function Home({
 
   if (authError || authErrorCode || authErrorDescription) {
     const query = new URLSearchParams();
-    const message = authErrorDescription ?? authErrorCode ?? authError ?? "Authentication link is invalid or expired. Request a new magic link.";
+    const message =
+      authErrorDescription ??
+      authErrorCode ??
+      authError ??
+      "Authentication link is invalid or expired. Request a new magic link.";
     query.set("error", message);
     redirect(`/auth?${query.toString()}`);
   }
@@ -65,59 +115,83 @@ export default async function Home({
 
   return (
     <PageContainer className="py-6 sm:py-8 lg:py-10" size="lg">
+
+      {/* ── Hero ─────────────────────────────────────────────────── */}
       <section className="panel overflow-hidden">
         <div className="grid gap-8 p-8 md:grid-cols-[1.2fr_0.8fr] md:p-12">
-          <div className="space-y-6">
-            <div className="flex items-center gap-3">
+
+          {/* Left: headline + subhead + CTAs */}
+          <div className="flex flex-col gap-6">
+            <div className="flex items-center gap-3 fade-up">
               <Image
                 src="/assets/milvector-ai-logo-transparent.png"
-                alt="MILVECTOR AI logo"
-                width={56}
-                height={56}
+                alt="MilVector AI logo"
+                width={48}
+                height={48}
                 className="object-contain"
               />
-              <p className="inline-flex rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold tracking-wide text-[var(--accent)]">
+              <span className="inline-flex rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold tracking-wide text-[var(--accent)]">
                 MILVECTOR AI
-              </p>
+              </span>
             </div>
-            <h1 className="text-4xl font-extrabold tracking-tight text-balance md:text-5xl">
+
+            <h1
+              className="text-4xl font-extrabold tracking-tight text-balance md:text-5xl fade-up"
+              style={{ animationDelay: "60ms" }}
+            >
               Find the vector to your next career.
             </h1>
-            <p className="max-w-2xl text-lg text-[var(--muted)]">
-              AI tools designed to help service members navigate the full transition to civilian life and work, from career translation and job targeting to documents, planning, and decision support.
+
+            <p
+              className="max-w-xl text-lg text-[var(--muted)] fade-up"
+              style={{ animationDelay: "120ms" }}
+            >
+              Career translation, job targeting, and transition planning — AI-powered and built for service members.
             </p>
-            <div className="flex flex-wrap gap-3">
-              <Link href="/auth" className="btn btn-primary">
-                Let&apos;s Go!
+
+            <div
+              className="flex flex-wrap gap-3 fade-up"
+              style={{ animationDelay: "180ms" }}
+            >
+              <Link href="/auth" className="btn btn-primary w-full sm:w-auto">
+                Open Workspace
               </Link>
-              <Link href="#how-it-works" className="btn btn-secondary">
-                Learn How It Works
-              </Link>
-              <Link href="/platform" className="btn btn-secondary">
-                Why MilVector
+              <Link href="#how-it-works" className="btn btn-secondary w-full sm:w-auto">
+                How It Works
               </Link>
             </div>
           </div>
-          <div className="panel hero-outcomes p-6">
-            <p className="hero-outcomes-title text-xs font-semibold tracking-widest">WHAT YOU GET</p>
-            <ul className="mt-4 space-y-3 text-sm">
-              <li>Actionable transition support in under 10 minutes</li>
-              <li>Career translation tools built from your service records</li>
-              <li>Job-targeting workflows for resumes and applications</li>
-              <li>Saved documents, outputs, and support tools in one library</li>
-            </ul>
-          </div>
+
+          {/* Right: 2×2 bento outcomes */}
+          <aside aria-label="What you get" className="subtle-panel p-4">
+            <p className="section-kicker">WHAT YOU GET</p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {outcomeItems.map((item) => (
+                <div key={item.label} className="panel flex flex-col gap-1.5 p-3">
+                  <item.Icon
+                    size={18}
+                    className="text-[var(--accent)]"
+                    aria-hidden="true"
+                  />
+                  <p className="text-sm font-bold leading-tight">{item.label}</p>
+                  <p className="text-xs leading-snug text-[var(--muted)]">{item.detail}</p>
+                </div>
+              ))}
+            </div>
+          </aside>
         </div>
       </section>
 
+      {/* ── Features ─────────────────────────────────────────────── */}
       <section className="mt-6 grid gap-4 md:grid-cols-2">
         {features.map((feature) => (
-          <article key={feature} className="panel p-5">
-            <p className="font-semibold">{feature}</p>
+          <article key={feature.label} className="panel p-5">
+            <p className="font-semibold">{feature.label}</p>
           </article>
         ))}
       </section>
 
+      {/* ── How It Works ─────────────────────────────────────────── */}
       <section id="how-it-works" className="section-card mt-6 scroll-mt-28">
         <p className="section-title">How It Works</p>
         <p className="section-description">
@@ -126,7 +200,9 @@ export default async function Home({
         <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {workflowSteps.map((item) => (
             <article key={item.step} className="subtle-panel p-5">
-              <p className="text-xs font-semibold tracking-[0.18em] text-[var(--accent)]">STEP {item.step}</p>
+              <p className="text-xs font-semibold tracking-[0.18em] text-[var(--accent)]">
+                STEP {item.step}
+              </p>
               <h2 className="mt-2 text-lg font-bold">{item.title}</h2>
               <p className="mt-2 text-sm text-[var(--muted)]">{item.detail}</p>
             </article>
@@ -134,6 +210,7 @@ export default async function Home({
         </div>
       </section>
 
+      {/* ── Example Transformation ────────────────────────────────── */}
       <section className="section-card mt-6">
         <p className="section-title">Example Transformation</p>
         <p className="section-description">
@@ -141,11 +218,17 @@ export default async function Home({
         </p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <article className="subtle-panel p-5">
-            <p className="text-xs font-semibold tracking-[0.18em] text-[var(--muted)]">MILITARY VERSION</p>
-            <p className="mt-3 text-base font-semibold">Led 24 Marines maintaining a 100 vehicle fleet with 96% readiness.</p>
+            <p className="text-xs font-semibold tracking-[0.18em] text-[var(--muted)]">
+              MILITARY VERSION
+            </p>
+            <p className="mt-3 text-base font-semibold">
+              Led 24 Marines maintaining a 100 vehicle fleet with 96% readiness.
+            </p>
           </article>
-          <article className="subtle-panel p-5">
-            <p className="text-xs font-semibold tracking-[0.18em] text-[var(--accent)]">CIVILIAN VERSION</p>
+          <article className="subtle-panel border-l-2 border-l-[var(--accent)] p-5">
+            <p className="text-xs font-semibold tracking-[0.18em] text-[var(--accent)]">
+              CIVILIAN VERSION
+            </p>
             <p className="mt-3 text-base font-semibold">
               Managed a 24-person operations team responsible for fleet sustainment of 100 vehicles while maintaining 96% operational readiness.
             </p>
@@ -153,6 +236,7 @@ export default async function Home({
         </div>
       </section>
 
+      {/* ── Mission ──────────────────────────────────────────────── */}
       <section className="section-card mt-6">
         <p className="section-title">Mission</p>
         <p className="section-description">
@@ -162,7 +246,7 @@ export default async function Home({
           Built by Marines for service members. The goal is a trust-first workspace that feels closer to mission planning software than a generic job site.
         </p>
       </section>
+
     </PageContainer>
   );
 }
-
