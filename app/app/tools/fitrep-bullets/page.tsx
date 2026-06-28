@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { LoadingBlock } from "@/components/tools/loading-block";
 import { ToolAlert } from "@/components/tools/tool-alert";
 import { ActionBar } from "@/components/tools/action-bar";
@@ -46,7 +47,8 @@ type DocRow = {
 
 // ─── Page ─────────────────────────────────────────────────────────────
 
-export default function FitrepBulletsPage() {
+function FitrepBulletsContent() {
+
   const [mode, setMode] = useState<"bullets" | "master_resume">("master_resume");
   const [useUploadedDocs, setUseUploadedDocs] = useState(true);
   const [pastedText, setPastedText] = useState("");
@@ -76,6 +78,15 @@ export default function FitrepBulletsPage() {
   useEffect(() => {
     if (mode === "master_resume" && useUploadedDocs) void loadDocs();
   }, [mode, useUploadedDocs]);
+
+  // Pre-fill ?role= param — linked from MOS Translator
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const roleParam = searchParams.get("role");
+    if (roleParam) setTargetRole(decodeURIComponent(roleParam));
+    // intentionally empty deps: only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const sourceSummary = useMemo(() => {
     const extracted = docs.filter((d) => d.text_extracted);
@@ -566,5 +577,13 @@ export default function FitrepBulletsPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function FitrepBulletsPage() {
+  return (
+    <Suspense fallback={<div className="page-shell" />}>
+      <FitrepBulletsContent />
+    </Suspense>
   );
 }

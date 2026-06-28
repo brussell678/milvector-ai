@@ -1075,8 +1075,16 @@ details[open] .details-chevron {
   align-items: stretch;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   background: var(--surface);
+  /* prevent clipping the active-step background on very narrow screens */
+  min-width: 0;
+  scrollbar-width: none;
+}
+
+.tool-stage-bar::-webkit-scrollbar {
+  display: none;
 }
 
 .tool-stage-step {

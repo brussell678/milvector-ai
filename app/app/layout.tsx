@@ -16,12 +16,21 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   if (!user) redirect("/auth");
   const isAdmin = isAdminEmail(user.email);
-  const notificationsCountRes = await supabase
-    .from("message_board_notifications")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .is("read_at", null);
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const [notificationsCountRes, toolRunsRes] = await Promise.all([
+    supabase
+      .from("message_board_notifications")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .is("read_at", null),
+    supabase
+      .from("tool_runs")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .gte("created_at", sevenDaysAgo),
+  ]);
   const unreadBoardNotifications = notificationsCountRes.error ? 0 : notificationsCountRes.count ?? 0;
+  const hasRecentToolActivity = !toolRunsRes.error && (toolRunsRes.count ?? 0) > 0;
 
   return (
     <AppShell>
@@ -49,10 +58,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <MobileAppNav isAdmin={isAdmin} unreadBoardNotifications={unreadBoardNotifications} />
+      <MobileAppNav isAdmin={isAdmin} unreadBoardNotifications={unreadBoardNotifications} hasRecentToolActivity={hasRecentToolActivity} />
 
       <section className="panel mb-6 hidden p-3 md:block">
-        <AppNav isAdmin={isAdmin} unreadBoardNotifications={unreadBoardNotifications} />
+        <AppNav isAdmin={isAdmin} unreadBoardNotifications={unreadBoardNotifications} hasRecentToolActivity={hasRecentToolActivity} />
       </section>
 
       {children}

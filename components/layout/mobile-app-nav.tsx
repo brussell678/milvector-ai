@@ -7,17 +7,18 @@ import { useState } from "react";
 type MobileAppNavProps = {
   isAdmin?: boolean;
   unreadBoardNotifications?: number;
+  hasRecentToolActivity?: boolean;
 };
 
 type MobileLink = {
   href: string;
   label: string;
-  badge?: "board";
+  badge?: "board" | "tools";
 };
 
 const primaryLinks: MobileLink[] = [
   { href: "/app", label: "Dashboard" },
-  { href: "/app/tools", label: "Tools" },
+  { href: "/app/tools", label: "Tools", badge: "tools" },
   { href: "/app/library", label: "Library" },
   { href: "/app/profile", label: "Profile" },
 ];
@@ -32,7 +33,7 @@ const secondaryLinks: MobileLink[] = [
   { href: "/app/donate", label: "Donate" },
 ];
 
-export function MobileAppNav({ isAdmin = false, unreadBoardNotifications = 0 }: MobileAppNavProps) {
+export function MobileAppNav({ isAdmin = false, unreadBoardNotifications = 0, hasRecentToolActivity = false }: MobileAppNavProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -58,6 +59,9 @@ export function MobileAppNav({ isAdmin = false, unreadBoardNotifications = 0 }: 
               {unreadBoardNotifications}
             </span>
           ) : null}
+          {link.badge === "tools" && hasRecentToolActivity ? (
+            <span className="h-2 w-2 rounded-full bg-[var(--accent)]" aria-label="Recent activity" />
+          ) : null}
         </span>
       </Link>
     );
@@ -73,7 +77,12 @@ export function MobileAppNav({ isAdmin = false, unreadBoardNotifications = 0 }: 
             className={isActive(link.href) ? "btn btn-primary text-sm" : "btn btn-secondary text-sm"}
             aria-current={isActive(link.href) ? "page" : undefined}
           >
-            {link.label}
+            <span className="inline-flex items-center gap-1.5">
+              {link.label}
+              {link.badge === "tools" && hasRecentToolActivity ? (
+                <span className="h-2 w-2 rounded-full bg-[var(--accent)]" aria-label="Recent activity" />
+              ) : null}
+            </span>
           </Link>
         ))}
       </div>

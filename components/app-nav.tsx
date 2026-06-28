@@ -7,7 +7,7 @@ type NavLink = {
   href: string;
   label: string;
   donate?: boolean;
-  badge?: "board";
+  badge?: "board" | "tools";
 };
 
 const workflowLinks: NavLink[] = [
@@ -15,7 +15,7 @@ const workflowLinks: NavLink[] = [
   { href: "/app/metrics", label: "Insights" },
   { href: "/app/profile", label: "Profile" },
   { href: "/app/documents", label: "Documents" },
-  { href: "/app/tools", label: "Tools" },
+  { href: "/app/tools", label: "Tools", badge: "tools" },
   { href: "/app/timeline", label: "Timeline" },
   { href: "/app/library", label: "Library" },
 ];
@@ -26,7 +26,7 @@ const supportLinks: NavLink[] = [
   { href: "/app/donate", label: "Donate", donate: true },
 ];
 
-export function AppNav({ isAdmin = false, unreadBoardNotifications = 0 }: { isAdmin?: boolean; unreadBoardNotifications?: number }) {
+export function AppNav({ isAdmin = false, unreadBoardNotifications = 0, hasRecentToolActivity = false }: { isAdmin?: boolean; unreadBoardNotifications?: number; hasRecentToolActivity?: boolean }) {
   const pathname = usePathname();
 
   function isActive(href: string) {
@@ -56,6 +56,9 @@ export function AppNav({ isAdmin = false, unreadBoardNotifications = 0 }: { isAd
             <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[10px] font-semibold text-white">
               {unreadBoardNotifications}
             </span>
+          ) : null}
+          {link.badge === "tools" && hasRecentToolActivity ? (
+            <span className="h-2 w-2 rounded-full bg-[var(--accent)]" aria-label="Recent activity" />
           ) : null}
         </span>
       </Link>
