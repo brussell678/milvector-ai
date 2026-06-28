@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronDown } from "lucide-react";
 
 type Article = {
   id: string;
@@ -69,14 +70,15 @@ export function KnowledgeBaseSections({ articles }: { articles: Article[] }) {
       <section className="section-card">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
-            <h2 className="section-title">Field Manual</h2>
+            <p className="section-kicker">FIELD GUIDE</p>
+            <h2 className="section-title mt-1">Field Manual</h2>
             <p className="section-description">
               Use the category cards below like a quick-reference manual: scan the summary, expand the article, then move directly into the related workflow.
             </p>
           </div>
-          <div className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--muted)]">
-            <p>{totalArticles} articles available</p>
-            <p>{categories.length} mission categories</p>
+          <div className="subtle-panel shrink-0 px-4 py-3 text-sm text-[var(--muted)]">
+            <p className="font-semibold text-[var(--foreground)]">{totalArticles} articles</p>
+            <p className="mt-0.5">{categories.length} categories</p>
           </div>
         </div>
         <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
@@ -107,10 +109,13 @@ export function KnowledgeBaseSections({ articles }: { articles: Article[] }) {
                     : `${group.length} article${group.length === 1 ? "" : "s"} in this category.`}
                 </p>
               </div>
-              <div className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--muted)] md:max-w-sm">
-                <p className="font-semibold text-[var(--foreground)]">{action.label}</p>
+              <Link
+                href={action.href}
+                className="subtle-panel card-hover block shrink-0 px-4 py-3 text-sm text-[var(--muted)] md:max-w-sm"
+              >
+                <p className="font-semibold text-[var(--accent)]">{action.label} →</p>
                 <p className="mt-1">{action.detail}</p>
-              </div>
+              </Link>
             </div>
 
             <div className="mt-4 grid gap-3 lg:grid-cols-2">
@@ -122,9 +127,12 @@ export function KnowledgeBaseSections({ articles }: { articles: Article[] }) {
 
               {group.map((article) => (
                 <details key={article.id} className="subtle-panel p-4">
-                  <summary className="cursor-pointer">
-                    <p className="text-base font-semibold leading-snug">{article.title}</p>
-                    <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{summarize(article.content)}</p>
+                  <summary className="flex cursor-pointer list-none items-start justify-between gap-3 [&::-webkit-details-marker]:hidden">
+                    <div className="flex-1">
+                      <p className="text-base font-semibold leading-snug">{article.title}</p>
+                      <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{summarize(article.content)}</p>
+                    </div>
+                    <ChevronDown size={16} className="details-chevron mt-1 text-[var(--muted)]" aria-hidden="true" />
                   </summary>
                   <div className="mt-4 border-t border-[var(--line)] pt-4">
                     <p className="whitespace-pre-line text-base leading-7 text-[var(--foreground)]">{article.content}</p>

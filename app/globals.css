@@ -640,6 +640,16 @@ body {
   transition: background-color var(--duration-base) var(--ease-default), border-color var(--duration-base) var(--ease-default);
 }
 
+/* Details/expand chevron — rotates when <details> is open */
+.details-chevron {
+  transition: transform var(--duration-fast) var(--ease-default);
+  flex-shrink: 0;
+}
+
+details[open] .details-chevron {
+  transform: rotate(180deg);
+}
+
 /* ─── Step Circle (How It Works) ────────────────────────────────── */
 
 .step-circle {

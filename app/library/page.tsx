@@ -87,12 +87,12 @@ export default async function LibraryPage() {
 
       <section className="section-card">
         <div className="grid gap-3 sm:grid-cols-2">
-          <a href="#documents" className="subtle-panel block p-4">
+          <a href="#documents" className="subtle-panel card-hover block p-4">
             <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">Documents</p>
             <p className="mt-2 text-2xl font-bold">{documentsWithUrls.length}</p>
             <p className="mt-1 text-xs text-[var(--muted)]">Approved resources</p>
           </a>
-          <a href="#links" className="subtle-panel block p-4">
+          <a href="#links" className="subtle-panel card-hover block p-4">
             <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">Links</p>
             <p className="mt-2 text-2xl font-bold">{links.length}</p>
             <p className="mt-1 text-xs text-[var(--muted)]">External references</p>
@@ -121,7 +121,7 @@ export default async function LibraryPage() {
                 <h3 className="text-base font-semibold">{category}</h3>
                 <div className="mt-3 grid gap-3 lg:grid-cols-2">
                   {categoryDocuments.map((doc) => (
-                    <article key={doc.id} className="subtle-panel p-4">
+                    <article key={doc.id} className="subtle-panel card-hover p-4">
                       <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">{doc.category}</p>
                       <h4 className="mt-1 text-base font-semibold leading-snug">{doc.title}</h4>
                       {doc.description && <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{doc.description}</p>}
@@ -162,7 +162,7 @@ export default async function LibraryPage() {
                 <h3 className="text-base font-semibold">{category}</h3>
                 <div className="mt-3 grid gap-3 lg:grid-cols-2">
                   {categoryLinks.map((link) => (
-                    <article key={link.id} className="subtle-panel p-4">
+                    <article key={link.id} className="subtle-panel card-hover p-4">
                       <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">{link.category}</p>
                       <h4 className="mt-1 text-base font-semibold leading-snug">{link.title}</h4>
                       {link.description && <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{link.description}</p>}

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { type LucideIcon, Heart, Cpu, ShieldCheck, Users } from "lucide-react";
 import { PageContainer } from "@/components/layout/page-container";
 
 const channels = [
@@ -28,20 +29,30 @@ const channels = [
   },
 ] as const;
 
-const reasons = [
+type Reason = {
+  Icon: LucideIcon;
+  title: string;
+  body: string;
+};
+
+const reasons: Reason[] = [
   {
+    Icon: Heart,
     title: "Keep The Tools Free",
     body: "MilVector AI is meant to reduce friction for service members in transition, not put another paywall in front of them.",
   },
   {
+    Icon: Cpu,
     title: "Cover AI Costs",
     body: "The platform uses paid AI APIs behind the scenes, and those costs are currently being paid out of pocket.",
   },
   {
+    Icon: ShieldCheck,
     title: "Protect User Trust",
     body: "This is not built around selling service member information to mortgage companies, recruiters, extended warranty spam, or other lead-generation schemes.",
   },
   {
+    Icon: Users,
     title: "Share The Process",
     body: "The goal is to give service members access to tools that make transition less lonely and less repetitive, so fewer people feel like they have to reinvent the process on their own.",
   },
@@ -72,7 +83,8 @@ export default function DonatePage() {
       </section>
 
       <section className="section-card">
-        <p className="section-title">Why This Exists</p>
+        <p className="section-kicker">THE MISSION</p>
+        <h2 className="section-title mt-1">Why This Exists</h2>
         <div className="mt-3 space-y-3 text-sm text-[var(--muted)]">
           <p>
             This is not about getting rich. It is about sharing the tools already built so fewer service members feel like they have to reinvent the transition process on their own.
@@ -85,9 +97,10 @@ export default function DonatePage() {
 
       <section className="grid gap-4 md:grid-cols-2">
         {reasons.map((reason) => (
-          <article key={reason.title} className="section-card">
-            <p className="section-title">{reason.title}</p>
-            <p className="section-description">{reason.body}</p>
+          <article key={reason.title} className="section-card card-hover">
+            <reason.Icon size={20} className="text-[var(--accent)]" aria-hidden="true" />
+            <h3 className="mt-3 font-bold leading-snug">{reason.title}</h3>
+            <p className="mt-2 text-sm text-[var(--muted)]">{reason.body}</p>
           </article>
         ))}
       </section>
@@ -95,7 +108,8 @@ export default function DonatePage() {
       <section className="section-card">
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="section-title">Donation Channels</p>
+            <p className="section-kicker">GIVE</p>
+            <h2 className="section-title mt-1">Donation Channels</h2>
             <p className="section-description">Venmo, Cash App, and PayPal can all be supported from this page using the QR codes below.</p>
           </div>
           <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Scan To Donate</p>

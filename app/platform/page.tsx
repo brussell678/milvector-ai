@@ -1,20 +1,31 @@
 import Link from "next/link";
+import { type LucideIcon, Network, ShieldCheck, ArrowRightLeft, Route, Check } from "lucide-react";
 import { PageContainer } from "@/components/layout/page-container";
 
-const principles = [
+type Principle = {
+  Icon: LucideIcon;
+  title: string;
+  detail: string;
+};
+
+const principles: Principle[] = [
   {
+    Icon: Network,
     title: "Connected Workspace",
     detail: "MilVector is designed so your profile, documents, AI outputs, timeline, and saved artifacts reinforce each other instead of living in separate tools.",
   },
   {
+    Icon: ShieldCheck,
     title: "Trust-First Access",
     detail: "The platform is free to use. Email sign-in helps protect the tools from bot abuse, control AI operating costs, and give members a secure way to return to saved work.",
   },
   {
+    Icon: ArrowRightLeft,
     title: "Military-To-Civilian Translation",
     detail: "The goal is not to flatten service experience. It is to translate leadership, operations, and mission outcomes into language civilian employers understand quickly.",
   },
   {
+    Icon: Route,
     title: "Built For Continuity",
     detail: "MilVector is meant to feel closer to mission planning software than a generic job board, with one operating picture for documents, planning, applications, and support.",
   },
@@ -53,40 +64,47 @@ export default function PlatformPage() {
       </section>
 
       <section className="section-card">
-        <h2 className="section-title">What Makes It Different</h2>
+        <p className="section-kicker">THE DIFFERENCE</p>
+        <h2 className="section-title mt-1">What Makes It Different</h2>
         <p className="section-description">MilVector is not meant to be a generic AI wrapper or another job board with military branding on top.</p>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2">
         {principles.map((item) => (
-          <article key={item.title} className="section-card">
-            <h3 className="text-lg font-bold">{item.title}</h3>
+          <article key={item.title} className="section-card card-hover">
+            <item.Icon size={20} className="text-[var(--accent)]" aria-hidden="true" />
+            <h3 className="mt-3 text-lg font-bold">{item.title}</h3>
             <p className="mt-2 text-sm text-[var(--muted)]">{item.detail}</p>
           </article>
         ))}
       </section>
 
       <section className="section-card">
-        <h2 className="section-title">How Access And AI Usage Work</h2>
+        <p className="section-kicker">TRANSPARENCY</p>
+        <h2 className="section-title mt-1">How Access And AI Usage Work</h2>
         <p className="section-description">MilVector is designed to be transparent about how the platform works and why some workflows live inside the product while others open in ChatGPT.</p>
-        <ul className="mt-4 space-y-3 text-sm text-[var(--muted)]">
+        <ul className="mt-4 space-y-2.5 text-sm text-[var(--muted)]">
           {trustPoints.map((point) => (
-            <li key={point}>- {point}</li>
+            <li key={point} className="flex items-start gap-2">
+              <Check size={14} className="mt-0.5 shrink-0 text-[var(--accent)]" aria-hidden="true" />
+              <span>{point}</span>
+            </li>
           ))}
         </ul>
       </section>
 
       <section className="section-card">
-        <h2 className="section-title">Start With The Core System</h2>
+        <p className="section-kicker">GET STARTED</p>
+        <h2 className="section-title mt-1">Start With The Core System</h2>
         <p className="section-description">The best MilVector experience starts when your profile, source records, and foundation outputs are all in place before you begin targeting roles.</p>
         <div className="mt-4 flex flex-wrap gap-3">
-          <Link href="/auth" className="btn btn-primary">
+          <Link href="/auth" className="btn btn-primary w-full sm:w-auto">
             Open Workspace
           </Link>
-          <Link href="/tools" className="btn btn-secondary">
+          <Link href="/tools" className="btn btn-secondary w-full sm:w-auto">
             Review Tools
           </Link>
-          <Link href="/donate" className="btn btn-secondary">
+          <Link href="/donate" className="btn btn-secondary w-full sm:w-auto">
             Support The Platform
           </Link>
         </div>
