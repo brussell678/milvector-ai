@@ -11,7 +11,7 @@ function applyTheme(mode: ThemeMode) {
 export function ThemeToggle() {
   const [mode, setMode] = useState<ThemeMode>(() => {
     if (typeof window === "undefined") return "light";
-    const stored = window.localStorage.getItem("tnm-theme");
+    const stored = window.localStorage.getItem("mv-theme") ?? window.localStorage.getItem("tnm-theme");
     if (stored === "dark" || stored === "light") return stored;
     return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   });
@@ -24,7 +24,8 @@ export function ThemeToggle() {
     const next = mode === "light" ? "dark" : "light";
     setMode(next);
     applyTheme(next);
-    window.localStorage.setItem("tnm-theme", next);
+    window.localStorage.removeItem("tnm-theme");
+    window.localStorage.setItem("mv-theme", next);
   }
 
   return (
