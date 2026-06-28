@@ -290,40 +290,104 @@ export function AuthForm({ initialError, initialMode }: AuthFormProps) {
   return (
     <section className="panel w-full overflow-hidden p-0">
       <div className="grid gap-0 md:grid-cols-[1.05fr_0.95fr]">
-        <div className="relative border-b border-[var(--line)] bg-[radial-gradient(circle_at_top_left,rgba(83,181,134,0.18),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0))] p-6 sm:p-8 md:border-b-0 md:border-r md:p-10">
-          <div className="flex items-center gap-3">
-            <Image
-              src="/assets/milvector-ai-logo-transparent.png"
-              alt="MILVECTOR AI logo"
-              width={56}
-              height={56}
-              className="object-contain"
-            />
-            <div>
-              <p className="text-xs font-semibold tracking-[0.24em] text-[var(--accent)]">MILVECTOR AI</p>
-              <p className="mt-1 text-xs text-[var(--muted)]">Built by Marines for service members</p>
+        {/* ── Dark left panel — matches site-wide hero palette ── */}
+        <div
+          className="relative overflow-hidden border-b border-[rgba(255,255,255,0.08)] p-6 sm:p-8 md:border-b-0 md:border-r md:border-r-[rgba(255,255,255,0.08)] md:p-10"
+          style={{
+            background: "linear-gradient(-45deg, #061209, #0a1c10, #06120a, #081510)",
+            backgroundSize: "400% 400%",
+            animation: "hero-bg-shift 18s ease infinite",
+          }}
+        >
+          {/* Dot-grid overlay */}
+          <div
+            className="absolute inset-0 z-0 pointer-events-none"
+            style={{
+              backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)",
+              backgroundSize: "28px 28px",
+            }}
+            aria-hidden="true"
+          />
+          {/* Glow orb */}
+          <div
+            className="absolute z-0 pointer-events-none"
+            style={{
+              top: "-15%",
+              right: "-8%",
+              width: "65%",
+              height: "120%",
+              background: "radial-gradient(ellipse at center, rgba(57,166,127,0.22) 0%, transparent 65%)",
+            }}
+            aria-hidden="true"
+          />
+
+          {/* Panel content */}
+          <div className="relative z-10">
+            <div className="flex items-center gap-3">
+              <Image
+                src="/assets/milvector-ai-logo-transparent.png"
+                alt="MILVECTOR AI logo"
+                width={56}
+                height={56}
+                className="object-contain opacity-90"
+              />
+              <div>
+                <p className="text-xs font-semibold tracking-[0.24em]" style={{ color: "#39a67f" }}>
+                  MILVECTOR AI
+                </p>
+                <p className="mt-1 text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>
+                  Built by Marines for service members
+                </p>
+              </div>
             </div>
-          </div>
-          <h1 className="mt-8 max-w-md text-3xl font-extrabold tracking-tight md:text-4xl">
-            Start with a workspace built for transition, not guesswork.
-          </h1>
-          <p className="mt-4 max-w-xl text-sm leading-6 text-[var(--muted)] md:text-base">
-            Access your tools, saved documents, timelines, and transition support in one place. Password login improves access on restricted networks while magic links remain available as a backup.
-          </p>
-          <div className="mt-8 rounded-xl border border-[var(--line)] bg-[linear-gradient(180deg,rgba(83,181,134,0.08),rgba(255,255,255,0.01))] p-5">
-            <p className="text-xs font-semibold tracking-[0.18em] text-[var(--accent)]">INSIDE YOUR WORKSPACE</p>
-            <div className="mt-4 space-y-4">
-              <div className="border-l-2 border-[var(--accent)] pl-4">
-                <p className="text-sm font-semibold text-[var(--foreground)]">Translate your record</p>
-                <p className="mt-1 text-sm text-[var(--muted)]">Turn military documents and experience into civilian-ready materials.</p>
-              </div>
-              <div className="border-l-2 border-[var(--accent)] pl-4">
-                <p className="text-sm font-semibold text-[var(--foreground)]">Plan the process</p>
-                <p className="mt-1 text-sm text-[var(--muted)]">Keep milestones, source documents, and job-targeting work organized in one place.</p>
-              </div>
-              <div className="border-l-2 border-[var(--accent)] pl-4">
-                <p className="text-sm font-semibold text-[var(--foreground)]">Move with confidence</p>
-                <p className="mt-1 text-sm text-[var(--muted)]">Use decision, application, and support tools built for the next step.</p>
+
+            <h1
+              className="mt-8 max-w-md text-3xl font-extrabold text-white md:text-4xl"
+              style={{ letterSpacing: "-0.028em", lineHeight: "1.08" }}
+            >
+              Start with a workspace built for transition,{" "}
+              <span className="gradient-text">not guesswork.</span>
+            </h1>
+
+            <p
+              className="mt-4 max-w-xl text-sm leading-6 md:text-base"
+              style={{ color: "rgba(255,255,255,0.62)" }}
+            >
+              Access your tools, saved documents, timelines, and transition support in one place. Password login improves access on restricted networks while magic links remain available as a backup.
+            </p>
+
+            <div
+              className="mt-8 rounded-xl border p-5"
+              style={{
+                background: "rgba(255,255,255,0.04)",
+                borderColor: "rgba(255,255,255,0.09)",
+              }}
+            >
+              <p
+                className="text-xs font-semibold tracking-[0.18em]"
+                style={{ color: "rgba(255,255,255,0.38)" }}
+              >
+                INSIDE YOUR WORKSPACE
+              </p>
+              <div className="mt-4 space-y-4">
+                <div className="border-l-2 pl-4" style={{ borderColor: "#39a67f" }}>
+                  <p className="text-sm font-semibold text-white">Translate your record</p>
+                  <p className="mt-1 text-sm" style={{ color: "rgba(255,255,255,0.62)" }}>
+                    Turn military documents and experience into civilian-ready materials.
+                  </p>
+                </div>
+                <div className="border-l-2 pl-4" style={{ borderColor: "#39a67f" }}>
+                  <p className="text-sm font-semibold text-white">Plan the process</p>
+                  <p className="mt-1 text-sm" style={{ color: "rgba(255,255,255,0.62)" }}>
+                    Keep milestones, source documents, and job-targeting work organized in one place.
+                  </p>
+                </div>
+                <div className="border-l-2 pl-4" style={{ borderColor: "#39a67f" }}>
+                  <p className="text-sm font-semibold text-white">Move with confidence</p>
+                  <p className="mt-1 text-sm" style={{ color: "rgba(255,255,255,0.62)" }}>
+                    Use decision, application, and support tools built for the next step.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
