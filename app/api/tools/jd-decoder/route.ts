@@ -68,13 +68,20 @@ export async function POST(req: Request) {
 
   const normalized = normalizeOutput(llm.data);
 
-  await supabase.from("tool_runs").insert({
-    ...baseRun,
-    status: "success",
-    output_json: normalized as unknown as Record<string, unknown>,
-    tokens_in: llm.tokensIn ?? null,
-    tokens_out: llm.tokensOut ?? null,
-  });
+  const { data: runData } = await supabase
+    .from("tool_runs")
+    .insert({
+      ...baseRun,
+      status: "success",
+      output_json: {
+        ...normalized,
+        _jdText: parsed.data.jobDescriptionText,
+      } as unknown as Record<string, unknown>,
+      tokens_in: llm.tokensIn ?? null,
+      tokens_out: llm.tokensOut ?? null,
+    })
+    .select("id")
+    .single();
 
-  return NextResponse.json(normalized);
+  return NextResponse.json({ ...normalized, runId: runData?.id ?? null });
 }
