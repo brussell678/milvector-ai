@@ -1,11 +1,106 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Link from "next/link";
+import { LoadingBlock } from "@/components/tools/loading-block";
+import { ToolAlert } from "@/components/tools/tool-alert";
+
+// ─── Types ────────────────────────────────────────────────────────────
+
+type CivilianRole = {
+  title: string;
+  why_fit: string;
+  common_industries: string[];
+  keywords: string[];
+};
+
+type RecommendedCert = {
+  name: string;
+  why: string;
+  time_to_get: string;
+};
 
 type Output = {
-  civilian_roles: { title: string; why_fit: string; common_industries: string[]; keywords: string[] }[];
-  recommended_certs: { name: string; why: string; time_to_get: string }[];
+  runId: string | null;
+  civilian_roles: CivilianRole[];
+  recommended_certs: RecommendedCert[];
 };
+
+// ─── Helpers ──────────────────────────────────────────────────────────
+
+const CONFIDENCE_LABELS = ["Best Match", "Strong Match", "Good Match"];
+
+function confidenceLabel(idx: number): string {
+  return CONFIDENCE_LABELS[idx] ?? "Match";
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────
+
+function RoleCard({ role, idx }: { role: CivilianRole; idx: number }) {
+  const label = confidenceLabel(idx);
+  const targeterHref = `/app/tools/resume-targeter?title=${encodeURIComponent(role.title)}`;
+  const foundationHref = `/app/tools/fitrep-bullets?role=${encodeURIComponent(role.title)}`;
+
+  return (
+    <article className="subtle-panel flex flex-col gap-3 p-4">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-2">
+        <h3 className="font-bold text-base leading-tight">{role.title}</h3>
+        <span
+          className={`tool-badge shrink-0 mt-0.5 ${
+            idx === 0 ? "tool-badge-success" : idx === 1 ? "tool-badge-success" : "tool-badge-warn"
+          }`}
+          style={{ fontSize: "0.65rem", opacity: idx > 1 ? 0.8 : 1 }}
+        >
+          {label}
+        </span>
+      </div>
+
+      {/* Why fit */}
+      <p className="text-sm leading-relaxed text-[var(--muted)]">{role.why_fit}</p>
+
+      {/* Industries */}
+      {role.common_industries.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {role.common_industries.map((ind) => (
+            <span
+              key={ind}
+              className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-2.5 py-0.5 text-xs text-[var(--muted)]"
+            >
+              {ind}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Keywords */}
+      {role.keywords.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {role.keywords.map((kw) => (
+            <span
+              key={kw}
+              className="rounded-full border border-[color-mix(in_oklab,var(--accent)_35%,var(--line)_65%)] bg-[color-mix(in_oklab,var(--accent-soft)_60%,var(--surface)_40%)] px-2.5 py-0.5 text-xs font-medium text-[var(--accent)]"
+            >
+              {kw}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Cross-tool CTAs */}
+      <div className="mt-auto flex flex-wrap gap-2 pt-1">
+        <Link href={targeterHref} className="btn btn-primary text-xs">
+          Build Resume for this Role →
+        </Link>
+        <Link href={foundationHref} className="btn btn-secondary text-xs">
+          Set as Target Role
+        </Link>
+      </div>
+    </article>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────
 
 export default function MosTranslatorPage() {
   const [mos, setMos] = useState("");
@@ -21,11 +116,10 @@ export default function MosTranslatorPage() {
     try {
       await navigator.clipboard.writeText(value);
       setCopyState(`${label} copied`);
-      setTimeout(() => setCopyState(""), 1500);
     } catch {
       setCopyState(`Could not copy ${label.toLowerCase()}`);
-      setTimeout(() => setCopyState(""), 1500);
     }
+    setTimeout(() => setCopyState(""), 1500);
   }
 
   async function onSubmit(e: FormEvent) {
@@ -33,12 +127,19 @@ export default function MosTranslatorPage() {
     setLoading(true);
     setResult(null);
     setError(null);
+    setCopyState("");
 
     const payload = {
       mos,
-      billets: billets.split(",").map((x) => x.trim()).filter(Boolean),
+      billets: billets
+        .split(",")
+        .map((x) => x.trim())
+        .filter(Boolean),
       yearsExp: yearsExp ? Number(yearsExp) : null,
-      interests: interests.split(",").map((x) => x.trim()).filter(Boolean),
+      interests: interests
+        .split(",")
+        .map((x) => x.trim())
+        .filter(Boolean),
     };
 
     try {
@@ -47,7 +148,6 @@ export default function MosTranslatorPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(data.error ?? "Request failed");
@@ -63,94 +163,241 @@ export default function MosTranslatorPage() {
 
   return (
     <main className="page-shell">
-      <section className="page-hero">
+
+      {/* ── Hero ──────────────────────────────────────────────────── */}
+      <section className="page-hero-dark">
         <div className="page-hero-grid">
           <div className="relative z-10">
-            <p className="page-kicker">MOS TRANSLATOR</p>
-            <h1 className="page-title">Translate military experience into civilian role paths.</h1>
+            <p className="page-kicker-pill">MOS TRANSLATOR</p>
+            <h1 className="page-title">
+              Translate military experience into{" "}
+              <span className="gradient-text">civilian role paths.</span>
+            </h1>
             <p className="page-description">
               Map MOS, billets, years of experience, and interests into civilian roles, keywords, industries, and certification next steps.
             </p>
           </div>
-          <aside className="page-hero-aside">
-            <p className="page-hero-aside-title">MOBILE FLOW</p>
+          <aside className="page-hero-aside relative z-10">
+            <p className="page-hero-aside-title">WHAT YOU GET</p>
             <ul className="page-hero-list">
-              <li>Enter MOS and experience</li>
-              <li>Add billets or interests if useful</li>
-              <li>Generate and copy role matches</li>
+              <li>Ranked civilian role matches with fit rationale</li>
+              <li>Industry and keyword mapping per role</li>
+              <li>Direct links into Resume Targeter and Foundation tools</li>
+              <li>Certification recommendations with timelines</li>
             </ul>
           </aside>
         </div>
-      </section>
-      <section className="section-card">
-        <form className="grid gap-4 md:grid-cols-2" onSubmit={onSubmit}>
-          <label className="space-y-1">
-            <span className="text-sm font-medium">MOS</span>
-            <input className="input" value={mos} onChange={(e) => setMos(e.target.value)} required />
-          </label>
-          <label className="space-y-1">
-            <span className="text-sm font-medium">Years Experience</span>
-            <input className="input" type="number" value={yearsExp} onChange={(e) => setYearsExp(e.target.value)} />
-          </label>
-          <label className="space-y-1 md:col-span-2">
-            <span className="text-sm font-medium">Billets (comma-separated)</span>
-            <input className="input" value={billets} onChange={(e) => setBillets(e.target.value)} />
-          </label>
-          <label className="space-y-1 md:col-span-2">
-            <span className="text-sm font-medium">Interests (comma-separated)</span>
-            <input className="input" value={interests} onChange={(e) => setInterests(e.target.value)} />
-          </label>
-          <div className="md:col-span-2">
-            <button className="btn btn-primary w-full sm:w-auto" type="submit" disabled={loading}>
-              {loading ? "Translating..." : "Translate MOS"}
-            </button>
-          </div>
-        </form>
-      </section>
-      {(error || copyState) && (
-        <section className="section-card">
-          {error && <p className="text-sm text-red-700">{error}</p>}
-          {copyState && <p className="text-sm text-[var(--accent)]">{copyState}</p>}
-        </section>
-      )}
-      {result && (
-        <section className="section-card space-y-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-            <button
-              className="btn btn-secondary text-sm"
-              type="button"
-              onClick={() =>
-                copyText(
-                  "Roles",
-                  result.civilian_roles
-                    .map((role) => `${role.title}: ${role.why_fit}`)
-                    .join("\n")
-                )
-              }
-            >
-              Copy Roles
-            </button>
-          </div>
-          <h2 className="font-bold">Civilian Roles</h2>
-          <div className="mt-3 grid gap-3 md:grid-cols-2">
-            {result.civilian_roles.map((role) => (
-              <article key={role.title} className="rounded-md border border-[var(--line)] p-3">
-                <p className="font-semibold">{role.title}</p>
-                <p className="text-sm text-[var(--muted)]">{role.why_fit}</p>
-                <p className="mt-1 text-xs text-[var(--muted)]">Keywords: {role.keywords.join(", ")}</p>
-              </article>
+        <div className="hero-trust-strip -mx-7 -mb-7 mt-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4">
+            {["Role Matches", "Keyword Mapping", "Industry Fit", "Cert Roadmap"].map((label) => (
+              <div key={label} className="hero-trust-item">
+                <span
+                  className="h-1.5 w-1.5 shrink-0 rounded-full"
+                  style={{ background: "#39a67f" }}
+                  aria-hidden="true"
+                />
+                <span className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.65)" }}>
+                  {label}
+                </span>
+              </div>
             ))}
           </div>
-          <div>
-            <h3 className="font-bold">Recommended Certs</h3>
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
-              {result.recommended_certs.map((cert) => (
-                <li key={cert.name}>{cert.name} - {cert.time_to_get}</li>
-              ))}
-            </ul>
-          </div>
-        </section>
-      )}
+        </div>
+      </section>
+
+      {/* ── Tool layout ────────────────────────────────────────────── */}
+      <div className="tool-shell">
+
+        {/* ── INPUT PANEL ────────────────────────────────────────── */}
+        <div className="tool-input-panel">
+          <section className="tool-section">
+            <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+              <div>
+                <p className="tool-kicker">INPUTS</p>
+                <p className="section-description mt-1">
+                  MOS is required. Billets and interests sharpen the role matching — add them when you have them.
+                </p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block space-y-1">
+                  <span className="text-sm font-medium">MOS / Rate / AFSC</span>
+                  <input
+                    className="input"
+                    value={mos}
+                    onChange={(e) => setMos(e.target.value)}
+                    placeholder="e.g. 0311, 11B, 25B"
+                    required
+                  />
+                </label>
+                <label className="block space-y-1">
+                  <span className="text-sm font-medium">
+                    Years Experience{" "}
+                    <span className="font-normal text-[var(--muted)]">(optional)</span>
+                  </span>
+                  <input
+                    className="input"
+                    type="number"
+                    min={0}
+                    max={40}
+                    value={yearsExp}
+                    onChange={(e) => setYearsExp(e.target.value)}
+                    placeholder="e.g. 8"
+                  />
+                </label>
+              </div>
+
+              <label className="block space-y-1">
+                <span className="text-sm font-medium">
+                  Billets / Key Assignments{" "}
+                  <span className="font-normal text-[var(--muted)]">(comma-separated, optional)</span>
+                </span>
+                <input
+                  className="input"
+                  value={billets}
+                  onChange={(e) => setBillets(e.target.value)}
+                  placeholder="e.g. Platoon Commander, S3 Operations, Training Officer"
+                />
+              </label>
+
+              <label className="block space-y-1">
+                <span className="text-sm font-medium">
+                  Civilian Interests{" "}
+                  <span className="font-normal text-[var(--muted)]">(comma-separated, optional)</span>
+                </span>
+                <input
+                  className="input"
+                  value={interests}
+                  onChange={(e) => setInterests(e.target.value)}
+                  placeholder="e.g. technology, project management, consulting"
+                />
+              </label>
+
+              <button
+                className="btn btn-primary w-full sm:w-auto"
+                type="submit"
+                disabled={loading}
+              >
+                {loading ? "Translating…" : "Translate MOS"}
+              </button>
+            </form>
+          </section>
+
+          {/* Quick-copy after result */}
+          {result && !loading && (
+            <section className="tool-section">
+              <p className="tool-kicker">ACTIONS</p>
+              <button
+                className="btn btn-secondary w-full text-sm"
+                type="button"
+                onClick={() =>
+                  void copyText(
+                    "Roles",
+                    result.civilian_roles
+                      .map((r) => `${r.title}: ${r.why_fit}`)
+                      .join("\n\n")
+                  )
+                }
+              >
+                Copy All Role Summaries
+              </button>
+              {copyState && (
+                <p className="text-sm font-medium text-[var(--accent)]">{copyState}</p>
+              )}
+            </section>
+          )}
+        </div>
+
+        {/* ── OUTPUT PANEL ───────────────────────────────────────── */}
+        <div className="tool-output-panel">
+
+          {/* Loading */}
+          {loading && (
+            <LoadingBlock
+              task="Translating MOS experience…"
+              detail="Mapping military roles to civilian titles, industries, and keywords. Usually takes 15–25 seconds."
+            />
+          )}
+
+          {/* Error */}
+          {!loading && error && (
+            <ToolAlert variant="error" title="Translation failed">
+              <p className="text-sm">{error}</p>
+            </ToolAlert>
+          )}
+
+          {/* ── Civilian role cards ───────────────────────────────── */}
+          {!loading && result && result.civilian_roles.length > 0 && (
+            <div className="tool-output-card">
+              <div>
+                <p className="tool-kicker">CIVILIAN ROLES</p>
+                <p className="section-title mt-0.5">Your Role Matches</p>
+                <p className="section-description">
+                  Ranked by fit. Each card links directly into the Resume Targeter or Foundation tools.
+                </p>
+              </div>
+              <div className="grid gap-3">
+                {result.civilian_roles.map((role, idx) => (
+                  <RoleCard key={role.title} role={role} idx={idx} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Recommended certs ────────────────────────────────── */}
+          {!loading && result && result.recommended_certs.length > 0 && (
+            <div className="tool-output-card">
+              <div>
+                <p className="tool-kicker">CERTIFICATIONS</p>
+                <p className="section-title mt-0.5">Recommended Next Steps</p>
+                <p className="section-description">
+                  Certifications that strengthen your candidacy for these civilian paths.
+                </p>
+              </div>
+              <div className="grid gap-3">
+                {result.recommended_certs.map((cert) => (
+                  <div
+                    key={cert.name}
+                    className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="font-semibold text-sm">{cert.name}</p>
+                      <span className="tool-badge tool-badge-warn shrink-0" style={{ fontSize: "0.65rem" }}>
+                        {cert.time_to_get}
+                      </span>
+                    </div>
+                    <p className="mt-1.5 text-sm text-[var(--muted)] leading-relaxed">{cert.why}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {!loading && !result && !error && (
+            <div className="tool-empty">
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-[var(--line)]"
+                aria-hidden="true"
+              >
+                <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18" />
+              </svg>
+              <p className="font-medium">Role matches will appear here</p>
+              <p className="text-xs">
+                Enter your MOS and experience on the left to generate civilian role paths.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
     </main>
   );
 }

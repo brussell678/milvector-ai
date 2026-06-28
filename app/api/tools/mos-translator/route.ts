@@ -37,13 +37,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: llm.error }, { status: 500 });
   }
 
-  await supabase.from("tool_runs").insert({
-    ...baseRun,
-    status: "success",
-    output_json: llm.data as Record<string, unknown>,
-    tokens_in: llm.tokensIn ?? null,
-    tokens_out: llm.tokensOut ?? null,
-  });
+  const { data: runData } = await supabase
+    .from("tool_runs")
+    .insert({
+      ...baseRun,
+      status: "success",
+      output_json: llm.data as Record<string, unknown>,
+      tokens_in: llm.tokensIn ?? null,
+      tokens_out: llm.tokensOut ?? null,
+    })
+    .select("id")
+    .single();
 
-  return NextResponse.json(llm.data);
+  return NextResponse.json({ ...(llm.data as object), runId: runData?.id ?? null });
 }
