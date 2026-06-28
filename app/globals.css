@@ -629,14 +629,30 @@ body {
   gap: 0.5rem;
 }
 
-/* ─── Hero Outcomes Panel (homepage) ─────────────────────────────── */
+/* ─── Bento Feature Tile (hero variant) ─────────────────────────── */
 
-.panel.hero-outcomes {
-  background: #0f6d53;
-  border-color: #0d5a45;
-  color: #ffffff;
+.bento-hero-tile {
+  background:
+    radial-gradient(circle at top left, color-mix(in oklab, var(--accent-soft) 80%, transparent) 0%, transparent 55%),
+    var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  transition: background-color var(--duration-base) var(--ease-default), border-color var(--duration-base) var(--ease-default);
 }
 
-.panel.hero-outcomes .hero-outcomes-title {
-  color: #d2efe5;
+/* ─── Step Circle (How It Works) ────────────────────────────────── */
+
+.step-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-full);
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in oklab, var(--accent) 35%, var(--line) 65%);
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: var(--accent);
+  flex-shrink: 0;
 }

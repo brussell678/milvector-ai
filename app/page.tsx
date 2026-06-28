@@ -1,14 +1,30 @@
 import Link from "next/link";
 import Image from "next/image";
 import { redirect } from "next/navigation";
-import { type LucideIcon, Zap, ArrowRightLeft, Target, FolderOpen } from "lucide-react";
+import {
+  type LucideIcon,
+  Zap, ArrowRightLeft, Target, FolderOpen,
+  Layers, Compass, Search, FileText,
+  Upload, Hammer, Crosshair, ListChecks,
+} from "lucide-react";
 import { PageContainer } from "@/components/layout/page-container";
+
+// ── Types ─────────────────────────────────────────────────────────
 
 type OutcomeItem = {
   Icon: LucideIcon;
   label: string;
   detail: string;
 };
+
+type WorkflowStep = {
+  step: string;
+  Icon: LucideIcon;
+  title: string;
+  detail: string;
+};
+
+// ── Data ──────────────────────────────────────────────────────────
 
 const outcomeItems: OutcomeItem[] = [
   {
@@ -33,43 +49,34 @@ const outcomeItems: OutcomeItem[] = [
   },
 ];
 
-const features = [
-  {
-    label: "Transition planning tools built for military-to-civilian moves",
-  },
-  {
-    label: "MOS Translator for role mapping and civilian career pathways",
-  },
-  {
-    label: "Job Description Decoder for must-haves, risks, and application prep",
-  },
-  {
-    label: "Resume, document, and decision-support workflows in one place",
-  },
-];
-
-const workflowSteps = [
+const workflowSteps: WorkflowStep[] = [
   {
     step: "1",
+    Icon: Upload,
     title: "Upload your military records",
     detail: "Bring FITREPs, EVALs, JST, VMET, and other source documents into one workspace.",
   },
   {
     step: "2",
+    Icon: Hammer,
     title: "Build your career foundation",
     detail: "Turn military experience into civilian-ready resume language and reusable master material.",
   },
   {
     step: "3",
+    Icon: Crosshair,
     title: "Target real opportunities",
     detail: "Use job descriptions, interview prep, and decision-support tools to sharpen each next move.",
   },
   {
     step: "4",
+    Icon: ListChecks,
     title: "Track the transition timeline",
     detail: "Stay oriented by phase, milestone, and readiness instead of rebuilding the plan from scratch.",
   },
 ];
+
+// ── Page ──────────────────────────────────────────────────────────
 
 export default async function Home({
   searchParams,
@@ -116,7 +123,7 @@ export default async function Home({
   return (
     <PageContainer className="py-6 sm:py-8 lg:py-10" size="lg">
 
-      {/* ── Hero ─────────────────────────────────────────────────── */}
+      {/* ── Hero ───────────────────────────────────────────────── */}
       <section className="panel overflow-hidden">
         <div className="grid gap-8 p-8 md:grid-cols-[1.2fr_0.8fr] md:p-12">
 
@@ -168,11 +175,7 @@ export default async function Home({
             <div className="mt-3 grid grid-cols-2 gap-2">
               {outcomeItems.map((item) => (
                 <div key={item.label} className="panel flex flex-col gap-1.5 p-3">
-                  <item.Icon
-                    size={18}
-                    className="text-[var(--accent)]"
-                    aria-hidden="true"
-                  />
+                  <item.Icon size={18} className="text-[var(--accent)]" aria-hidden="true" />
                   <p className="text-sm font-bold leading-tight">{item.label}</p>
                   <p className="text-xs leading-snug text-[var(--muted)]">{item.detail}</p>
                 </div>
@@ -182,39 +185,96 @@ export default async function Home({
         </div>
       </section>
 
-      {/* ── Features ─────────────────────────────────────────────── */}
-      <section className="mt-6 grid gap-4 md:grid-cols-2">
-        {features.map((feature) => (
-          <article key={feature.label} className="panel p-5">
-            <p className="font-semibold">{feature.label}</p>
+      {/* ── Features: Diagonal Bento ───────────────────────────── */}
+      <section className="mt-6" aria-label="Platform features">
+        <div className="grid gap-3 md:grid-cols-3">
+
+          {/* Hero tile: Connected system — spans 2 cols */}
+          <article className="bento-hero-tile card-hover flex flex-col gap-4 p-6 md:col-span-2">
+            <Layers size={22} className="text-[var(--accent)]" aria-hidden="true" />
+            <div>
+              <h3 className="text-base font-bold">Connected transition system</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-[var(--muted)]">
+                Your profile, service records, AI tools, and timeline all reinforce each other — no rebuilding the process from scratch at every step.
+              </p>
+            </div>
           </article>
-        ))}
+
+          {/* MOS Translator */}
+          <article className="subtle-panel card-hover flex flex-col gap-3 p-5">
+            <Compass size={20} className="text-[var(--accent)]" aria-hidden="true" />
+            <div>
+              <h3 className="text-sm font-bold">MOS Translator</h3>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">
+                Map military roles to civilian job titles and career pathways.
+              </p>
+            </div>
+          </article>
+
+          {/* JD Decoder */}
+          <article className="subtle-panel card-hover flex flex-col gap-3 p-5">
+            <Search size={20} className="text-[var(--accent)]" aria-hidden="true" />
+            <div>
+              <h3 className="text-sm font-bold">Job Description Decoder</h3>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">
+                Break any job posting into must-haves, risks, and your application fit score.
+              </p>
+            </div>
+          </article>
+
+          {/* Document workflows — spans 2 cols, mirrors hero */}
+          <article className="subtle-panel card-hover flex flex-col gap-3 p-5 md:col-span-2">
+            <FileText size={20} className="text-[var(--accent)]" aria-hidden="true" />
+            <div>
+              <h3 className="text-sm font-bold">Resume & document workflows</h3>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">
+                Build a master resume, target it per role, and save every output and document to your library.
+              </p>
+            </div>
+          </article>
+        </div>
       </section>
 
-      {/* ── How It Works ─────────────────────────────────────────── */}
+      {/* ── How It Works ───────────────────────────────────────── */}
       <section id="how-it-works" className="section-card mt-6 scroll-mt-28">
-        <p className="section-title">How It Works</p>
+        <p className="section-kicker">THE PROCESS</p>
+        <h2 className="section-title mt-1">How It Works</h2>
         <p className="section-description">
-          MilVector is designed as a connected transition system, so each step strengthens the next instead of forcing you to start over.
+          MilVector is designed as a connected transition system — each step strengthens the next instead of forcing you to start over.
         </p>
-        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+
+        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {workflowSteps.map((item) => (
-            <article key={item.step} className="subtle-panel p-5">
-              <p className="text-xs font-semibold tracking-[0.18em] text-[var(--accent)]">
-                STEP {item.step}
-              </p>
-              <h2 className="mt-2 text-lg font-bold">{item.title}</h2>
-              <p className="mt-2 text-sm text-[var(--muted)]">{item.detail}</p>
+            <article key={item.step} className="subtle-panel flex flex-col gap-3 p-5">
+              {/* Step indicator row */}
+              <div className="flex items-center gap-2.5">
+                <span className="step-circle" aria-label={`Step ${item.step}`}>
+                  {item.step}
+                </span>
+                <item.Icon
+                  size={18}
+                  className="text-[var(--accent)] opacity-70"
+                  aria-hidden="true"
+                />
+              </div>
+              {/* Content */}
+              <div>
+                <h3 className="font-bold leading-snug">{item.title}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-[var(--muted)]">
+                  {item.detail}
+                </p>
+              </div>
             </article>
           ))}
         </div>
       </section>
 
-      {/* ── Example Transformation ────────────────────────────────── */}
+      {/* ── Example Transformation ─────────────────────────────── */}
       <section className="section-card mt-6">
-        <p className="section-title">Example Transformation</p>
+        <p className="section-kicker">IN PRACTICE</p>
+        <h2 className="section-title mt-1">Example Transformation</h2>
         <p className="section-description">
-          The goal is not to erase military experience. It is to translate it into civilian language that hiring managers can understand quickly.
+          The goal is not to erase military experience — it is to translate it into language hiring managers can understand quickly.
         </p>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <article className="subtle-panel p-5">
@@ -236,9 +296,10 @@ export default async function Home({
         </div>
       </section>
 
-      {/* ── Mission ──────────────────────────────────────────────── */}
+      {/* ── Mission ────────────────────────────────────────────── */}
       <section className="section-card mt-6">
-        <p className="section-title">Mission</p>
+        <p className="section-kicker">WHY WE BUILT IT</p>
+        <h2 className="section-title mt-1">Mission</h2>
         <p className="section-description">
           MilVector AI was created to help service members translate military experience into civilian careers with more clarity, less repetition, and better continuity between planning, documents, and action.
         </p>
