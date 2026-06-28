@@ -301,8 +301,8 @@ body {
 }
 
 :root[data-theme="dark"] .site-watermark {
-  opacity: 0.14;
-  filter: grayscale(1) brightness(0.72) contrast(1.05);
+  opacity: 0.13;
+  filter: grayscale(1) invert(1) brightness(1.3);
   mix-blend-mode: normal;
 }
 
