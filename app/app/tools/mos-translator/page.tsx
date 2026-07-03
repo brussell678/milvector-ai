@@ -411,9 +411,26 @@ function MosTranslatorContent() {
                 <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2v-4M9 21H5a2 2 0 0 1-2-2v-4m0 0h18" />
               </svg>
               <p className="font-medium">Role matches will appear here</p>
-              <p className="text-xs">
-                Enter your MOS and experience on the left to generate civilian role paths.
+              <p className="text-sm">
+                Enter your MOS on the left and hit Translate. Here&apos;s the kind of result you&apos;ll get:
               </p>
+              <div className="tool-example">
+                <p className="tool-example-kicker">Example</p>
+                <div className="mt-2 flex items-start justify-between gap-2">
+                  <p className="text-sm font-bold text-[var(--foreground)]">Operations Manager</p>
+                  <span className="tool-badge tool-badge-success" style={{ fontSize: "0.6rem" }}>Best Match</span>
+                </div>
+                <p className="mt-1 text-xs text-[var(--muted)]">
+                  Your platoon leadership and maintenance management map directly to running teams, schedules, and equipment in civilian operations.
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {["team leadership", "logistics", "process improvement"].map((kw) => (
+                    <span key={kw} className="rounded-full border border-[var(--line)] bg-[var(--panel)] px-2 py-0.5 text-[11px] text-[var(--muted)]">
+                      {kw}
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>

@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { LoadingBlock } from "@/components/tools/loading-block";
 import { ToolAlert } from "@/components/tools/tool-alert";
 import { ActionBar } from "@/components/tools/action-bar";
+import { Term } from "@/components/ui/term";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -794,7 +795,16 @@ export default function LinkedinBuilderPage() {
             {activeTab === "analysis" && !analysis && (
               <div className="tool-empty">
                 <p className="font-medium">Run Steps 1+2 to populate analysis</p>
-                <p className="text-xs">Select your master resume and click the button in the left panel.</p>
+                <p className="text-sm">Select your master resume and click the button in the left panel. You&apos;ll end up with a profile built around a <Term k="headline">headline</Term> like this:</p>
+                <div className="tool-example">
+                  <p className="tool-example-kicker">Example</p>
+                  <p className="mt-2 text-sm font-bold text-[var(--foreground)]">
+                    Operations Leader | Logistics &amp; Team Management | Marine Corps Veteran
+                  </p>
+                  <p className="mt-1 text-xs text-[var(--muted)]">
+                    Plus an about section, experience entries, and networking guidance — all editable.
+                  </p>
+                </div>
               </div>
             )}
 
@@ -919,6 +929,9 @@ export default function LinkedinBuilderPage() {
                   <ScoreRing score={profileScore.overall_score} size={100} />
                   <div>
                     <p className="font-bold text-lg">{profileScore.overall_score}/100</p>
+                    <p className="mt-1 text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
+                      <Term k="recruiter">Recruiter</Term> readiness
+                    </p>
                     <p className="text-sm text-[var(--muted)] mt-1 max-w-xs leading-relaxed">{profileScore.recruiter_readiness}</p>
                   </div>
                 </div>

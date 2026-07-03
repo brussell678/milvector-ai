@@ -15,11 +15,23 @@ type PipelineStep = {
   ctaLabel: string;
 };
 
+type Requirement = {
+  text: string;
+  // When set, the bullet becomes a live check against workspace state
+  check?: "sources" | "master" | "profile";
+};
+
+type ChecksState = {
+  sources: boolean;
+  master: boolean;
+  profile: boolean;
+};
+
 type ToolCard = {
   href: string;
   title: string;
   desc: string;
-  requirements?: string[];
+  requirements?: Requirement[];
   gptHref?: string;
   isExternal?: boolean;
 };
@@ -32,8 +44,8 @@ const foundationTools: ToolCard[] = [
     title: "Master Resume Builder",
     desc: "Turn your uploaded military records into one master resume — the base every other tool builds on.",
     requirements: [
-      "Upload records like FITREPs, EVALs, JST, or VMET first.",
-      "Review the result and save the best version.",
+      { text: "Records uploaded (FITREPs, EVALs, JST, or VMET)", check: "sources" },
+      { text: "Review the result and save the best version." },
     ],
     gptHref: "https://chatgpt.com/g/g-69d5982e578c819184c2e96ec1c81bbb-milvector-master-resume-generator",
   },
@@ -42,8 +54,8 @@ const foundationTools: ToolCard[] = [
     title: "LinkedIn Profile Builder",
     desc: "Turn your master resume into a complete LinkedIn profile — headline, sections, career suggestions, and a banner.",
     requirements: [
-      "Have a master resume saved, or be ready to paste one.",
-      "Know roughly what role and industry you want.",
+      { text: "Master resume saved (or be ready to paste one)", check: "master" },
+      { text: "Know roughly what role and industry you want." },
     ],
   },
 ];
@@ -54,9 +66,9 @@ const applicationTools: ToolCard[] = [
     title: "Targeted Resume Builder",
     desc: "Build a resume aimed at one specific job, using your master resume plus the real job posting.",
     requirements: [
-      "Have a saved master resume.",
-      "Save your Profile so your contact info appears on the resume.",
-      "Copy the full job posting so you can paste it in.",
+      { text: "Master resume saved", check: "master" },
+      { text: "Profile saved — your contact info goes on the resume", check: "profile" },
+      { text: "Copy the full job posting so you can paste it in." },
     ],
     gptHref: "https://chatgpt.com/g/g-697c169088588191bce63407d421f5b0-milvector-ai-targeted-resume-builder",
   },
@@ -70,9 +82,9 @@ const applicationTools: ToolCard[] = [
     title: "Job Interview Strategist",
     desc: "Practice interviews for a real job with feedback. Turn on voice mode for a realistic mock interview.",
     requirements: [
-      "Have the job title and full job posting ready.",
-      "Know the company name.",
-      "Bring the resume you're applying with.",
+      { text: "Have the job title and full job posting ready." },
+      { text: "Know the company name." },
+      { text: "Bring the resume you're applying with." },
     ],
     isExternal: true,
   },
@@ -91,14 +103,14 @@ const decisionTools: ToolCard[] = [
     href: "https://chatgpt.com/g/g-69b6925c39308191b477586de0b7e6ac-va-c-p-rating-navigator-gpt",
     title: "VA C&P Rating Navigator",
     desc: "Guided disability rating walkthroughs with the VA C&P Rating Navigator GPT.",
-    requirements: ["Bring your claimed conditions, symptoms, and any rating decisions or medical evidence you want to review."],
+    requirements: [{ text: "Bring your claimed conditions, symptoms, and any rating decisions or medical evidence you want to review." }],
     isExternal: true,
   },
   {
     href: "https://chatgpt.com/g/g-69b75fcfb8d881918bd6c8a092bdb899-milvector-ai-military-sbp-decision-advisor",
     title: "Military SBP Decision Advisor",
     desc: "Guided Survivor Benefit Plan decision support with the SBP Decision Advisor GPT.",
-    requirements: ["Have your retirement timing, family situation, and SBP decision factors available before you start."],
+    requirements: [{ text: "Have your retirement timing, family situation, and SBP decision factors available before you start." }],
     isExternal: true,
   },
 ];
@@ -127,7 +139,7 @@ const toolLabels: Record<string, string> = {
 
 // ─── Sub-components ───────────────────────────────────────────────────
 
-function ToolCardUI({ tool }: { tool: ToolCard }) {
+function ToolCardUI({ tool, checks }: { tool: ToolCard; checks: ChecksState }) {
   return (
     <article className="subtle-panel flex flex-col gap-3 p-5">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -143,12 +155,23 @@ function ToolCardUI({ tool }: { tool: ToolCard }) {
         <div className="rounded-md border border-[var(--line)] bg-[var(--surface)] p-3">
           <p className="text-xs font-bold tracking-[0.12em] uppercase text-[var(--muted)]">You&apos;ll need</p>
           <ul className="mt-2 space-y-1.5 text-sm text-[var(--muted)]">
-            {tool.requirements.map((r) => (
-              <li key={r} className="flex gap-2">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" aria-hidden />
-                {r}
-              </li>
-            ))}
+            {tool.requirements.map((r) => {
+              const met = r.check ? checks[r.check] : undefined;
+              return (
+                <li key={r.text} className="flex gap-2">
+                  {met === undefined ? (
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" aria-hidden />
+                  ) : met ? (
+                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[10px] font-bold text-white" aria-label="Done">
+                      ✓
+                    </span>
+                  ) : (
+                    <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--panel)]" aria-label="Not yet" />
+                  )}
+                  <span className={met ? "text-[var(--foreground)]" : undefined}>{r.text}</span>
+                </li>
+              );
+            })}
           </ul>
         </div>
       ) : null}
@@ -188,11 +211,13 @@ function ToolGroup({
   title,
   description,
   tools,
+  checks,
 }: {
   kicker: string;
   title: string;
   description: string;
   tools: ToolCard[];
+  checks: ChecksState;
 }) {
   return (
     <section className="tool-section">
@@ -203,7 +228,7 @@ function ToolGroup({
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         {tools.map((tool) => (
-          <ToolCardUI key={tool.href} tool={tool} />
+          <ToolCardUI key={tool.href} tool={tool} checks={checks} />
         ))}
       </div>
     </section>
@@ -219,7 +244,7 @@ export default async function ToolsPage() {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [artifactsRes, recentRunsRes, docsRes] = await Promise.all([
+  const [artifactsRes, recentRunsRes, docsRes, profileRes] = await Promise.all([
     supabase
       .from("resume_artifacts")
       .select("artifact_type")
@@ -236,6 +261,7 @@ export default async function ToolsPage() {
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
       .eq("text_extracted", true),
+    supabase.from("profiles").select("id, full_name, mos").eq("id", user.id).maybeSingle(),
   ]);
 
   const artifacts: ArtifactRow[] = artifactsRes.data ?? [];
@@ -250,6 +276,11 @@ export default async function ToolsPage() {
   const hasSources = extractedDocCount > 0;
   const hasMasterResume = masterResumeCount > 0;
   const hasTargetedResume = targetedResumeCount > 0;
+  const checks: ChecksState = {
+    sources: hasSources,
+    master: hasMasterResume,
+    profile: !!profileRes.data,
+  };
 
   const pipelineSteps: PipelineStep[] = [
     {
@@ -403,7 +434,7 @@ export default async function ToolsPage() {
                 </p>
                 <p className="mt-0.5 text-sm font-bold leading-tight">{step.title}</p>
               </div>
-              <p className="text-xs leading-relaxed text-[var(--muted)]">{step.description}</p>
+              <p className="text-sm leading-relaxed text-[var(--muted)]">{step.description}</p>
 
               {/* CTA label */}
               <span
@@ -465,24 +496,28 @@ export default async function ToolsPage() {
         title="Build Your Base"
         description="Start here. These build the master resume and LinkedIn profile that everything else uses."
         tools={foundationTools}
+        checks={checks}
       />
       <ToolGroup
         kicker="STEP 3"
         title="Go After Real Jobs"
         description="Use these when you've found a job you want — to understand the posting, build the resume, and prep for the interview."
         tools={applicationTools}
+        checks={checks}
       />
       <ToolGroup
         kicker="EXPLORE"
         title="Figure Out What's Next"
         description="Not sure what civilian job fits? Start here to see your options in plain language."
         tools={translationTools}
+        checks={checks}
       />
       <ToolGroup
         kicker="DECIDE"
         title="Make the Big Calls"
         description="Support for benefits and retirement decisions with long-term consequences — VA ratings and the Survivor Benefit Plan."
         tools={decisionTools}
+        checks={checks}
       />
     </main>
   );

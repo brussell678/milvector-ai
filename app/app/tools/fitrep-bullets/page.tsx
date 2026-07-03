@@ -571,7 +571,16 @@ function FitrepBulletsContent() {
                 <path d="M7 8h10M7 12h10M7 16h6" />
               </svg>
               <p className="font-medium">Output will appear here</p>
-              <p className="text-xs">Fill in your inputs and run generation to see your master resume.</p>
+              <p className="text-sm">Fill in your inputs on the left and run it. Your record turns into lines like this:</p>
+              <div className="tool-example">
+                <p className="tool-example-kicker">Example</p>
+                <p className="mt-2 text-xs text-[var(--muted)] line-through decoration-[var(--line)]">
+                  Led 24 Marines maintaining a 100 vehicle fleet with 96% readiness.
+                </p>
+                <p className="mt-1.5 text-sm font-medium text-[var(--foreground)]">
+                  Managed a 24-person operations team responsible for a 100-vehicle fleet, sustaining 96% operational readiness.
+                </p>
+              </div>
             </div>
           )}
         </div>

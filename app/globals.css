@@ -1266,6 +1266,81 @@ details[open] .details-chevron {
   border: 1px solid color-mix(in oklab, #c13e2a 35%, var(--line) 65%);
 }
 
+/* Example output preview inside empty states */
+.tool-example {
+  width: 100%;
+  max-width: 24rem;
+  margin-top: 0.75rem;
+  text-align: left;
+  border: 1px dashed color-mix(in oklab, var(--accent) 30%, var(--line) 70%);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  padding: 0.85rem 1rem;
+}
+
+.tool-example-kicker {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* Glossary term tooltip */
+.term-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.term-trigger {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: help;
+  text-decoration: underline dotted color-mix(in oklab, var(--accent) 70%, transparent 30%);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+
+.term-trigger:focus-visible {
+  outline: 2px solid var(--accent-focus);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.term-pop {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  width: max-content;
+  max-width: min(280px, 80vw);
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--foreground);
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+  box-shadow: var(--shadow-md);
+}
+
+/* Keyboard focus for links and disclosure summaries */
+a:focus-visible,
+summary:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--accent-focus);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
 /* Support / admin ticket status badges */
 .ticket-badge {
   display: inline-flex;

@@ -180,11 +180,11 @@ export default async function DashboardPage() {
                 </span>
                 <div>
                   <p className="text-sm font-bold leading-tight">{item.title}</p>
-                  <p className="mt-1.5 text-xs leading-relaxed text-[var(--muted)]">{item.detail}</p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-[var(--muted)]">{item.detail}</p>
                 </div>
                 <Link
                   href={item.href}
-                  className={`mt-auto text-xs font-semibold ${item.primary ? "text-[var(--accent)]" : "text-[var(--muted)]"}`}
+                  className={`mt-auto text-sm font-semibold ${item.primary ? "text-[var(--accent)]" : "text-[var(--muted)]"}`}
                 >
                   {item.cta} →
                 </Link>

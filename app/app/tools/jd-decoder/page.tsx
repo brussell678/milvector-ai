@@ -5,6 +5,7 @@ import Link from "next/link";
 import { LoadingBlock } from "@/components/tools/loading-block";
 import { ToolAlert } from "@/components/tools/tool-alert";
 import { ActionBar } from "@/components/tools/action-bar";
+import { Term } from "@/components/ui/term";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -336,7 +337,7 @@ export default function JobDescriptionDecoderPage() {
               {result.ats_keywords_priority.length > 0 && (
                 <div className="flex flex-col gap-2">
                   <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
-                    ATS Keywords — Priority Order
+                    <Term k="ats">ATS</Term> <Term k="keywords">Keywords</Term> — Priority Order
                   </p>
                   <KeywordChips keywords={result.ats_keywords_priority} />
                   <button
@@ -398,9 +399,18 @@ export default function JobDescriptionDecoderPage() {
                 <path d="M21 21l-4.35-4.35M11 8v6M8 11h6" />
               </svg>
               <p className="font-medium">Analysis will appear here</p>
-              <p className="text-xs">
-                Paste a job description on the left and run the analysis to see the decoded output.
+              <p className="text-sm">
+                Paste a job posting on the left and run it. Here&apos;s the kind of read you&apos;ll get:
               </p>
+              <div className="tool-example">
+                <p className="tool-example-kicker">Example</p>
+                <p className="mt-2 text-sm font-bold text-[var(--foreground)]">Logistics Coordinator — what they really want</p>
+                <ul className="mt-1.5 space-y-1 text-xs text-[var(--muted)]">
+                  <li>• Must-have: 3+ years coordinating shipments or supply</li>
+                  <li>• Unwritten: comfortable being the one everyone calls when plans change</li>
+                  <li>• Watch out: &quot;fast-paced environment&quot; here means frequent overtime</li>
+                </ul>
+              </div>
             </div>
           )}
         </div>

@@ -3,6 +3,7 @@
 import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { LoadingBlock } from "@/components/tools/loading-block";
+import { Term } from "@/components/ui/term";
 import { ToolAlert } from "@/components/tools/tool-alert";
 import { ActionBar } from "@/components/tools/action-bar";
 
@@ -813,7 +814,7 @@ function ResumeTargeterContent() {
               {stage2.ats_keywords_priority && stage2.ats_keywords_priority.length > 0 && (
                 <div className="flex flex-col gap-2">
                   <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
-                    ATS Keywords — Priority
+                    <Term k="ats">ATS</Term> <Term k="keywords">Keywords</Term> — Priority
                   </p>
                   <KeywordChips keywords={stage2.ats_keywords_priority} />
                 </div>
@@ -874,7 +875,7 @@ function ResumeTargeterContent() {
               {stage3.ats_alignment_notes?.length > 0 && (
                 <details className="rounded-xl border border-[var(--line)]">
                   <summary className="cursor-pointer select-none px-4 py-3 text-sm font-medium">
-                    ATS Alignment Notes
+                    <Term k="ats">ATS</Term> Alignment Notes
                   </summary>
                   <ul className="flex flex-col gap-1.5 border-t border-[var(--line)] px-4 py-4">
                     {stage3.ats_alignment_notes.map((note, idx) => (
@@ -944,9 +945,18 @@ function ResumeTargeterContent() {
                 <polyline points="10 9 9 9 8 9" />
               </svg>
               <p className="font-medium">Analysis will appear here</p>
-              <p className="text-xs">
-                Run Step 1 with a job title, then Step 2 once you have the full posting.
+              <p className="text-sm">
+                Run Step 1 with a job title, then Step 2 once you have the full posting. You&apos;ll get a read like this before anything gets built:
               </p>
+              <div className="tool-example">
+                <p className="tool-example-kicker">Example</p>
+                <p className="mt-2 text-sm font-bold text-[var(--foreground)]">Fit check: Project Coordinator</p>
+                <ul className="mt-1.5 space-y-1 text-xs text-[var(--muted)]">
+                  <li>• Strong: team leadership, scheduling, working under pressure</li>
+                  <li>• Gap: no civilian project software on the resume yet</li>
+                  <li>• Call: Go — highlight your maintenance planning as project work</li>
+                </ul>
+              </div>
             </div>
           )}
         </div>
