@@ -50,6 +50,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <ThemeToggle />
+          <a href="/app/profile" className="btn btn-secondary hidden text-sm sm:inline-flex sm:w-auto">
+            Profile
+          </a>
           <form action="/api/auth/signout" method="post">
             <button className="btn btn-secondary w-full text-sm sm:w-auto" type="submit">
               Sign Out

@@ -37,16 +37,16 @@ export default async function TimelinePage() {
 
   return (
     <main className="page-shell">
-      <section className="page-hero">
+      <section className="page-hero-dark">
         <div className="page-hero-grid">
           <div className="relative z-10">
-            <p className="page-kicker">TIMELINE</p>
-            <h1 className="page-title">See the full transition roadmap by phase.</h1>
+            <p className="page-kicker-pill">TIMELINE</p>
+            <h1 className="page-title">Your full transition roadmap, phase by phase.</h1>
             <p className="page-description">
-              Review milestones across every phase, mark work complete, and calibrate readiness as your separation date gets closer.
+              See every milestone on the road to your date, check tasks off as you go, and know exactly what this phase asks of you.
             </p>
           </div>
-          <aside className="page-hero-aside">
+          <aside className="page-hero-aside relative z-10">
             <p className="page-hero-aside-title">USE THIS PAGE TO</p>
             <ul className="page-hero-list">
               <li>See all phases in one place</li>

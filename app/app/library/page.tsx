@@ -1,5 +1,6 @@
 import Link from "next/link";
 import path from "node:path";
+import { FilesSegment } from "@/components/layout/files-segment";
 import { readdir, stat } from "node:fs/promises";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getLibraryLinkFallbacks, mergeLibraryLinks } from "@/lib/transition-data";
@@ -127,23 +128,25 @@ export default async function LibraryPage() {
 
   return (
     <main className="page-shell">
-      <section className="page-hero">
+      <section className="page-hero-dark">
         <div className="page-hero-grid">
           <div className="relative z-10">
-            <p className="page-kicker">LIBRARY</p>
+            <p className="page-kicker-pill">MY FILES</p>
             <h1 className="page-title">Everything you&apos;ve uploaded and built, in one place.</h1>
-            <p className="page-description">The library brings together personal documents, generated artifacts, public resources, knowledge, and vetted links so you can pick up where you left off.</p>
+            <p className="page-description">Your saved resumes, uploaded records, guides, and vetted links — so you can pick up right where you left off.</p>
           </div>
-          <aside className="page-hero-aside">
+          <aside className="page-hero-aside relative z-10">
             <p className="page-hero-aside-title">HOW TO USE IT</p>
             <ul className="page-hero-list">
-              <li>Use Documents for active file management and downloads.</li>
-              <li>Use Library to review everything MilVector has collected or produced.</li>
-              <li>Expand a section below to move between saved resources quickly.</li>
+              <li>My Uploads holds the files you added and lets you manage them.</li>
+              <li>Saved Work shows everything MilVector built for you.</li>
+              <li>Open a section below to jump to what you need.</li>
             </ul>
           </aside>
         </div>
       </section>
+
+      <FilesSegment active="saved" />
 
       <section className="section-card">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

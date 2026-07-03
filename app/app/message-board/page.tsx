@@ -3,23 +3,22 @@ import { MessageBoard } from "@/components/message-board";
 export default function AppMessageBoardPage() {
   return (
     <main className="page-shell">
-      <section className="page-hero">
+      <section className="page-hero-dark">
         <div className="page-hero-grid">
           <div className="relative z-10">
-            <p className="page-kicker">COMMUNITY</p>
-            <h1 className="page-title">Surface field notes, friction points, and community priorities in one moderated board.</h1>
+            <p className="page-kicker-pill">COMMUNITY</p>
+            <h1 className="page-title">Ask questions, share what worked, help the next Marine.</h1>
             <p className="page-description">
-              Discuss what is working, what is missing, and what should matter most. Upvotes help useful ideas rise to the top, while notifications, linked workflows, and reporting keep the board active, actionable, and trustworthy.
+              A moderated board for people going through the same transition. Post what you&apos;re running into, vote on what matters, and learn from those a few steps ahead.
             </p>
           </div>
-          <aside className="page-hero-aside">
+          <aside className="page-hero-aside relative z-10">
             <p className="page-hero-aside-title">HOW IT WORKS</p>
             <ul className="page-hero-list">
-              <li>Post questions, suggestions, or field notes</li>
+              <li>Post questions, suggestions, or lessons learned</li>
               <li>Save your profile before posting or replying</li>
               <li>Vote on what matters most</li>
-              <li>Reply directly inside active threads</li>
-              <li>Link posts back to MilVector tools and resources</li>
+              <li>Reply inside active threads</li>
             </ul>
           </aside>
         </div>

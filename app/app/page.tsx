@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
-import { daysUntilDate, phaseFromDays, phaseMonthFromDays, TIMELINE_MARKERS } from "@/lib/timeline";
+import { daysUntilDate, phaseFromDays, phaseMonthFromDays } from "@/lib/timeline";
 import { getLibraryLinkFallbacks, getTransitionTaskFallbacks, mergeDashboardTasks, mergeLibraryLinks } from "@/lib/transition-data";
 import { PhaseObjectives } from "@/components/dashboard/PhaseObjectives";
 import type { DashboardLink, DashboardTask } from "@/components/dashboard/types";
@@ -23,7 +23,7 @@ export default async function DashboardPage() {
   if (!user) return null;
   if (!user.user_metadata?.onboarded) redirect("/welcome");
 
-  const [profileRes, artifactsRes, docsCountRes, sourceDocsCountRes, toolRunsCountRes, toolSuccessCountRes, toolErrorCountRes] = await Promise.all([
+  const [profileRes, artifactsRes, docsCountRes, sourceDocsCountRes, toolRunsCountRes] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
     supabase.from("resume_artifacts").select("artifact_type").eq("user_id", user.id),
     supabase.from("documents").select("*", { count: "exact", head: true }).eq("user_id", user.id),
@@ -33,8 +33,6 @@ export default async function DashboardPage() {
       .eq("user_id", user.id)
       .in("doc_type", ["FITREP", "EVAL", "VMET", "JST", "LINKEDIN_PROFILE", "OTHER"]),
     supabase.from("tool_runs").select("*", { count: "exact", head: true }).eq("user_id", user.id),
-    supabase.from("tool_runs").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "success"),
-    supabase.from("tool_runs").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "error"),
   ]);
 
   const easDate = profileRes.data?.eas_date ?? profileRes.data?.separation_date ?? null;
@@ -61,7 +59,8 @@ export default async function DashboardPage() {
   const completedTaskIds = (completedRes.data ?? []).map((x) => x.task_id);
   const links = mergeLibraryLinks((linksRes.data ?? []) as DashboardLink[], linkFallbacks);
 
-  const artifactTypes = new Set((artifactsRes.data ?? []).map((row) => row.artifact_type));
+  const artifactRows = artifactsRes.data ?? [];
+  const artifactTypes = new Set(artifactRows.map((row) => row.artifact_type));
   const hasMasterResume = artifactTypes.has("master_resume") || artifactTypes.has("master_bullets");
   const hasTargetedResume = artifactTypes.has("targeted_resume");
   const sourceDocumentsCount = sourceDocsCountRes.count ?? 0;
@@ -71,35 +70,11 @@ export default async function DashboardPage() {
     (profileRes.data?.off_duty_education?.length ?? 0) +
     (profileRes.data?.civilian_certifications?.length ?? 0) +
     (profileRes.data?.additional_training?.length ?? 0);
-  const artifactRows = artifactsRes.data ?? [];
   const masterResumeCount = artifactRows.filter((x) => x.artifact_type === "master_resume").length;
   const targetedResumesCount = artifactRows.filter((x) => x.artifact_type === "targeted_resume").length;
   const documentsCount = docsCountRes.count ?? 0;
   const toolRunsCount = toolRunsCountRes.count ?? 0;
-  const toolSuccessCount = toolSuccessCountRes.count ?? 0;
-  const toolErrorCount = toolErrorCountRes.count ?? 0;
-  const timelineReadiness = [
-    !!profileRes.data,
-    hasSourceDocuments,
-    hasMasterResume,
-    hasTargetedResume,
-    daysUntilEas !== null,
-  ].filter(Boolean).length;
-  const workflowHealthItems = [
-    { label: "Profile saved", value: profileRes.data ? "Done" : "Not yet" },
-    { label: "Military records uploaded", value: hasSourceDocuments ? "Done" : "Not yet" },
-    { label: "Master resume built", value: hasMasterResume ? "Done" : "Not yet" },
-    { label: "Targeted resume built", value: hasTargetedResume ? "Done" : "Not yet" },
-    { label: "Education & certs added", value: String(educationProfileSignals) },
-  ];
-  const activityItems = [
-    { label: "Documents", value: documentsCount },
-    { label: "Master Resumes", value: masterResumeCount },
-    { label: "Targeted Resumes", value: targetedResumesCount },
-    { label: "Times Tools Used", value: toolRunsCount },
-    { label: "Finished Successfully", value: toolSuccessCount, valueClass: "text-[var(--accent)]" },
-    { label: "Didn't Finish", value: toolErrorCount, valueClass: "text-[#a33b3b]" },
-  ];
+  const tasksDoneCount = completedTaskIds.length;
 
   // Brand-new workspace: no uploads, no saved work, no tool runs yet.
   // Show the path forward instead of a wall of zeros.
@@ -149,10 +124,10 @@ export default async function DashboardPage() {
 
     return (
       <main className="page-shell">
-        <section className="page-hero">
+        <section className="page-hero-dark">
           <div className="page-hero-grid">
             <div className="relative z-10">
-              <p className="page-kicker">WELCOME ABOARD</p>
+              <p className="page-kicker-pill">WELCOME ABOARD</p>
               <h1 className="page-title">Your next career starts with one click.</h1>
               <p className="page-description">
                 No forms, no homework — start by seeing what your military experience is worth in the civilian world. The rest of the path builds from there.
@@ -161,12 +136,12 @@ export default async function DashboardPage() {
                 <Link href={translatorHref} className="btn btn-primary">
                   Translate my experience
                 </Link>
-                <Link href="/app/timeline" className="btn btn-secondary">
+                <Link href="/app/timeline" className="btn btn-hero-ghost">
                   See my timeline
                 </Link>
               </div>
             </div>
-            <aside className="page-hero-aside">
+            <aside className="page-hero-aside relative z-10">
               <p className="page-hero-aside-title">{daysUntilEas !== null ? "YOUR COUNTDOWN" : "ONE MORE THING"}</p>
               {daysUntilEas !== null ? (
                 <>
@@ -221,96 +196,140 @@ export default async function DashboardPage() {
     );
   }
 
+  // ── Returning user ──────────────────────────────────────────────
+
+  const journeySteps = [
+    {
+      step: "1",
+      title: "Upload Your Records",
+      href: "/app/documents",
+      status: hasSourceDocuments ? "complete" : "active",
+    },
+    {
+      step: "2",
+      title: "Build Your Master Resume",
+      href: "/app/tools/fitrep-bullets",
+      status: hasMasterResume ? "complete" : hasSourceDocuments ? "active" : "pending",
+    },
+    {
+      step: "3",
+      title: "Target a Real Job",
+      href: "/app/tools/resume-targeter",
+      status: hasTargetedResume ? "complete" : hasMasterResume ? "active" : "pending",
+    },
+    {
+      step: "4",
+      title: "Build Your LinkedIn",
+      href: "/app/tools/linkedin-builder",
+      status: hasMasterResume ? "active" : "pending",
+    },
+  ] as const;
+
+  const progressItems = [
+    { label: "Records uploaded", value: documentsCount },
+    { label: "Master resumes", value: masterResumeCount },
+    { label: "Targeted resumes", value: targetedResumesCount },
+    { label: "Timeline tasks done", value: tasksDoneCount },
+    { label: "Education & certs on file", value: educationProfileSignals },
+  ];
+
   return (
     <main className="page-shell">
-      <section className="page-hero">
+
+      {/* ── Hero: the one answer ──────────────────────────────────── */}
+      <section className="page-hero-dark">
         <div className="page-hero-grid">
           <div className="relative z-10">
-            <p className="page-kicker">MISSION CONTROL</p>
-            <h1 className="page-title">Your transition, one page: where you stand and what to do next.</h1>
+            <p className="page-kicker-pill">MISSION CONTROL</p>
+            <h1 className="page-title">
+              Do this next: <span className="gradient-text">{step.label}</span>
+            </h1>
             <p className="page-description">
-              Check in here to see your progress, your next step, and where you are on the road to EAS.
+              You&apos;re in the {currentPhase.toLowerCase()} phase. One step at a time — this is the one that moves you forward right now.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <Link href={step.href} className="btn btn-primary">
                 {step.label}
               </Link>
-              <Link href="/app/tools" className="btn btn-secondary">
+              <Link href="/app/tools" className="btn btn-hero-ghost">
                 Open the tools
               </Link>
             </div>
           </div>
-          <aside className="page-hero-aside">
-            <p className="page-hero-aside-title">DO THIS NEXT</p>
-            <p className="mt-3 text-2xl font-extrabold leading-tight">{step.label}</p>
-            <p className="mt-2 text-sm text-[var(--muted)]">
-              {hasMasterResume
-                ? hasTargetedResume
-                  ? "Your core documents are built. Keep working the timeline and check your saved work."
-                  : "Your master resume is ready. Next: aim it at a real job."
-                : hasSourceDocuments
-                  ? "Your records are in. Now build the master resume everything else uses."
-                  : "Start by uploading your records — FITREPs, EVALs, JST, or VMET — so the AI works from your real experience."}
-            </p>
+          <aside className="page-hero-aside relative z-10">
+            <p className="page-hero-aside-title">{daysUntilEas !== null ? "DAYS UNTIL EAS" : "SET YOUR DATE"}</p>
+            {daysUntilEas !== null ? (
+              <>
+                <p className="mt-3 text-4xl font-extrabold leading-tight text-[var(--accent)]">{daysUntilEas}</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  {currentPhase} phase · <Link href="/app/timeline" className="font-semibold text-[var(--accent)] underline">see your timeline</Link>
+                </p>
+              </>
+            ) : (
+              <p className="mt-3 text-sm text-[var(--muted)]">
+                Add your EAS date in your <Link href="/app/profile" className="font-semibold text-[var(--accent)] underline">Profile</Link> to unlock the countdown and your phase-by-phase plan.
+              </p>
+            )}
           </aside>
         </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-[1.15fr,0.85fr]">
-        <section className="section-card">
-          <h2 className="section-title">Where You Stand</h2>
-          <p className="section-description">Your phase, your countdown, and how much of the setup is done.</p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <article className="stat-card">
-              <p className="stat-label">Current Phase</p>
-              <p className="mt-3 text-2xl font-extrabold leading-tight">{currentPhase}</p>
-            </article>
-            <article className="stat-card">
-              <p className="stat-label">Days Until EAS</p>
-              <p className="mt-3 text-2xl font-extrabold leading-tight">{daysUntilEas === null ? "Set in Profile" : daysUntilEas}</p>
-            </article>
-            <article className="stat-card">
-              <p className="stat-label">Setup Steps</p>
-              <p className="mt-3 text-2xl font-extrabold leading-tight text-[var(--accent)]">{timelineReadiness}/5</p>
-              <p className="mt-2 text-xs text-[var(--muted)]">steps done</p>
-            </article>
-          </div>
-          <div className="mt-4 grid gap-4 md:grid-cols-[1fr_1.1fr]">
-            <article className="stat-card">
-              <p className="stat-label">Do This Next</p>
-              <p className="mt-3 text-2xl font-extrabold leading-tight">{step.label}</p>
-              <Link href={step.href} className="btn btn-primary mt-4 w-full sm:w-auto">
-                Start
-              </Link>
-            </article>
-            <article className="stat-card">
-              <p className="stat-label">Your Checklist</p>
-              <div className="mt-4 grid gap-3">
-                {workflowHealthItems.map((item) => (
-                  <div key={item.label} className="flex items-center justify-between gap-3 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2">
-                    <span className="text-sm text-[var(--muted)]">{item.label}</span>
-                    <span className="text-sm font-semibold">{item.value}</span>
-                  </div>
-                ))}
+      {/* ── Journey pipeline ──────────────────────────────────────── */}
+      <section className="section-card">
+        <h2 className="section-title">Where you are in the four steps</h2>
+        <p className="section-description">Do the steps in order — each one makes the next one better.</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {journeySteps.map((item, idx) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={[
+                "group flex items-center gap-3 rounded-xl border p-4 transition-all duration-150",
+                "hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5",
+                item.status === "complete"
+                  ? "border-[color-mix(in_oklab,var(--accent)_40%,var(--line)_60%)] bg-[color-mix(in_oklab,var(--accent-soft)_35%,var(--surface)_65%)]"
+                  : item.status === "active"
+                  ? "border-[var(--accent)] bg-[var(--panel)] shadow-[var(--shadow-sm)]"
+                  : "border-[var(--line)] bg-[var(--surface)] opacity-60",
+              ].join(" ")}
+            >
+              <span
+                className={[
+                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+                  item.status === "complete" || item.status === "active"
+                    ? "bg-[var(--accent)] text-white"
+                    : "bg-[var(--line)] text-[var(--muted)]",
+                ].join(" ")}
+                aria-hidden
+              >
+                {item.status === "complete" ? "✓" : idx + 1}
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-bold leading-tight">{item.title}</p>
+                <p className="mt-0.5 text-xs font-semibold text-[var(--muted)]">
+                  {item.status === "complete" ? "Done" : item.status === "active" ? "Up next" : "Later"}
+                </p>
               </div>
-            </article>
-          </div>
-        </section>
-
-        <section className="section-card">
-          <h2 className="section-title">Your Saved Work</h2>
-          <p className="section-description">What you&apos;ve built and saved so far.</p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {activityItems.map((item) => (
-              <article key={item.label} className="stat-card">
-                <p className="stat-label">{item.label}</p>
-                <p className={`stat-value ${item.valueClass ?? ""}`}>{item.value}</p>
-              </article>
-            ))}
-          </div>
-        </section>
+            </Link>
+          ))}
+        </div>
       </section>
 
+      {/* ── My progress ───────────────────────────────────────────── */}
+      <section className="section-card">
+        <h2 className="section-title">My Progress</h2>
+        <p className="section-description">What you&apos;ve built so far.</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-5">
+          {progressItems.map((item) => (
+            <article key={item.label} className="stat-card">
+              <p className="stat-label">{item.label}</p>
+              <p className="stat-value">{item.value}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {/* ── This phase's tasks ────────────────────────────────────── */}
       <PhaseObjectives
         currentPhase={currentPhase}
         daysUntilEas={daysUntilEas}
@@ -321,38 +340,6 @@ export default async function DashboardPage() {
         links={links}
         educationProfileSignals={educationProfileSignals}
       />
-
-      <section className="section-card">
-        <h2 className="section-title">Transition Timeline</h2>
-        <p className="section-description">Use these checkpoints to stay oriented as you move toward separation.</p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-7">
-          {TIMELINE_MARKERS.map((marker) => {
-            const isCurrent = currentPhaseMonth === marker;
-            const isPast = currentPhaseMonth !== null && marker > currentPhaseMonth;
-            const isFuture = currentPhaseMonth !== null && marker < currentPhaseMonth;
-
-            return (
-              <article
-                key={marker}
-                className={[
-                  "stat-card relative text-center transition-colors",
-                  isCurrent ? "border-[var(--accent)] bg-[var(--accent-soft)] shadow-[0_0_0_1px_var(--accent)]" : "",
-                  isPast ? "opacity-80" : "",
-                  isFuture ? "bg-[var(--panel)]" : "",
-                ].join(" ")}
-              >
-                {isCurrent && (
-                  <span className="absolute right-3 top-3 rounded-full bg-[var(--accent)] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white">
-                    Current
-                  </span>
-                )}
-                <p className="text-lg font-bold">{marker === 0 ? "Final" : `${marker}m`}</p>
-                <p className="mt-1 text-xs text-[var(--muted)]">Checkpoint</p>
-              </article>
-            );
-          })}
-        </div>
-      </section>
     </main>
   );
 }

@@ -17,18 +17,16 @@ type MobileLink = {
 };
 
 const primaryLinks: MobileLink[] = [
-  { href: "/app", label: "Dashboard" },
+  { href: "/app", label: "Home" },
   { href: "/app/tools", label: "Tools", badge: "tools" },
-  { href: "/app/library", label: "Library" },
-  { href: "/app/profile", label: "Profile" },
+  { href: "/app/timeline", label: "Timeline" },
+  { href: "/app/documents", label: "My Files" },
 ];
 
 const secondaryLinks: MobileLink[] = [
-  { href: "/app/documents", label: "Documents" },
-  { href: "/app/timeline", label: "Timeline" },
-  { href: "/app/metrics", label: "Insights" },
-  { href: "/app/knowledge-base", label: "Knowledge Base" },
   { href: "/app/message-board", label: "Community", badge: "board" },
+  { href: "/app/profile", label: "Profile" },
+  { href: "/app/knowledge-base", label: "Knowledge Base" },
   { href: "/app/feedback", label: "Support" },
   { href: "/app/donate", label: "Donate" },
 ];
@@ -39,6 +37,12 @@ export function MobileAppNav({ isAdmin = false, unreadBoardNotifications = 0, ha
 
   function isActive(href: string) {
     if (href === "/app") return pathname === "/app";
+    // "My Files" covers both uploads (Documents) and saved work (Library)
+    if (href === "/app/documents") {
+      return (
+        pathname.startsWith("/app/documents") || pathname.startsWith("/app/library")
+      );
+    }
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 

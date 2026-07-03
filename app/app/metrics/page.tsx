@@ -45,10 +45,10 @@ export default async function MetricsPage() {
 
   return (
     <main className="page-shell">
-      <section className="page-hero">
+      <section className="page-hero-dark">
         <div className="page-hero-grid">
           <div className="relative z-10">
-            <p className="page-kicker">INSIGHTS</p>
+            <p className="page-kicker-pill">INSIGHTS</p>
             <h1 className="page-title">See your progress, not just your files.</h1>
             <p className="page-description">
               A quick read on what you&apos;ve built, how the tools have been working for you, and where things stand.

@@ -11,13 +11,10 @@ type NavLink = {
 };
 
 const workflowLinks: NavLink[] = [
-  { href: "/app", label: "Dashboard" },
-  { href: "/app/metrics", label: "Insights" },
-  { href: "/app/profile", label: "Profile" },
-  { href: "/app/documents", label: "Documents" },
+  { href: "/app", label: "Home" },
   { href: "/app/tools", label: "Tools", badge: "tools" },
   { href: "/app/timeline", label: "Timeline" },
-  { href: "/app/library", label: "Library" },
+  { href: "/app/documents", label: "My Files" },
 ];
 
 const supportLinks: NavLink[] = [
@@ -31,6 +28,12 @@ export function AppNav({ isAdmin = false, unreadBoardNotifications = 0, hasRecen
 
   function isActive(href: string) {
     if (href === "/app") return pathname === "/app";
+    // "My Files" covers both uploads (Documents) and saved work (Library)
+    if (href === "/app/documents") {
+      return (
+        pathname.startsWith("/app/documents") || pathname.startsWith("/app/library")
+      );
+    }
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 

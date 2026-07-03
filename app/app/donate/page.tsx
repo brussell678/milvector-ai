@@ -49,17 +49,17 @@ const reasons = [
 function DonateContent() {
   return (
     <main className="page-shell">
-      <section className="page-hero">
+      <section className="page-hero-dark">
         <div className="page-hero-grid">
           <div className="relative z-10">
-            <p className="page-kicker">SUPPORT THE MISSION</p>
+            <p className="page-kicker-pill">SUPPORT THE MISSION</p>
             <h1 className="page-title">Help keep MilVector free, useful, and built around trust.</h1>
             <p className="page-description">
               MilVector was built to give service members practical transition tools without turning their process into a lead list,
               a paywall, or another subscription trap. Donations help keep the platform accessible while covering real operating costs.
             </p>
           </div>
-          <aside className="page-hero-aside">
+          <aside className="page-hero-aside relative z-10">
             <p className="page-hero-aside-title">WHAT DONATIONS SUPPORT</p>
             <ul className="page-hero-list">
               <li>AI API costs and platform operations</li>

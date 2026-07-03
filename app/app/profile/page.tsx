@@ -182,19 +182,19 @@ export default function ProfilePage() {
 
   return (
     <main className="page-shell">
-      <section className="page-hero">
+      <section className="page-hero-dark">
         <div className="page-hero-grid">
           <div className="relative z-10">
-            <p className="page-kicker">PROFILE</p>
-            <h1 className="page-title">Set the context that improves everything downstream.</h1>
-            <p className="page-description">Your profile gives MilVector the baseline contact, service, transition, and professional-development context needed to strengthen outputs across the platform.</p>
+            <p className="page-kicker-pill">PROFILE</p>
+            <h1 className="page-title">Tell us once — every tool uses it.</h1>
+            <p className="page-description">Your contact info lands on your resumes, your dates drive your timeline, and your education shows up where it helps. Fill in what you know; skip what you don&apos;t.</p>
           </div>
-          <aside className="page-hero-aside">
-            <p className="page-hero-aside-title">MOST IMPORTANT</p>
+          <aside className="page-hero-aside relative z-10">
+            <p className="page-hero-aside-title">WHAT MATTERS MOST</p>
             <ul className="page-hero-list">
-              <li>Save your profile before targeted resume workflows.</li>
-              <li>Keep contact info and location current for generated documents.</li>
-              <li>Add education, certifications, and training only if you want them available to tools.</li>
+              <li>Save your profile before building a targeted resume.</li>
+              <li>Keep your contact info and location current — they go on your documents.</li>
+              <li>Education and certifications are optional but make outputs stronger.</li>
             </ul>
           </aside>
         </div>

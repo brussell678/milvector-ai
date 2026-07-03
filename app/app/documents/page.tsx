@@ -1,6 +1,7 @@
 "use client";
 
 import { DragEvent, useEffect, useRef, useState } from "react";
+import { FilesSegment } from "@/components/layout/files-segment";
 import { UploadWarning } from "@/components/upload-warning";
 
 type DocumentRow = {
@@ -274,6 +275,8 @@ export default function DocumentsPage() {
           </aside>
         </div>
       </section>
+
+      <FilesSegment active="uploads" />
 
       {/* ── Upload zone ───────────────────────────────────────────── */}
       <section className="section-card">
