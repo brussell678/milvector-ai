@@ -245,7 +245,7 @@ export default function JobDescriptionDecoderPage() {
           {loading && (
             <LoadingBlock
               task="Decoding job description…"
-              detail="Extracting requirements, signals, keywords, and interview prep. Usually takes 15–30 seconds."
+              detail="Reading the posting for requirements, keywords, and interview prep. Usually takes 15–30 seconds."
             />
           )}
 

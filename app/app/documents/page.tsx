@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { DragEvent, useEffect, useRef, useState } from "react";
 import { UploadWarning } from "@/components/upload-warning";
 
 type DocumentRow = {
@@ -14,7 +14,21 @@ type DocumentRow = {
   updated_at: string;
 };
 
-const DOC_TYPES: Array<DocumentRow["doc_type"]> = [
+type DocType = DocumentRow["doc_type"];
+
+const DOC_TYPE_INFO: Record<string, { label: string; hint: string }> = {
+  FITREP: { label: "FITREP", hint: "Marine Corps fitness report" },
+  EVAL: { label: "EVAL", hint: "Navy performance evaluation" },
+  VMET: { label: "VMET", hint: "Verification of Military Experience & Training" },
+  JST: { label: "JST", hint: "Joint Services Transcript" },
+  MASTER_RESUME: { label: "Master Resume", hint: "Your reusable base resume" },
+  RESUME_TEMPLATE: { label: "Resume Template", hint: "A format you want your resumes to follow" },
+  TARGETED_RESUME: { label: "Targeted Resume", hint: "A resume built for one specific job" },
+  LINKEDIN_PROFILE: { label: "LinkedIn Profile", hint: "Your LinkedIn profile saved as PDF" },
+  OTHER: { label: "Other", hint: "Awards, certificates, anything else useful" },
+};
+
+const UPLOAD_TYPES: DocType[] = [
   "FITREP",
   "EVAL",
   "VMET",
@@ -25,21 +39,37 @@ const DOC_TYPES: Array<DocumentRow["doc_type"]> = [
   "OTHER",
 ];
 
+type QueueItem = {
+  name: string;
+  status: "uploading" | "processing" | "done" | "failed";
+  message?: string;
+};
+
+function typeInfo(type: string) {
+  return DOC_TYPE_INFO[type] ?? { label: type, hint: "" };
+}
+
+function formatSize(bytes: number) {
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(0)} KB`;
+  return `${(kb / 1024).toFixed(1)} MB`;
+}
+
 export default function DocumentsPage() {
-  const [file, setFile] = useState<File | null>(null);
-  const [docType, setDocType] = useState<DocumentRow["doc_type"]>("FITREP");
+  const [docType, setDocType] = useState<DocType>("FITREP");
   const [documents, setDocuments] = useState<DocumentRow[]>([]);
   const [loadingList, setLoadingList] = useState(true);
-  const [busyUpload, setBusyUpload] = useState(false);
-  const [extractingId, setExtractingId] = useState<string | null>(null);
-  const [savingId, setSavingId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [status, setStatus] = useState<string | null>(null);
+  const [queue, setQueue] = useState<QueueItem[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const [failedIds, setFailedIds] = useState<Set<string>>(new Set());
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState<string>("");
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [drafts, setDrafts] = useState<Record<string, { filename: string }>>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  const selectedFilename = useMemo(() => file?.name ?? "No file selected", [file]);
 
   async function loadDocuments() {
     setLoadingList(true);
@@ -47,362 +77,457 @@ export default function DocumentsPage() {
       const res = await fetch("/api/documents", { cache: "no-store" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error ?? "Failed to load documents");
+        setError(data.error ?? "Couldn't load your documents. Refresh the page to try again.");
         return;
       }
-      const nextDocs = data.documents ?? [];
-      setDocuments(nextDocs);
-      setDrafts(
-        Object.fromEntries(nextDocs.map((doc: DocumentRow) => [doc.id, { filename: doc.filename }]))
-      );
+      setDocuments(data.documents ?? []);
     } catch {
-      setError("Network error while loading documents.");
+      setError("Couldn't load your documents. Check your connection and refresh.");
     } finally {
       setLoadingList(false);
     }
   }
 
   useEffect(() => {
-    loadDocuments();
+    void loadDocuments();
   }, []);
 
-  async function upload(e: FormEvent) {
-    e.preventDefault();
-    if (!file) return;
-
-    setBusyUpload(true);
-    setStatus(null);
-    setError(null);
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("doc_type", docType);
-
-    try {
-      const res = await fetch("/api/documents/upload", { method: "POST", body: formData });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(data.error ?? "Upload failed");
-        return;
-      }
-      setStatus(`Uploaded ${file.name}. Click Extract on the row below.`);
-      setFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      await loadDocuments();
-    } catch {
-      setError("Network error while uploading document.");
-    } finally {
-      setBusyUpload(false);
-    }
+  function markProcessing(id: string, on: boolean) {
+    setProcessingIds((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
   }
 
-  async function extract(documentId: string) {
-    setExtractingId(documentId);
-    setStatus(null);
-    setError(null);
+  async function processDocument(documentId: string) {
+    markProcessing(documentId, true);
+    setFailedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(documentId);
+      return next;
+    });
     try {
       const res = await fetch(`/api/documents/${documentId}/extract`, { method: "POST" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data.ok === false) {
-        setError(data.error ?? "Extraction failed");
-        return;
+        setFailedIds((prev) => new Set(prev).add(documentId));
+        return false;
       }
-      setStatus("Text extracted successfully.");
-      await loadDocuments();
+      return true;
     } catch {
-      setError("Network error while extracting text.");
+      setFailedIds((prev) => new Set(prev).add(documentId));
+      return false;
     } finally {
-      setExtractingId(null);
+      markProcessing(documentId, false);
     }
   }
 
-  async function saveMetadata(documentId: string) {
-    const draft = drafts[documentId];
-    const original = documents.find((d) => d.id === documentId);
-    if (!draft || !original) return;
-    if (draft.filename.trim() === original.filename) return;
+  async function handleFiles(files: FileList | File[]) {
+    const list = Array.from(files);
+    if (list.length === 0) return;
 
-    setSavingId(documentId);
-    setStatus(null);
+    setUploading(true);
     setError(null);
+    setQueue(list.map((f) => ({ name: f.name, status: "uploading" })));
+
+    for (let i = 0; i < list.length; i++) {
+      const file = list[i];
+      const setItem = (patch: Partial<QueueItem>) =>
+        setQueue((prev) => prev.map((q, idx) => (idx === i ? { ...q, ...patch } : q)));
+
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("doc_type", docType);
+        const res = await fetch("/api/documents/upload", { method: "POST", body: formData });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setItem({ status: "failed", message: data.error ?? "Upload failed" });
+          continue;
+        }
+
+        setItem({ status: "processing" });
+        await loadDocuments();
+
+        const ok = await processDocument(data.documentId as string);
+        setItem(
+          ok
+            ? { status: "done" }
+            : { status: "failed", message: "Uploaded, but we couldn't read the text. Use Try Again on the card below." }
+        );
+      } catch {
+        setItem({ status: "failed", message: "That didn't go through. Check your connection and try again." });
+      }
+    }
+
+    await loadDocuments();
+    setUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    // Clear the queue after a short beat so the user sees the final states
+    window.setTimeout(() => setQueue([]), 4000);
+  }
+
+  function onDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setDragOver(false);
+    if (uploading) return;
+    if (e.dataTransfer.files?.length) void handleFiles(e.dataTransfer.files);
+  }
+
+  async function saveRename(documentId: string) {
+    const nextName = renameDraft.trim();
+    const original = documents.find((d) => d.id === documentId);
+    if (!original || !nextName || nextName === original.filename) {
+      setRenamingId(null);
+      return;
+    }
+    setBusyId(documentId);
     try {
       const res = await fetch(`/api/documents/${documentId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filename: draft.filename.trim() }),
+        body: JSON.stringify({ filename: nextName }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data.ok === false) {
-        setError(data.error ?? "Failed to update document");
+        setError(data.error ?? "Couldn't rename that file. Try again.");
         return;
       }
-      setStatus("Document details updated.");
       await loadDocuments();
     } catch {
-      setError("Network error while updating document.");
+      setError("That didn't go through. Check your connection and try again.");
     } finally {
-      setSavingId(null);
+      setBusyId(null);
+      setRenamingId(null);
+      setOpenMenuId(null);
     }
   }
 
   async function removeDocument(documentId: string) {
-    const confirmed = window.confirm("Delete this document? This cannot be undone.");
+    const confirmed = window.confirm("Delete this document? This can't be undone.");
     if (!confirmed) return;
-
-    setDeletingId(documentId);
-    setStatus(null);
-    setError(null);
+    setBusyId(documentId);
     try {
       const res = await fetch(`/api/documents/${documentId}`, { method: "DELETE" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data.ok === false) {
-        setError(data.error ?? "Failed to delete document");
+        setError(data.error ?? "Couldn't delete that file. Try again.");
         return;
       }
-      setStatus("Document deleted.");
       await loadDocuments();
     } catch {
-      setError("Network error while deleting document.");
+      setError("That didn't go through. Check your connection and try again.");
     } finally {
-      setDeletingId(null);
+      setBusyId(null);
+      setOpenMenuId(null);
     }
+  }
+
+  function statusChip(doc: DocumentRow) {
+    if (processingIds.has(doc.id)) {
+      return (
+        <span className="tool-badge tool-badge-warn" style={{ fontSize: "0.65rem" }}>
+          Processing…
+        </span>
+      );
+    }
+    if (failedIds.has(doc.id) || (!doc.text_extracted && !processingIds.has(doc.id))) {
+      return doc.text_extracted ? null : (
+        <span className="tool-badge tool-badge-error" style={{ fontSize: "0.65rem" }}>
+          Needs attention
+        </span>
+      );
+    }
+    return (
+      <span className="tool-badge tool-badge-success" style={{ fontSize: "0.65rem" }}>
+        Ready
+      </span>
+    );
   }
 
   return (
     <main className="page-shell">
-      <section className="page-hero">
+
+      {/* ── Hero ──────────────────────────────────────────────────── */}
+      <section className="page-hero-dark">
         <div className="page-hero-grid">
           <div className="relative z-10">
-            <p className="page-kicker">DOCUMENTS</p>
-            <h1 className="page-title">Manage the source material behind your transition workflows.</h1>
+            <p className="page-kicker-pill">DOCUMENTS</p>
+            <h1 className="page-title">
+              Drop your records in —{" "}
+              <span className="gradient-text">we handle the rest.</span>
+            </h1>
             <p className="page-description">
-              Upload, rename, extract, download, and maintain the documents that power your MilVector tools and saved outputs.
+              Upload your FITREPs, EVALs, JST, or VMET and they&apos;re ready for the AI tools automatically. No extra steps.
             </p>
           </div>
-          <aside className="page-hero-aside">
-            <p className="page-hero-aside-title">BEST RESULTS</p>
+          <aside className="page-hero-aside relative z-10">
+            <p className="page-hero-aside-title">MOST USEFUL RECORDS</p>
             <ul className="page-hero-list">
-              <li>Upload FITREPs, EVALs, JST, VMET, and master resumes here.</li>
-              <li>Extract text before using analysis and generation tools.</li>
-              <li>Use this page as your primary file-management workspace.</li>
+              <li>FITREPs and EVALs — your strongest raw material</li>
+              <li>JST — your training and education record</li>
+              <li>VMET — your experience summary</li>
+              <li>A PDF of your LinkedIn profile, if you have one</li>
             </ul>
           </aside>
         </div>
       </section>
 
+      {/* ── Upload zone ───────────────────────────────────────────── */}
       <section className="section-card">
-        <h2 className="section-title">Upload A Document</h2>
-        <p className="section-description">Add the records and files you want MilVector to reference across the platform.</p>
-        <div className="mt-4">
-          <UploadWarning />
-        </div>
-        <form onSubmit={upload} className="mt-5 space-y-4">
-          <div className="grid gap-3 md:grid-cols-[220px_1fr]">
-            <label className="space-y-1">
-              <span className="text-sm font-medium">Document Type</span>
-              <select className="input" value={docType} onChange={(e) => setDocType(e.target.value as DocumentRow["doc_type"])}>
-                {DOC_TYPES.map((type) => (
+        <h2 className="section-title">Add Your Records</h2>
+        <p className="section-description">
+          Pick what kind of document it is, then drop the files in. Everything becomes tool-ready on its own.
+        </p>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-[260px_1fr]">
+          <div>
+            <label className="block space-y-1">
+              <span className="text-sm font-medium">What are you uploading?</span>
+              <select
+                className="input"
+                value={docType}
+                onChange={(e) => setDocType(e.target.value as DocType)}
+                disabled={uploading}
+              >
+                {UPLOAD_TYPES.map((type) => (
                   <option key={type} value={type}>
-                    {type}
+                    {typeInfo(type).label}
                   </option>
                 ))}
               </select>
             </label>
-            <div className="space-y-1">
-              <span className="text-sm font-medium">File</span>
-              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf,.doc,.docx,.txt,.md,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
-                  className="hidden"
-                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                />
-                <button className="btn btn-secondary w-full sm:w-auto" type="button" onClick={() => fileInputRef.current?.click()}>
-                  Choose File
-                </button>
-                <span className="break-words text-sm text-[var(--muted)]">{selectedFilename}</span>
+            <p className="mt-2 text-xs text-[var(--muted)]">{typeInfo(docType).hint}</p>
+          </div>
+
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label="Upload files"
+            className={`flex min-h-36 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-6 text-center transition-colors ${
+              dragOver
+                ? "border-[var(--accent)] bg-[var(--accent-soft)]"
+                : "border-[var(--line)] bg-[var(--surface)] hover:border-[var(--accent)]"
+            }`}
+            onClick={() => !uploading && fileInputRef.current?.click()}
+            onKeyDown={(e) => {
+              if ((e.key === "Enter" || e.key === " ") && !uploading) fileInputRef.current?.click();
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={onDrop}
+          >
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--accent)]" aria-hidden>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <path d="M17 8l-5-5-5 5" />
+              <path d="M12 3v12" />
+            </svg>
+            <p className="text-sm font-semibold">
+              {uploading ? "Working on it…" : "Drop files here or tap to choose"}
+            </p>
+            <p className="text-xs text-[var(--muted)]">PDF, Word, or text files · up to 10MB each</p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".pdf,.doc,.docx,.txt,.md,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files?.length) void handleFiles(e.target.files);
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Upload progress */}
+        {queue.length > 0 && (
+          <div className="mt-4 grid gap-2">
+            {queue.map((item, idx) => (
+              <div
+                key={`${item.name}-${idx}`}
+                className="flex items-center justify-between gap-3 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2"
+              >
+                <span className="min-w-0 truncate text-sm">{item.name}</span>
+                <span className="flex shrink-0 items-center gap-2">
+                  {item.status === "uploading" && (
+                    <span className="tool-badge tool-badge-warn" style={{ fontSize: "0.65rem" }}>Uploading…</span>
+                  )}
+                  {item.status === "processing" && (
+                    <span className="tool-badge tool-badge-warn" style={{ fontSize: "0.65rem" }}>Getting it ready…</span>
+                  )}
+                  {item.status === "done" && (
+                    <span className="tool-badge tool-badge-success" style={{ fontSize: "0.65rem" }}>Ready</span>
+                  )}
+                  {item.status === "failed" && (
+                    <span className="tool-badge tool-badge-error" style={{ fontSize: "0.65rem" }}>{item.message ?? "Failed"}</span>
+                  )}
+                </span>
               </div>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-4">
+          <UploadWarning />
+        </div>
+
+        {/* Where to find your records */}
+        <details className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
+          <summary className="cursor-pointer text-sm font-semibold">Not sure what to upload, or where to find it?</summary>
+          <div className="mt-3 grid gap-3 text-sm text-[var(--muted)] sm:grid-cols-2">
+            <div>
+              <p className="font-semibold text-[var(--foreground)]">FITREPs / EVALs</p>
+              <p className="mt-1">Marines: download from MOL (Marine Online). Sailors: from NSIPS. These carry the most detail about what you actually did — upload as many as you can.</p>
+            </div>
+            <div>
+              <p className="font-semibold text-[var(--foreground)]">JST — Joint Services Transcript</p>
+              <p className="mt-1">Your official training and education record. Get it free at jst.doded.mil.</p>
+            </div>
+            <div>
+              <p className="font-semibold text-[var(--foreground)]">VMET</p>
+              <p className="mt-1">A summary of your military experience and training. Download it from milConnect (milconnect.dmdc.osd.mil).</p>
+            </div>
+            <div>
+              <p className="font-semibold text-[var(--foreground)]">LinkedIn profile</p>
+              <p className="mt-1">On LinkedIn, open your profile and use More → Save to PDF. Upload the PDF here.</p>
             </div>
           </div>
-          <button className="btn btn-primary w-full sm:w-auto" type="submit" disabled={busyUpload || !file}>
-            {busyUpload ? "Uploading..." : "Upload Document"}
-          </button>
-        </form>
+        </details>
       </section>
 
+      {/* ── Document list ─────────────────────────────────────────── */}
       <section className="section-card">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
-            <h2 className="section-title">Uploaded Documents</h2>
-            <p className="section-description">Rename, extract, download, and clean up documents from one place.</p>
+            <h2 className="section-title">Your Documents</h2>
+            <p className="section-description">Everything you&apos;ve uploaded. &quot;Ready&quot; means the AI tools can use it.</p>
           </div>
-          <button className="btn btn-secondary text-sm" type="button" onClick={loadDocuments} disabled={loadingList}>
-            {loadingList ? "Refreshing..." : "Refresh"}
+          <button className="btn btn-secondary text-sm" type="button" onClick={() => void loadDocuments()} disabled={loadingList}>
+            {loadingList ? "Refreshing…" : "Refresh"}
           </button>
         </div>
 
+        {error && (
+          <div className="mb-3 rounded-md border border-red-400/30 bg-red-400/5 p-3 text-sm text-red-500">{error}</div>
+        )}
+
         {loadingList ? (
-          <p className="text-sm text-[var(--muted)]">Loading documents...</p>
+          <p className="text-sm text-[var(--muted)]">Loading your documents…</p>
         ) : documents.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">No documents uploaded yet.</p>
+          <div className="rounded-lg border border-dashed border-[var(--line)] p-8 text-center">
+            <p className="text-sm font-medium text-[var(--muted)]">Nothing here yet</p>
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              Drop your first FITREP, EVAL, JST, or VMET above — it&apos;ll be tool-ready in seconds.
+            </p>
+          </div>
         ) : (
-          <>
-          <div className="grid gap-3 md:hidden">
+          <div className="grid gap-3">
             {documents.map((doc) => {
-              const isExtracting = extractingId === doc.id;
-              const isSaving = savingId === doc.id;
-              const isDeleting = deletingId === doc.id;
-              const extractedClass = doc.text_extracted ? "btn btn-primary" : "btn btn-secondary";
-              const draft = drafts[doc.id] ?? { filename: doc.filename };
-              const isDirty = draft.filename.trim() !== doc.filename;
+              const info = typeInfo(doc.doc_type);
+              const isBusy = busyId === doc.id;
+              const isProcessing = processingIds.has(doc.id);
+              const menuOpen = openMenuId === doc.id;
+              const isRenaming = renamingId === doc.id;
+
               return (
-                <article key={doc.id} className="subtle-panel p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">{doc.doc_type}</p>
+                <article key={doc.id} className="rounded-lg border border-[var(--line)] bg-[var(--panel)] p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-2.5 py-0.5 text-xs font-semibold text-[var(--muted)]">
+                          {info.label}
+                        </span>
+                        {statusChip(doc)}
+                      </div>
+                      {isRenaming ? (
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <input
+                            className="input h-9 max-w-xs text-sm"
+                            value={renameDraft}
+                            onChange={(e) => setRenameDraft(e.target.value)}
+                            autoFocus
+                          />
+                          <button className="btn btn-primary !min-h-9 !py-1 text-xs" type="button" disabled={isBusy} onClick={() => void saveRename(doc.id)}>
+                            {isBusy ? "Saving…" : "Save"}
+                          </button>
+                          <button className="btn btn-secondary !min-h-9 !py-1 text-xs" type="button" onClick={() => setRenamingId(null)}>
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="mt-1.5 break-words font-semibold">{doc.filename}</p>
+                      )}
                       <p className="mt-1 text-xs text-[var(--muted)]">
-                        Uploaded {new Date(doc.created_at).toLocaleDateString()} - {(doc.size_bytes / 1024).toFixed(0)} KB
+                        Added {new Date(doc.created_at).toLocaleDateString()} · {formatSize(doc.size_bytes)}
                       </p>
                     </div>
-                    <span className="rounded-md border border-[var(--line)] bg-[var(--surface)] px-2 py-1 text-xs text-[var(--muted)]">
-                      Extracted: {doc.text_extracted ? "Yes" : "No"}
-                    </span>
+
+                    <div className="flex shrink-0 items-center gap-2">
+                      {!doc.text_extracted && !isProcessing && (
+                        <button
+                          className="btn btn-primary !min-h-9 !py-1 text-xs"
+                          type="button"
+                          onClick={() => void processDocument(doc.id).then(() => loadDocuments())}
+                        >
+                          Try Again
+                        </button>
+                      )}
+                      <a className="btn btn-secondary !min-h-9 !py-1 text-xs" href={`/api/documents/${doc.id}/download`}>
+                        Download
+                      </a>
+                      <button
+                        className="btn btn-secondary !min-h-9 !py-1 text-xs"
+                        type="button"
+                        aria-label="More actions"
+                        aria-expanded={menuOpen}
+                        onClick={() => setOpenMenuId(menuOpen ? null : doc.id)}
+                      >
+                        •••
+                      </button>
+                    </div>
                   </div>
-                  <label className="mt-3 block space-y-1">
-                    <span className="text-sm font-medium">Filename</span>
-                    <input
-                      className="input text-sm"
-                      value={draft.filename}
-                      onChange={(e) =>
-                        setDrafts((prev) => ({
-                          ...prev,
-                          [doc.id]: { ...draft, filename: e.target.value },
-                        }))
-                      }
-                    />
-                  </label>
-                  <div className="mt-3 grid gap-2">
-                    <button
-                      className="btn btn-secondary text-sm"
-                      type="button"
-                      onClick={() => saveMetadata(doc.id)}
-                      disabled={!isDirty || isSaving || isDeleting}
-                    >
-                      {isSaving ? "Saving..." : "Save"}
-                    </button>
-                    <button
-                      className={`${extractedClass} text-sm`}
-                      type="button"
-                      onClick={() => extract(doc.id)}
-                      disabled={isExtracting || isSaving || isDeleting}
-                    >
-                      {isExtracting ? "Extracting..." : doc.text_extracted ? "Re-Extract" : "Extract Text"}
-                    </button>
-                    <a className="btn btn-secondary text-sm" href={`/api/documents/${doc.id}/download`}>
-                      Download
-                    </a>
-                    <button
-                      className="btn btn-secondary text-sm"
-                      type="button"
-                      onClick={() => removeDocument(doc.id)}
-                      disabled={isDeleting || isSaving || isExtracting}
-                    >
-                      {isDeleting ? "Deleting..." : "Delete"}
-                    </button>
-                  </div>
+
+                  {menuOpen && !isRenaming && (
+                    <div className="mt-3 flex flex-wrap gap-2 border-t border-[var(--line)] pt-3">
+                      <button
+                        className="btn btn-secondary !min-h-9 !py-1 text-xs"
+                        type="button"
+                        onClick={() => {
+                          setRenameDraft(doc.filename);
+                          setRenamingId(doc.id);
+                        }}
+                      >
+                        Rename
+                      </button>
+                      <button
+                        className="btn btn-secondary !min-h-9 !py-1 text-xs"
+                        type="button"
+                        disabled={isProcessing}
+                        onClick={() => void processDocument(doc.id).then(() => loadDocuments())}
+                      >
+                        {isProcessing ? "Working…" : "Re-process"}
+                      </button>
+                      <button
+                        className="btn btn-secondary !min-h-9 !py-1 text-xs"
+                        type="button"
+                        disabled={isBusy}
+                        onClick={() => void removeDocument(doc.id)}
+                      >
+                        {isBusy ? "Deleting…" : "Delete"}
+                      </button>
+                    </div>
+                  )}
                 </article>
               );
             })}
           </div>
-          <div className="hidden overflow-x-auto md:block">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="border-b border-[var(--line)] text-left text-[var(--muted)]">
-                  <th className="px-2 py-2">Filename</th>
-                  <th className="px-2 py-2">Type</th>
-                  <th className="px-2 py-2">Uploaded</th>
-                  <th className="px-2 py-2">Extracted</th>
-                  <th className="px-2 py-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {documents.map((doc) => {
-                  const isExtracting = extractingId === doc.id;
-                  const isSaving = savingId === doc.id;
-                  const isDeleting = deletingId === doc.id;
-                  const extractedClass = doc.text_extracted ? "btn btn-primary" : "btn btn-secondary";
-                  const draft = drafts[doc.id] ?? { filename: doc.filename };
-                  const isDirty = draft.filename.trim() !== doc.filename;
-                  return (
-                    <tr key={doc.id} className="border-b border-[var(--line)] last:border-b-0">
-                      <td className="px-2 py-3">
-                        <input
-                          className="input h-9 text-sm"
-                          value={draft.filename}
-                          onChange={(e) =>
-                            setDrafts((prev) => ({
-                              ...prev,
-                              [doc.id]: { ...draft, filename: e.target.value },
-                            }))
-                          }
-                        />
-                        <p className="text-xs text-[var(--muted)]">{(doc.size_bytes / 1024).toFixed(0)} KB</p>
-                      </td>
-                      <td className="px-2 py-3">{doc.doc_type}</td>
-                      <td className="px-2 py-3">{new Date(doc.created_at).toLocaleDateString()}</td>
-                      <td className="px-2 py-3">{doc.text_extracted ? "Yes" : "No"}</td>
-                      <td className="px-2 py-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <button
-                            className="btn btn-secondary"
-                            type="button"
-                            onClick={() => saveMetadata(doc.id)}
-                            disabled={!isDirty || isSaving || isDeleting}
-                          >
-                            {isSaving ? "Saving..." : "Save"}
-                          </button>
-                          <button
-                            className={extractedClass}
-                            type="button"
-                            onClick={() => extract(doc.id)}
-                            disabled={isExtracting || isSaving || isDeleting}
-                          >
-                            {isExtracting ? "Extracting..." : doc.text_extracted ? "Re-Extract" : "Extract Text"}
-                          </button>
-                          <a className="btn btn-secondary" href={`/api/documents/${doc.id}/download`}>
-                            Download
-                          </a>
-                          <button
-                            className="btn btn-secondary"
-                            type="button"
-                            onClick={() => removeDocument(doc.id)}
-                            disabled={isDeleting || isSaving || isExtracting}
-                          >
-                            {isDeleting ? "Deleting..." : "Delete"}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          </>
         )}
       </section>
-
-      {status && (
-        <section className="section-card border-[var(--accent)]">
-          <p className="text-sm font-medium text-[var(--accent)]">{status}</p>
-        </section>
-      )}
-      {error && (
-        <section className="section-card border-[#d69f9f]">
-          <p className="text-sm font-medium text-red-700">{error}</p>
-        </section>
-      )}
     </main>
   );
 }

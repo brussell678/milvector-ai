@@ -214,7 +214,7 @@ function ResumeTargeterContent() {
               value: `document:${doc.id}`,
               id: doc.id,
               sourceType: "document" as const,
-              label: `${doc.filename} (${new Date(doc.created_at).toLocaleDateString()})${doc.text_extracted ? "" : " — not extracted"} — Uploaded master resume`,
+              label: `${doc.filename} (${new Date(doc.created_at).toLocaleDateString()})${doc.text_extracted ? "" : " — not ready yet"} — Uploaded master resume`,
             }))
           );
         }

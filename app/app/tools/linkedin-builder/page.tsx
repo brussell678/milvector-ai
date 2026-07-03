@@ -150,7 +150,7 @@ export default function LinkedinBuilderPage() {
             value: `document:${d.id}`,
             id: d.id,
             sourceType: "document" as const,
-            label: `${d.filename} (${new Date(d.created_at).toLocaleDateString()})${d.text_extracted ? "" : " — not extracted"} — Uploaded`,
+            label: `${d.filename} (${new Date(d.created_at).toLocaleDateString()})${d.text_extracted ? "" : " — not ready yet"} — Uploaded`,
           })));
       }
       setMasterResumeOptions(nextOptions);
