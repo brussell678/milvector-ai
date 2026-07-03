@@ -150,12 +150,12 @@ export default function MosTranslatorPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error ?? "Request failed");
+        setError(data.error ?? "Something went wrong on our end. Your inputs are still here — try again in a few seconds.");
         return;
       }
       setResult(data as Output);
     } catch {
-      setError("Network error while translating MOS.");
+      setError("That didn't go through. Check your connection and try again — your inputs are still here.");
     } finally {
       setLoading(false);
     }
@@ -180,10 +180,10 @@ export default function MosTranslatorPage() {
           <aside className="page-hero-aside relative z-10">
             <p className="page-hero-aside-title">WHAT YOU GET</p>
             <ul className="page-hero-list">
-              <li>Ranked civilian role matches with fit rationale</li>
-              <li>Industry and keyword mapping per role</li>
-              <li>Direct links into Resume Targeter and Foundation tools</li>
-              <li>Certification recommendations with timelines</li>
+              <li>Civilian jobs that match your experience, ranked by fit</li>
+              <li>The keywords and industries for each job</li>
+              <li>One-click handoff into the resume tools</li>
+              <li>Certifications worth getting, with timelines</li>
             </ul>
           </aside>
         </div>
@@ -333,7 +333,7 @@ export default function MosTranslatorPage() {
                 <p className="tool-kicker">CIVILIAN ROLES</p>
                 <p className="section-title mt-0.5">Your Role Matches</p>
                 <p className="section-description">
-                  Ranked by fit. Each card links directly into the Resume Targeter or Foundation tools.
+                  Ranked by fit. Use the buttons on each card to start a resume for that job.
                 </p>
               </div>
               <div className="grid gap-3">

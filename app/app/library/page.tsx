@@ -131,7 +131,7 @@ export default async function LibraryPage() {
         <div className="page-hero-grid">
           <div className="relative z-10">
             <p className="page-kicker">LIBRARY</p>
-            <h1 className="page-title">Keep your documents, outputs, and references in one operating picture.</h1>
+            <h1 className="page-title">Everything you&apos;ve uploaded and built, in one place.</h1>
             <p className="page-description">The library brings together personal documents, generated artifacts, public resources, knowledge, and vetted links so you can pick up where you left off.</p>
           </div>
           <aside className="page-hero-aside">

@@ -27,14 +27,14 @@ const principles: Principle[] = [
   {
     Icon: Route,
     title: "Built For Continuity",
-    detail: "MilVector is meant to feel closer to mission planning software than a generic job board, with one operating picture for documents, planning, applications, and support.",
+    detail: "MilVector is meant to feel closer to mission planning software than a generic job board — your documents, plan, applications, and support all in one place.",
   },
 ];
 
 const trustPoints = [
   "MilVector is free to use.",
   "Your information is not sold.",
-  "Integrated tools use MilVector-paid API calls so results can stay connected to your workspace.",
+  "The built-in tools cost you nothing, and your results save to your workspace automatically.",
   "Custom GPT links open in your own ChatGPT account and do not automatically save back into MilVector workflows.",
   "Feedback, moderation, and admin review tools are built into the platform so issues can be tracked and resolved inside the workspace.",
 ];

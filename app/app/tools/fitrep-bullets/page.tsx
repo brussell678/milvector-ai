@@ -102,22 +102,22 @@ function FitrepBulletsContent() {
       {
         label: "FITREP / EVAL",
         ready: sourceSummary.fitrepCount > 0,
-        detail: sourceSummary.fitrepCount > 0 ? `${sourceSummary.fitrepCount} extracted` : "Not found",
+        detail: sourceSummary.fitrepCount > 0 ? `${sourceSummary.fitrepCount} ready` : "Not found",
       },
       {
         label: "VMET",
         ready: sourceSummary.hasVmet,
-        detail: sourceSummary.hasVmet ? "Extracted" : "Not found",
+        detail: sourceSummary.hasVmet ? "Ready" : "Not found",
       },
       {
         label: "JST",
         ready: sourceSummary.hasJst,
-        detail: sourceSummary.hasJst ? "Extracted" : "Not found",
+        detail: sourceSummary.hasJst ? "Ready" : "Not found",
       },
       {
         label: "LinkedIn Profile",
         ready: sourceSummary.linkedinCount > 0,
-        detail: sourceSummary.linkedinCount > 0 ? `${sourceSummary.linkedinCount} extracted` : "Not found",
+        detail: sourceSummary.linkedinCount > 0 ? `${sourceSummary.linkedinCount} ready` : "Not found",
       },
     ],
     [sourceSummary]
@@ -156,7 +156,7 @@ function FitrepBulletsContent() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error ?? "Request failed");
+        setError(data.error ?? "Something went wrong on our end. Your inputs are still here — try again in a few seconds.");
         return;
       }
       setResult(data as BulletsOutput | MasterResumeOutput);
@@ -171,7 +171,7 @@ function FitrepBulletsContent() {
         setNotice("Master bullets generated and saved to your account.");
       }
     } catch {
-      setError("Network error while running FITREP pipeline.");
+      setError("That didn't go through. Check your connection and try again — your inputs are still here.");
     } finally {
       setLoading(false);
     }
@@ -196,21 +196,21 @@ function FitrepBulletsContent() {
       <section className="page-hero-dark">
         <div className="page-hero-grid">
           <div className="relative z-10">
-            <p className="page-kicker-pill">MASTER RESUME</p>
+            <p className="page-kicker-pill">MASTER RESUME BUILDER</p>
             <h1 className="page-title">
-              Build the career foundation{" "}
-              <span className="gradient-text">every downstream tool depends on.</span>
+              Build the master resume{" "}
+              <span className="gradient-text">every other tool builds on.</span>
             </h1>
             <p className="page-description">
-              Pull from FITREPs, EVALs, JST, VMET, and LinkedIn drafts to generate the master resume that powers targeting, interview prep, and future application work.
+              Turns your FITREPs, EVALs, JST, and VMET into one master resume. The targeted resume, LinkedIn, and interview tools all pull from it.
             </p>
           </div>
           <aside className="page-hero-aside relative z-10">
-            <p className="page-hero-aside-title">BEST INPUTS</p>
+            <p className="page-hero-aside-title">WORKS BEST WITH</p>
             <ul className="page-hero-list">
-              <li>Extracted FITREPs and EVALs</li>
+              <li>Your uploaded FITREPs and EVALs</li>
               <li>JST, VMET, and LinkedIn profile documents</li>
-              <li>Updated target role if you have one</li>
+              <li>A target role, if you already have one in mind</li>
             </ul>
           </aside>
         </div>
@@ -241,13 +241,13 @@ function FitrepBulletsContent() {
         <div className="tool-input-panel">
 
           {noDocsYet && (
-            <ToolAlert variant="info" title="Upload source records first">
+            <ToolAlert variant="info" title="Upload your records first">
               <p className="text-sm">
-                Upload and extract FITREPs, EVALs, JST, or VMET in{" "}
+                Add your FITREPs, EVALs, JST, or VMET on the{" "}
                 <a href="/app/documents" className="font-semibold underline">
                   Documents
                 </a>{" "}
-                before generating. Missing sources become validation questions instead of blocking generation.
+                page before running this. The more records you add, the stronger your master resume.
               </p>
             </ToolAlert>
           )}
@@ -304,7 +304,7 @@ function FitrepBulletsContent() {
                     /* ── Source readiness panel ─────────────────── */
                     <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="tool-kicker">SOURCE READINESS</p>
+                        <p className="tool-kicker">YOUR RECORDS</p>
                         <button
                           className="btn btn-secondary !min-h-8 !py-1 text-xs"
                           type="button"
@@ -338,7 +338,7 @@ function FitrepBulletsContent() {
                         ))}
                       </div>
                       <p className="mt-3 text-xs text-[var(--muted)]">
-                        Missing sources become validation questions. If extracted text exceeds model limits, the system prioritizes the most recent material.
+                        Missing records are fine — the tool will ask you follow-up questions to fill the gaps. If you upload a lot, it uses your most recent material first.
                       </p>
                       <a className="btn btn-secondary mt-3 w-full text-xs" href="/app/documents">
                         Manage Documents
@@ -396,7 +396,7 @@ function FitrepBulletsContent() {
                     className="input min-h-56"
                     value={pastedText}
                     onChange={(e) => setPastedText(e.target.value)}
-                    placeholder="Paste extracted text here"
+                    placeholder="Paste the text from your FITREPs or EVALs here"
                     required
                   />
                 </label>

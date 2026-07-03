@@ -291,7 +291,7 @@ function ResumeTargeterContent() {
         "Step 1 complete — role research done. Review it below, then fill in the posting and run Step 2."
       );
     } catch {
-      setError("Network error during title research.");
+      setError("That didn't go through. Check your connection and try again — your inputs are still here.");
     } finally {
       setLoading(false);
       setActiveTask(null);
@@ -330,7 +330,7 @@ function ResumeTargeterContent() {
           : "Step 2 complete — review the analysis on the right, then choose A / B / C below."
       );
     } catch {
-      setError("Network error during posting analysis.");
+      setError("That didn't go through. Check your connection and rerun Step 2 — your inputs are still here.");
     } finally {
       setLoading(false);
       setActiveTask(null);
@@ -374,7 +374,7 @@ function ResumeTargeterContent() {
       setStage3(data as Stage3Output);
       setNotice("Targeted resume generated. Review every claim before submitting.");
     } catch {
-      setError("Network error during resume generation.");
+      setError("That didn't go through. Check your connection and try again — your decision and inputs are still here.");
     } finally {
       setLoading(false);
       setActiveTask(null);
@@ -400,23 +400,23 @@ function ResumeTargeterContent() {
       <section className="page-hero-dark">
         <div className="page-hero-grid">
           <div className="relative z-10">
-            <p className="page-kicker-pill">RESUME TARGETER</p>
+            <p className="page-kicker-pill">TARGETED RESUME BUILDER</p>
             <h1 className="page-title">
-              Build a job-targeted application{" "}
-              <span className="gradient-text">with checkpoints before you commit.</span>
+              Build a resume aimed at one real job{" "}
+              <span className="gradient-text">— with a go / no-go check first.</span>
             </h1>
             <p className="page-description">
-              Research the role, analyze the posting against your resume, pass a go / no-go
-              checkpoint, then generate a targeted draft — in order, every time.
+              Research the job title, see how your resume stacks up against the posting, decide
+              go or no-go, then build the targeted resume — in that order, every time.
             </p>
           </div>
           <aside className="page-hero-aside relative z-10">
-            <p className="page-hero-aside-title">REQUIREMENTS</p>
+            <p className="page-hero-aside-title">YOU&apos;LL NEED</p>
             <ul className="page-hero-list">
-              <li>Specific job title to research</li>
-              <li>Saved master resume or pasted text</li>
-              <li>Full job posting text</li>
-              <li>Completed profile (for best output)</li>
+              <li>The job title you&apos;re going after</li>
+              <li>Your master resume (saved or pasted)</li>
+              <li>The full job posting, copied</li>
+              <li>A saved profile, so your contact info lands on the resume</li>
             </ul>
           </aside>
         </div>
@@ -720,7 +720,7 @@ function ResumeTargeterContent() {
 
           {/* Error */}
           {!loading && error && (
-            <ToolAlert variant="error" title="Request failed">
+            <ToolAlert variant="error" title="Something went wrong">
               <p className="text-sm">{error}</p>
             </ToolAlert>
           )}

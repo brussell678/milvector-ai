@@ -136,7 +136,7 @@ export default async function AdminPage() {
             <p className="page-hero-aside-title">ADMIN CAPABILITIES</p>
             <ul className="page-hero-list">
               <li>Respond to support tickets with email notification</li>
-              <li>Advance ticket status through the triage pipeline</li>
+              <li>Move tickets from new to in-review to resolved</li>
               <li>Review and publish community library submissions</li>
               <li>Action board reports and manage posting blocks</li>
             </ul>

@@ -66,8 +66,8 @@ const workflowSteps: WorkflowStep[] = [
   {
     step: "2",
     Icon: Hammer,
-    title: "Build your career foundation",
-    detail: "Turn military experience into civilian-ready resume language and reusable master material.",
+    title: "Build your master resume",
+    detail: "Turn your military experience into one civilian-ready master resume you can reuse everywhere.",
   },
   {
     step: "3",

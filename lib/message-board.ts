@@ -10,7 +10,7 @@ export const MESSAGE_BOARD_LINK_OPTIONS: MessageBoardLinkOption[] = [
   { key: "master-resume", label: "Master Resume Builder", path: "/app/tools/fitrep-bullets", resourceType: "tool", toolSlug: "fitrep_bullets" },
   { key: "mos-translator", label: "MOS Translator", path: "/app/tools/mos-translator", resourceType: "tool", toolSlug: "mos_translator" },
   { key: "jd-decoder", label: "Job Description Decoder", path: "/app/tools/jd-decoder", resourceType: "tool", toolSlug: "jd_decoder" },
-  { key: "resume-targeter", label: "Resume Targeter", path: "/app/tools/resume-targeter", resourceType: "tool", toolSlug: "resume_targeter" },
+  { key: "resume-targeter", label: "Targeted Resume Builder", path: "/app/tools/resume-targeter", resourceType: "tool", toolSlug: "resume_targeter" },
   { key: "linkedin-builder", label: "LinkedIn Profile Builder", path: "/app/tools/linkedin-builder", resourceType: "tool", toolSlug: "linkedin_builder" },
   { key: "profile", label: "Profile Workspace", path: "/app/profile", resourceType: "profile" },
   { key: "documents", label: "Documents Workspace", path: "/app/documents", resourceType: "documents" },

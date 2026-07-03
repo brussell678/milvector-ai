@@ -29,22 +29,21 @@ type ToolCard = {
 const foundationTools: ToolCard[] = [
   {
     href: "/app/tools/fitrep-bullets",
-    title: "Master Resume Generator",
-    desc: "Turn uploaded military records into a reusable civilian career foundation for applications, LinkedIn positioning, and planning.",
+    title: "Master Resume Builder",
+    desc: "Turn your uploaded military records into one master resume — the base every other tool builds on.",
     requirements: [
-      "Upload source records such as FITREPs, EVALs, JST, or VMET.",
-      "Review the output and save the strongest version to your Library.",
+      "Upload records like FITREPs, EVALs, JST, or VMET first.",
+      "Review the result and save the best version.",
     ],
     gptHref: "https://chatgpt.com/g/g-69d5982e578c819184c2e96ec1c81bbb-milvector-master-resume-generator",
   },
   {
     href: "/app/tools/linkedin-builder",
     title: "LinkedIn Profile Builder",
-    desc: "Turn a master resume into a stronger LinkedIn presence with career-path suggestions, profile sections, networking guidance, and banner support.",
+    desc: "Turn your master resume into a complete LinkedIn profile — headline, sections, career suggestions, and a banner.",
     requirements: [
-      "Have a saved or pasted master resume available.",
-      "Select target role, industry, and location strategy.",
-      "Use this when you want positioning and networking support, not just resume output.",
+      "Have a master resume saved, or be ready to paste one.",
+      "Know roughly what role and industry you want.",
     ],
   },
 ];
@@ -52,28 +51,28 @@ const foundationTools: ToolCard[] = [
 const applicationTools: ToolCard[] = [
   {
     href: "/app/tools/resume-targeter",
-    title: "Targeted Resume Engine",
-    desc: "Generate a role-specific resume and supporting application output from your career foundation plus a real job description.",
+    title: "Targeted Resume Builder",
+    desc: "Build a resume aimed at one specific job, using your master resume plus the real job posting.",
     requirements: [
-      "Have a saved master resume in your Library.",
-      "Complete and save your Profile.",
-      "Paste the full target job posting before generating output.",
+      "Have a saved master resume.",
+      "Save your Profile so your contact info appears on the resume.",
+      "Copy the full job posting so you can paste it in.",
     ],
     gptHref: "https://chatgpt.com/g/g-697c169088588191bce63407d421f5b0-milvector-ai-targeted-resume-builder",
   },
   {
     href: "/app/tools/jd-decoder",
     title: "Job Description Decoder",
-    desc: "Break a job posting into requirements, signals, decision points, and interview focus areas before you apply.",
+    desc: "Paste a job posting and see what they really want, what to watch out for, and how well you fit — before you apply.",
   },
   {
     href: "https://chatgpt.com/g/g-69b9fc23c88c81919a3cd53ffcbe1b1a-milvector-ai-interview-strategist",
     title: "Job Interview Strategist",
-    desc: "Prepare for interviews with structured role, company, and resume-based practice and feedback. Turn on voice mode for mock interview realism.",
+    desc: "Practice interviews for a real job with feedback. Turn on voice mode for a realistic mock interview.",
     requirements: [
-      "Bring the specific job title and full job description.",
-      "Have the company name available.",
-      "Provide the resume you want the interview prep based on.",
+      "Have the job title and full job posting ready.",
+      "Know the company name.",
+      "Bring the resume you're applying with.",
     ],
     isExternal: true,
   },
@@ -83,7 +82,7 @@ const translationTools: ToolCard[] = [
   {
     href: "/app/tools/mos-translator",
     title: "MOS Translator",
-    desc: "Map MOS experience to civilian roles, language, and next-step career pathways.",
+    desc: "Enter your MOS and see which civilian jobs match your experience — with the words hiring managers use for it.",
   },
 ];
 
@@ -119,11 +118,11 @@ function relativeTime(iso: string): string {
 }
 
 const toolLabels: Record<string, string> = {
-  fitrep_bullets: "Master Resume",
+  fitrep_bullets: "Master Resume Builder",
   mos_translator: "MOS Translator",
-  jd_decoder: "JD Decoder",
-  resume_targeter: "Resume Targeter",
-  linkedin_builder: "LinkedIn Builder",
+  jd_decoder: "Job Description Decoder",
+  resume_targeter: "Targeted Resume Builder",
+  linkedin_builder: "LinkedIn Profile Builder",
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────
@@ -131,11 +130,18 @@ const toolLabels: Record<string, string> = {
 function ToolCardUI({ tool }: { tool: ToolCard }) {
   return (
     <article className="subtle-panel flex flex-col gap-3 p-5">
-      <h3 className="font-bold text-base leading-tight">{tool.title}</h3>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <h3 className="font-bold text-base leading-tight">{tool.title}</h3>
+        {tool.isExternal && (
+          <span className="tool-badge tool-badge-warn" style={{ fontSize: "0.65rem" }}>
+            Opens in ChatGPT
+          </span>
+        )}
+      </div>
       <p className="text-sm text-[var(--muted)] leading-relaxed">{tool.desc}</p>
       {tool.requirements?.length ? (
         <div className="rounded-md border border-[var(--line)] bg-[var(--surface)] p-3">
-          <p className="text-xs font-bold tracking-[0.12em] uppercase text-[var(--muted)]">Before you start</p>
+          <p className="text-xs font-bold tracking-[0.12em] uppercase text-[var(--muted)]">You&apos;ll need</p>
           <ul className="mt-2 space-y-1.5 text-sm text-[var(--muted)]">
             {tool.requirements.map((r) => (
               <li key={r} className="flex gap-2">
@@ -146,10 +152,15 @@ function ToolCardUI({ tool }: { tool: ToolCard }) {
           </ul>
         </div>
       ) : null}
+      {tool.isExternal && (
+        <p className="text-xs text-[var(--muted)]">
+          Needs a free ChatGPT account. Results are not saved to MilVector — copy anything you want to keep.
+        </p>
+      )}
       <div className="mt-auto flex flex-wrap gap-2 pt-1">
         {tool.isExternal ? (
           <a href={tool.href} className="btn btn-secondary text-sm" target="_blank" rel="noreferrer">
-            Open GPT
+            Open in ChatGPT
           </a>
         ) : (
           <Link href={tool.href} className="btn btn-primary text-sm">
@@ -157,8 +168,14 @@ function ToolCardUI({ tool }: { tool: ToolCard }) {
           </Link>
         )}
         {tool.gptHref && (
-          <a href={tool.gptHref} className="btn btn-secondary text-sm" target="_blank" rel="noreferrer">
-            GPT Link
+          <a
+            href={tool.gptHref}
+            className="btn btn-secondary text-sm"
+            target="_blank"
+            rel="noreferrer"
+            title="A chat version of this tool. Results are not saved to MilVector."
+          >
+            ChatGPT version
           </a>
         )}
       </div>
@@ -237,32 +254,32 @@ export default async function ToolsPage() {
   const pipelineSteps: PipelineStep[] = [
     {
       phase: "Step 1",
-      title: "Upload Source Records",
-      description: "Extract FITREPs, EVALs, JST, and VMET so the AI has strong raw material to work from.",
+      title: "Upload Your Records",
+      description: "Add FITREPs, EVALs, JST, and VMET so the AI has your real experience to work from.",
       href: "/app/documents",
       status: hasSources ? "complete" : "active",
-      ctaLabel: hasSources ? `${extractedDocCount} extracted — manage` : "Upload Records",
+      ctaLabel: hasSources ? `${extractedDocCount} ready — manage` : "Upload Records",
     },
     {
       phase: "Step 2",
-      title: "Build Master Resume",
-      description: "Turn your service records into a civilian career foundation every other tool pulls from.",
+      title: "Build Your Master Resume",
+      description: "Turn your records into one master resume that every other tool builds on.",
       href: "/app/tools/fitrep-bullets",
       status: hasMasterResume ? "complete" : hasSources ? "active" : "pending",
-      ctaLabel: hasMasterResume ? "Open Tool" : "Generate Foundation",
+      ctaLabel: hasMasterResume ? "Open Tool" : "Build Master Resume",
     },
     {
       phase: "Step 3",
-      title: "Target Roles",
-      description: "Title research, posting analysis, and a go/no-go checkpoint before generating a targeted resume.",
+      title: "Target a Real Job",
+      description: "Research the title, analyze the posting, and decide go or no-go before building the resume.",
       href: "/app/tools/resume-targeter",
       status: hasTargetedResume ? "complete" : hasMasterResume ? "active" : "pending",
-      ctaLabel: hasTargetedResume ? "Run Again" : "Target a Role",
+      ctaLabel: hasTargetedResume ? "Run Again" : "Target a Job",
     },
     {
       phase: "Step 4",
-      title: "Build LinkedIn Presence",
-      description: "Convert your master resume into a targeted LinkedIn profile with headline and section drafts.",
+      title: "Build Your LinkedIn",
+      description: "Turn your master resume into a complete LinkedIn profile, section by section.",
       href: "/app/tools/linkedin-builder",
       status: hasMasterResume ? "active" : "pending",
       ctaLabel: "Open Builder",
@@ -270,7 +287,7 @@ export default async function ToolsPage() {
   ];
 
   const heroStrip = [
-    { value: String(extractedDocCount), label: "Source records extracted" },
+    { value: String(extractedDocCount), label: "Records ready to use" },
     { value: String(masterResumeCount), label: "Master resumes built" },
     { value: String(targetedResumeCount), label: "Targeted resumes saved" },
     { value: recentRuns.length > 0 ? "Active" : "Ready", label: "Workspace status" },
@@ -283,30 +300,30 @@ export default async function ToolsPage() {
       <section className="page-hero-dark">
         <div className="page-hero-grid">
           <div className="relative z-10">
-            <p className="page-kicker-pill">TOOLSET</p>
+            <p className="page-kicker-pill">TOOLS</p>
             <h1 className="page-title">
-              Use MilVector as a guided workflow,{" "}
-              <span className="gradient-text">not a pile of disconnected tools.</span>
+              Four steps from military record{" "}
+              <span className="gradient-text">to civilian career.</span>
             </h1>
             <p className="page-description">
-              Start with source records, build your foundation, then move into targeted applications and LinkedIn. Every output feeds the next step.
+              Upload your records, build your master resume, then aim it at real jobs and LinkedIn. Each step makes the next one better.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <Link href="/app/tools/fitrep-bullets" className="btn btn-primary text-sm">
-                Build Foundation
+                Build Master Resume
               </Link>
               <Link href="/app/documents" className="btn btn-hero-ghost text-sm">
-                Manage Documents
+                Upload Records
               </Link>
             </div>
           </div>
           <aside className="page-hero-aside relative z-10">
-            <p className="page-hero-aside-title">RECOMMENDED FLOW</p>
+            <p className="page-hero-aside-title">THE ORDER THAT WORKS</p>
             <ul className="page-hero-list">
-              <li>Translate and organize your source material first</li>
-              <li>Build your career foundation before targeting roles</li>
-              <li>Move into job-specific application and interview tools next</li>
-              <li>Use decision tools when a major life or benefits choice is on the table</li>
+              <li>Upload your records first — the AI works from your real experience</li>
+              <li>Build your master resume before targeting jobs</li>
+              <li>Then build targeted resumes and prep for interviews</li>
+              <li>Use the decision tools for big benefits choices like SBP and VA ratings</li>
             </ul>
           </aside>
         </div>
@@ -326,13 +343,13 @@ export default async function ToolsPage() {
         </div>
       </section>
 
-      {/* ── Your Workflow pipeline ─────────────────────────────────── */}
+      {/* ── Your progress ──────────────────────────────────────────── */}
       <section className="tool-section">
         <div>
-          <p className="tool-kicker">YOUR WORKFLOW</p>
-          <h2 className="section-title mt-1">Where you are in the transition pipeline</h2>
+          <p className="tool-kicker">YOUR PROGRESS</p>
+          <h2 className="section-title mt-1">Where you are in the four steps</h2>
           <p className="section-description">
-            Complete steps in order for the strongest downstream results. Each step feeds the next.
+            Do the steps in order — each one makes the next one better.
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -442,89 +459,29 @@ export default async function ToolsPage() {
         </section>
       )}
 
-      {/* ── How to choose ─────────────────────────────────────────── */}
-      <details className="tool-section">
-        <summary className="list-none cursor-pointer">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="tool-kicker">GUIDANCE</p>
-              <h2 className="section-title mt-0.5">Integrated tools vs. GPT links</h2>
-            </div>
-            <svg
-              className="details-chevron shrink-0 text-[var(--muted)]"
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden
-            >
-              <path d="M6 9l6 6 6-6" />
-            </svg>
-          </div>
-        </summary>
-        <div className="mt-4 grid gap-4 lg:grid-cols-2">
-          <article className="subtle-panel p-5">
-            <p className="tool-kicker">INTEGRATED MILVECTOR TOOLS</p>
-            <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
-              These run inside MilVector using our API-backed workflow so outputs stay connected to your profile, documents, library, and export path.
-            </p>
-            <ul className="mt-3 space-y-2 text-sm text-[var(--muted)]">
-              <li className="flex gap-2">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" aria-hidden />
-                Best when you want saved outputs, structured workflows, and cleaner exportable document handling.
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" aria-hidden />
-                Strongest choice when continuity inside the MilVector workspace matters.
-              </li>
-            </ul>
-          </article>
-          <article className="subtle-panel p-5">
-            <p className="tool-kicker">GPT LINKS</p>
-            <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
-              These open custom GPTs in your own ChatGPT account — useful when you want a more conversational back-and-forth inside ChatGPT.
-            </p>
-            <ul className="mt-3 space-y-2 text-sm text-[var(--muted)]">
-              <li className="flex gap-2">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" aria-hidden />
-                Uses your ChatGPT account rather than MilVector&apos;s API budget.
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" aria-hidden />
-                Does not automatically save work into MilVector documents, library, or export flows.
-              </li>
-            </ul>
-          </article>
-        </div>
-      </details>
-
       {/* ── Tool groups ────────────────────────────────────────────── */}
       <ToolGroup
         kicker="STEP 1 + 2"
-        title="Build Your Foundation"
-        description="Start here for the strongest overall system behavior. These tools create the baseline material that supports every later workflow."
+        title="Build Your Base"
+        description="Start here. These build the master resume and LinkedIn profile that everything else uses."
         tools={foundationTools}
       />
       <ToolGroup
         kicker="STEP 3"
-        title="Apply With Precision"
-        description="Use these when you have a real job target, need role-specific materials, or are preparing for interviews."
+        title="Go After Real Jobs"
+        description="Use these when you've found a job you want — to understand the posting, build the resume, and prep for the interview."
         tools={applicationTools}
       />
       <ToolGroup
         kicker="EXPLORE"
-        title="Translate And Explore"
-        description="Use these when you are still clarifying target roles, civilian language, or the shape of your next move."
+        title="Figure Out What's Next"
+        description="Not sure what civilian job fits? Start here to see your options in plain language."
         tools={translationTools}
       />
       <ToolGroup
         kicker="DECIDE"
-        title="Evaluate Major Decisions"
-        description="These tools support benefits and retirement-related choices that have longer-term consequences."
+        title="Make the Big Calls"
+        description="Support for benefits and retirement decisions with long-term consequences — VA ratings and the Survivor Benefit Plan."
         tools={decisionTools}
       />
     </main>

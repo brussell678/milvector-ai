@@ -6,11 +6,11 @@ import { PhaseObjectives } from "@/components/dashboard/PhaseObjectives";
 import type { DashboardLink, DashboardTask } from "@/components/dashboard/types";
 
 function nextStep(profileExists: boolean, hasSourceDocuments: boolean, hasMasterResume: boolean, hasTargetedResume: boolean) {
-  if (!profileExists) return { href: "/app/profile", label: "Complete profile" };
-  if (!hasSourceDocuments) return { href: "/app/documents", label: "Upload source documents" };
-  if (!hasMasterResume) return { href: "/app/tools/fitrep-bullets", label: "Build career foundation" };
-  if (!hasTargetedResume) return { href: "/app/tools/resume-targeter", label: "Build job-targeted application" };
-  return { href: "/app/library", label: "Review your library" };
+  if (!profileExists) return { href: "/app/profile", label: "Complete your profile" };
+  if (!hasSourceDocuments) return { href: "/app/documents", label: "Upload your military records" };
+  if (!hasMasterResume) return { href: "/app/tools/fitrep-bullets", label: "Build your master resume" };
+  if (!hasTargetedResume) return { href: "/app/tools/resume-targeter", label: "Build a resume for a real job" };
+  return { href: "/app/library", label: "Review your saved work" };
 }
 
 export default async function DashboardPage() {
@@ -84,19 +84,19 @@ export default async function DashboardPage() {
     daysUntilEas !== null,
   ].filter(Boolean).length;
   const workflowHealthItems = [
-    { label: "Profile saved", value: profileRes.data ? "Yes" : "No" },
-    { label: "Source documents", value: hasSourceDocuments ? "Uploaded" : "Missing" },
-    { label: "Master resume", value: hasMasterResume ? "Ready" : "Missing" },
-    { label: "Targeted resume", value: hasTargetedResume ? "Ready" : "Not yet" },
-    { label: "Education signals", value: String(educationProfileSignals) },
+    { label: "Profile saved", value: profileRes.data ? "Done" : "Not yet" },
+    { label: "Military records uploaded", value: hasSourceDocuments ? "Done" : "Not yet" },
+    { label: "Master resume built", value: hasMasterResume ? "Done" : "Not yet" },
+    { label: "Targeted resume built", value: hasTargetedResume ? "Done" : "Not yet" },
+    { label: "Education & certs added", value: String(educationProfileSignals) },
   ];
   const activityItems = [
     { label: "Documents", value: documentsCount },
     { label: "Master Resumes", value: masterResumeCount },
     { label: "Targeted Resumes", value: targetedResumesCount },
-    { label: "Tool Runs", value: toolRunsCount },
-    { label: "Successful Runs", value: toolSuccessCount, valueClass: "text-[var(--accent)]" },
-    { label: "Errors To Review", value: toolErrorCount, valueClass: "text-[#a33b3b]" },
+    { label: "Times Tools Used", value: toolRunsCount },
+    { label: "Finished Successfully", value: toolSuccessCount, valueClass: "text-[var(--accent)]" },
+    { label: "Didn't Finish", value: toolErrorCount, valueClass: "text-[#a33b3b]" },
   ];
 
   return (
@@ -105,30 +105,30 @@ export default async function DashboardPage() {
         <div className="page-hero-grid">
           <div className="relative z-10">
             <p className="page-kicker">MISSION CONTROL</p>
-            <h1 className="page-title">Keep your transition plan, work product, and next action in one operating picture.</h1>
+            <h1 className="page-title">Your transition, one page: where you stand and what to do next.</h1>
             <p className="page-description">
-              Use the dashboard to stay oriented across readiness, saved work, timeline state, and workflow activity. MilVector works best when your profile, source records, and next move stay connected.
+              Check in here to see your progress, your next step, and where you are on the road to EAS.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <Link href={step.href} className="btn btn-primary">
                 {step.label}
               </Link>
               <Link href="/app/tools" className="btn btn-secondary">
-                Open toolset
+                Open the tools
               </Link>
             </div>
           </div>
           <aside className="page-hero-aside">
-            <p className="page-hero-aside-title">NEXT OBJECTIVE</p>
+            <p className="page-hero-aside-title">DO THIS NEXT</p>
             <p className="mt-3 text-2xl font-extrabold leading-tight">{step.label}</p>
             <p className="mt-2 text-sm text-[var(--muted)]">
               {hasMasterResume
                 ? hasTargetedResume
-                  ? "Your foundation is in place. Stay oriented through the library and timeline."
-                  : "Your foundation is ready. Move into job-specific application work next."
+                  ? "Your core documents are built. Keep working the timeline and check your saved work."
+                  : "Your master resume is ready. Next: aim it at a real job."
                 : hasSourceDocuments
-                  ? "Build the baseline material that makes the rest of the system stronger."
-                  : "Upload and extract source records first so the AI tools have evidence to work from."}
+                  ? "Your records are in. Now build the master resume everything else uses."
+                  : "Start by uploading your records — FITREPs, EVALs, JST, or VMET — so the AI works from your real experience."}
             </p>
           </aside>
         </div>
@@ -136,8 +136,8 @@ export default async function DashboardPage() {
 
       <section className="grid gap-4 lg:grid-cols-[1.15fr,0.85fr]">
         <section className="section-card">
-          <h2 className="section-title">Mission Snapshot</h2>
-          <p className="section-description">The core signals that determine your next objective and transition vector.</p>
+          <h2 className="section-title">Where You Stand</h2>
+          <p className="section-description">Your phase, your countdown, and how much of the setup is done.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <article className="stat-card">
               <p className="stat-label">Current Phase</p>
@@ -148,21 +148,21 @@ export default async function DashboardPage() {
               <p className="mt-3 text-2xl font-extrabold leading-tight">{daysUntilEas === null ? "Set in Profile" : daysUntilEas}</p>
             </article>
             <article className="stat-card">
-              <p className="stat-label">Readiness Signals</p>
+              <p className="stat-label">Setup Steps</p>
               <p className="mt-3 text-2xl font-extrabold leading-tight text-[var(--accent)]">{timelineReadiness}/5</p>
-              <p className="mt-2 text-xs text-[var(--muted)]">core signals in place</p>
+              <p className="mt-2 text-xs text-[var(--muted)]">steps done</p>
             </article>
           </div>
           <div className="mt-4 grid gap-4 md:grid-cols-[1fr_1.1fr]">
             <article className="stat-card">
-              <p className="stat-label">Recommended Objective</p>
+              <p className="stat-label">Do This Next</p>
               <p className="mt-3 text-2xl font-extrabold leading-tight">{step.label}</p>
               <Link href={step.href} className="btn btn-primary mt-4 w-full sm:w-auto">
-                Continue Objective
+                Start
               </Link>
             </article>
             <article className="stat-card">
-              <p className="stat-label">Workflow Health</p>
+              <p className="stat-label">Your Checklist</p>
               <div className="mt-4 grid gap-3">
                 {workflowHealthItems.map((item) => (
                   <div key={item.label} className="flex items-center justify-between gap-3 rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 py-2">
@@ -176,8 +176,8 @@ export default async function DashboardPage() {
         </section>
 
         <section className="section-card">
-          <h2 className="section-title">Activity Snapshot</h2>
-          <p className="section-description">A cleaner view of saved work and workflow performance.</p>
+          <h2 className="section-title">Your Saved Work</h2>
+          <p className="section-description">What you&apos;ve built and saved so far.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {activityItems.map((item) => (
               <article key={item.label} className="stat-card">

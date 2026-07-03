@@ -49,9 +49,9 @@ export default async function MetricsPage() {
         <div className="page-hero-grid">
           <div className="relative z-10">
             <p className="page-kicker">INSIGHTS</p>
-            <h1 className="page-title">See how your MilVector workspace is progressing, not just what is stored.</h1>
+            <h1 className="page-title">See your progress, not just your files.</h1>
             <p className="page-description">
-              Use this page to understand workflow momentum, output volume, support load, and how reliably your integrated tools are performing over time.
+              A quick read on what you&apos;ve built, how the tools have been working for you, and where things stand.
             </p>
           </div>
           <aside className="page-hero-aside">

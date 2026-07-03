@@ -269,10 +269,10 @@ export default function LinkedinBuilderPage() {
         body: JSON.stringify(body),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { setError(data.error ?? "Request failed."); return null; }
+      if (!res.ok) { setError(data.error ?? "Something went wrong on our end. Try again in a few seconds."); return null; }
       return data;
     } catch {
-      setError("Network error during tool run.");
+      setError("That didn't go through. Check your connection and try again — your work is still here.");
       return null;
     } finally {
       setLoading(false);
@@ -330,7 +330,7 @@ export default function LinkedinBuilderPage() {
       setActiveTab("career");
       setNotice("Analysis and career matching complete. Review the career tab, adjust your target role and industry, then generate your profile.");
     } catch {
-      setError("Network error during analysis.");
+      setError("That didn't go through. Check your connection and try again — your resume text is still here.");
     } finally {
       setLoading(false);
       setActiveTask(null);
@@ -427,7 +427,7 @@ export default function LinkedinBuilderPage() {
     }, "Saving draft to Documents…");
     if (!data) return;
     setDocumentId((data as { documentId: string }).documentId);
-    setNotice("Draft saved to Documents. Navigation guard released.");
+    setNotice("Draft saved to Documents. It's safe to leave this page.");
   }
 
   // ── Profile editing helpers ────────────────────────────────────────
@@ -480,22 +480,22 @@ export default function LinkedinBuilderPage() {
       <section className="page-hero-dark">
         <div className="page-hero-grid">
           <div className="relative z-10">
-            <p className="page-kicker-pill">LINKEDIN BUILDER</p>
+            <p className="page-kicker-pill">LINKEDIN PROFILE BUILDER</p>
             <h1 className="page-title">
-              Build a stronger LinkedIn presence{" "}
+              Build your whole LinkedIn profile{" "}
               <span className="gradient-text">from your master resume.</span>
             </h1>
             <p className="page-description">
-              Analysis and career matching run together automatically. Then generate, edit, score, and brand your profile — all in one connected workspace that auto-saves your edits.
+              Start with your master resume and get a complete LinkedIn profile — headline, about section, experience, and a banner. Edit anything; your changes save automatically.
             </p>
           </div>
           <aside className="page-hero-aside relative z-10">
-            <p className="page-hero-aside-title">BEST PRACTICE</p>
+            <p className="page-hero-aside-title">HOW TO GET THE MOST OUT OF IT</p>
             <ul className="page-hero-list">
-              <li>Steps 1+2 run together — set location preference before starting</li>
-              <li>Edit headlines and about sections before scoring</li>
-              <li>Save to Documents when you reach a version worth keeping</li>
-              <li>Use the score tab to improve weak sections specifically</li>
+              <li>Set your location preference before you start</li>
+              <li>Edit the headline and about section before scoring</li>
+              <li>Save to Documents when you have a version you like</li>
+              <li>Use the score tab to see which sections need work</li>
             </ul>
           </aside>
         </div>
@@ -734,7 +734,7 @@ export default function LinkedinBuilderPage() {
 
           {/* Alerts */}
           {!loading && error && (
-            <ToolAlert variant="error" title="Request failed">
+            <ToolAlert variant="error" title="Something went wrong">
               <p className="text-sm">{error}</p>
             </ToolAlert>
           )}

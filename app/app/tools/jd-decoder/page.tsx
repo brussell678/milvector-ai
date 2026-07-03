@@ -119,12 +119,12 @@ export default function JobDescriptionDecoderPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error ?? "Request failed");
+        setError(data.error ?? "Something went wrong on our end. Your posting text is still here — try again in a few seconds.");
         return;
       }
       setResult(data as Output);
     } catch {
-      setError("Network error while decoding job description.");
+      setError("That didn't go through. Check your connection and try again — your posting text is still here.");
     } finally {
       setLoading(false);
     }
@@ -141,22 +141,22 @@ export default function JobDescriptionDecoderPage() {
       <section className="page-hero-dark">
         <div className="page-hero-grid">
           <div className="relative z-10">
-            <p className="page-kicker-pill">JD DECODER</p>
+            <p className="page-kicker-pill">JOB DESCRIPTION DECODER</p>
             <h1 className="page-title">
-              Turn a posting into{" "}
-              <span className="gradient-text">clear signals before you spend application time.</span>
+              Know what a job posting{" "}
+              <span className="gradient-text">really wants before you apply.</span>
             </h1>
             <p className="page-description">
-              Analyze requirements, implied expectations, ATS keywords, fit risks, and interview focus areas from any job description — before you commit to applying.
+              Paste any job posting and see what they actually require, what they quietly expect, which keywords matter, and what to watch out for — before you spend time applying.
             </p>
           </div>
           <aside className="page-hero-aside relative z-10">
             <p className="page-hero-aside-title">WHAT YOU GET</p>
             <ul className="page-hero-list">
-              <li>Role-level and mission framing</li>
-              <li>Hard, soft, and implied requirements</li>
-              <li>Priority ATS keywords</li>
-              <li>Interview prep and clarifying questions</li>
+              <li>What the job actually is, in plain terms</li>
+              <li>Must-haves vs. nice-to-haves vs. unwritten expectations</li>
+              <li>The keywords that get resumes past screening software</li>
+              <li>Interview prep and questions worth asking them</li>
             </ul>
           </aside>
         </div>
@@ -228,11 +228,11 @@ export default function JobDescriptionDecoderPage() {
                 <p className="tool-kicker">NEXT STEP</p>
                 <p className="section-title mt-0.5">Ready to build the resume?</p>
                 <p className="section-description">
-                  Take this analysis directly into the Resume Targeter to generate a role-specific resume draft.
+                  Carry this analysis straight into the Targeted Resume Builder — the posting comes with you.
                 </p>
               </div>
               <Link href={targeterHref} className="btn btn-primary w-full text-sm">
-                Use in Resume Targeter →
+                Build a targeted resume →
               </Link>
             </section>
           )}
