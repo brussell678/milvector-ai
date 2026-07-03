@@ -54,6 +54,195 @@ type MessageBoardBlockedUserItem = {
   created_at: string;
 };
 
+const TYPE_ICONS: Record<string, string> = {
+  bug: "🐛",
+  suggestion: "💡",
+  general: "💬",
+  tool_request: "🔧",
+};
+
+const STATUS_NEXT: Record<FeedbackItem["status"], FeedbackItem["status"][]> = {
+  new: ["reviewing", "resolved", "archived"],
+  reviewing: ["resolved", "archived"],
+  resolved: ["reviewing", "archived"],
+  archived: ["reviewing"],
+};
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(
+    new Date(value)
+  );
+}
+
+function TabBtn({
+  label,
+  count,
+  active,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+        active
+          ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+          : "text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]"
+      }`}
+    >
+      {label}
+      {count > 0 && (
+        <span
+          className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+            active
+              ? "bg-[var(--accent)] text-white"
+              : "bg-[var(--surface)] text-[var(--muted)]"
+          }`}
+        >
+          {count}
+        </span>
+      )}
+    </button>
+  );
+}
+
+function FeedbackCard({
+  item,
+  feedbackResponse,
+  onResponseChange,
+  onStatusChange,
+  onSaveResponse,
+  isBusy,
+}: {
+  item: FeedbackItem;
+  feedbackResponse: string;
+  onResponseChange: (val: string) => void;
+  onStatusChange: (status: FeedbackItem["status"]) => void;
+  onSaveResponse: () => void;
+  isBusy: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const icon = TYPE_ICONS[item.feedback_type] ?? "📝";
+  const nextStatuses = STATUS_NEXT[item.status] ?? [];
+
+  return (
+    <article className="rounded-lg border border-[var(--line)] bg-[var(--panel)]">
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-3 p-4">
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 text-xl" aria-hidden="true">{icon}</span>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-semibold">{item.name ?? item.email ?? "Anonymous"}</p>
+              {item.email && item.name && (
+                <a
+                  href={`mailto:${item.email}`}
+                  className="text-xs text-[var(--accent)] hover:underline"
+                >
+                  {item.email}
+                </a>
+              )}
+            </div>
+            <div className="mt-1 flex flex-wrap gap-3 text-xs text-[var(--muted)]">
+              <span>{formatDate(item.created_at)}</span>
+              {item.branch && <span>{item.branch}</span>}
+              {item.mos && <span>{item.mos}</span>}
+              {item.suggested_tool && <span>Tool: {item.suggested_tool}</span>}
+            </div>
+          </div>
+        </div>
+        <span className="ticket-badge" data-status={item.status}>
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: "currentColor" }} aria-hidden="true" />
+          {item.status === "new" ? "New" : item.status === "reviewing" ? "In Review" : item.status === "resolved" ? "Resolved" : "Archived"}
+        </span>
+      </div>
+
+      {/* Message */}
+      <div className="border-t border-[var(--line)] px-4 py-3">
+        <p className="whitespace-pre-wrap text-sm text-[var(--muted)]">{item.message}</p>
+      </div>
+
+      {/* Existing response */}
+      {item.admin_response && (
+        <div className="ticket-reply mx-4 my-3">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
+            Your response · {item.admin_response_updated_at ? formatDate(item.admin_response_updated_at) : ""}
+          </p>
+          <p className="whitespace-pre-wrap text-sm">{item.admin_response}</p>
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex flex-wrap items-center gap-2 border-t border-[var(--line)] px-4 py-3">
+        {item.attachment_signed_url && (
+          <a
+            href={item.attachment_signed_url}
+            className="btn btn-secondary inline-flex text-xs"
+            target="_blank"
+            rel="noreferrer"
+          >
+            View Attachment
+          </a>
+        )}
+        {nextStatuses.map((s) => (
+          <button
+            key={s}
+            className="btn btn-secondary inline-flex text-xs"
+            type="button"
+            disabled={isBusy}
+            onClick={() => onStatusChange(s)}
+          >
+            {isBusy ? "..." : `Mark ${s === "reviewing" ? "In Review" : s.charAt(0).toUpperCase() + s.slice(1)}`}
+          </button>
+        ))}
+        <button
+          className={`btn inline-flex text-xs ${expanded ? "btn-primary" : "btn-secondary"}`}
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {item.admin_response ? (item.admin_response ? "Edit Response" : "Respond") : "Respond"}
+        </button>
+      </div>
+
+      {/* Expand-to-respond */}
+      {expanded && (
+        <div className="border-t border-[var(--line)] p-4">
+          <label className="block space-y-2">
+            <span className="text-sm font-medium">
+              {item.admin_response ? "Update Your Response" : "Write a Response"}
+            </span>
+            <textarea
+              className="input min-h-28"
+              value={feedbackResponse}
+              onChange={(e) => onResponseChange(e.target.value)}
+              placeholder="Respond to the user. This message will appear in their Support Cases view and trigger an email notification if they provided an address."
+              autoFocus
+            />
+          </label>
+          <div className="mt-3 flex gap-2">
+            <button
+              className="btn btn-primary text-sm"
+              type="button"
+              disabled={isBusy}
+              onClick={onSaveResponse}
+            >
+              {isBusy ? "Saving..." : "Send Response"}
+            </button>
+            <button className="btn btn-secondary text-sm" type="button" onClick={() => setExpanded(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </article>
+  );
+}
+
 export function AdminPortal({
   initialFeedback,
   initialSubmissions,
@@ -76,14 +265,16 @@ export function AdminPortal({
   const [busySubmissionId, setBusySubmissionId] = useState<string | null>(null);
   const [busyReportId, setBusyReportId] = useState<string | null>(null);
   const [busyBlockedUserId, setBusyBlockedUserId] = useState<string | null>(null);
-  const [status, setStatus] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
+  const [activeTab, setActiveTab] = useState<"inbox" | "submissions" | "reports" | "blocked">("inbox");
+
+  function showToast(kind: "ok" | "err", msg: string) {
+    setToast({ kind, msg });
+    setTimeout(() => setToast(null), 4000);
+  }
 
   async function updateFeedbackStatus(id: string, nextStatus: FeedbackItem["status"]) {
     setBusyFeedbackId(id);
-    setStatus(null);
-    setError(null);
-
     try {
       const res = await fetch(`/api/admin/feedback/${id}`, {
         method: "PATCH",
@@ -91,18 +282,11 @@ export function AdminPortal({
         body: JSON.stringify({ status: nextStatus }),
       });
       const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setError(data.error ?? "Failed to update feedback status.");
-        return;
-      }
-
-      setFeedback((current) =>
-        current.map((item) => (item.id === id ? { ...item, status: nextStatus } : item))
-      );
-      setStatus("Feedback status updated.");
+      if (!res.ok) { showToast("err", data.error ?? "Failed to update status."); return; }
+      setFeedback((c) => c.map((item) => (item.id === id ? { ...item, status: nextStatus } : item)));
+      showToast("ok", `Ticket marked ${nextStatus}.`);
     } catch {
-      setError("Network error while updating feedback.");
+      showToast("err", "Network error.");
     } finally {
       setBusyFeedbackId(null);
     }
@@ -110,9 +294,6 @@ export function AdminPortal({
 
   async function saveFeedbackResponse(id: string) {
     setBusyFeedbackId(id);
-    setStatus(null);
-    setError(null);
-
     try {
       const res = await fetch(`/api/admin/feedback/${id}`, {
         method: "PATCH",
@@ -120,26 +301,23 @@ export function AdminPortal({
         body: JSON.stringify({ adminResponse: feedbackResponses[id] ?? "" }),
       });
       const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setError(data.error ?? "Failed to save admin response.");
-        return;
-      }
-
-      setFeedback((current) =>
-        current.map((item) =>
+      if (!res.ok) { showToast("err", data.error ?? "Failed to save response."); return; }
+      setFeedback((c) =>
+        c.map((item) =>
           item.id === id
             ? {
                 ...item,
                 admin_response: (feedbackResponses[id] ?? "").trim() || null,
-                admin_response_updated_at: (feedbackResponses[id] ?? "").trim() ? new Date().toISOString() : null,
+                admin_response_updated_at: (feedbackResponses[id] ?? "").trim()
+                  ? new Date().toISOString()
+                  : null,
               }
             : item
         )
       );
-      setStatus("Admin feedback response saved.");
+      showToast("ok", "Response saved. User will be notified by email if they provided an address.");
     } catch {
-      setError("Network error while saving the admin response.");
+      showToast("err", "Network error.");
     } finally {
       setBusyFeedbackId(null);
     }
@@ -147,26 +325,14 @@ export function AdminPortal({
 
   async function approveSubmission(id: string) {
     setBusySubmissionId(id);
-    setStatus(null);
-    setError(null);
-
     try {
-      const res = await fetch(`/api/admin/library-submissions/${id}/approve`, {
-        method: "POST",
-      });
+      const res = await fetch(`/api/admin/library-submissions/${id}/approve`, { method: "POST" });
       const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setError(data.error ?? "Failed to approve submission.");
-        return;
-      }
-
-      setSubmissions((current) =>
-        current.map((item) => (item.id === id ? { ...item, approved: true } : item))
-      );
-      setStatus("Library submission approved and published.");
+      if (!res.ok) { showToast("err", data.error ?? "Failed to approve."); return; }
+      setSubmissions((c) => c.map((item) => (item.id === id ? { ...item, approved: true } : item)));
+      showToast("ok", "Submission published to library.");
     } catch {
-      setError("Network error while approving the submission.");
+      showToast("err", "Network error.");
     } finally {
       setBusySubmissionId(null);
     }
@@ -174,9 +340,6 @@ export function AdminPortal({
 
   async function updateReportStatus(id: string, nextStatus: MessageBoardReportItem["status"]) {
     setBusyReportId(id);
-    setStatus(null);
-    setError(null);
-
     try {
       const res = await fetch(`/api/admin/message-board-reports/${id}`, {
         method: "PATCH",
@@ -184,16 +347,11 @@ export function AdminPortal({
         body: JSON.stringify({ status: nextStatus }),
       });
       const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setError(data.error ?? "Failed to update report status.");
-        return;
-      }
-
-      setReports((current) => current.map((item) => (item.id === id ? { ...item, status: nextStatus } : item)));
-      setStatus("Message board report updated.");
+      if (!res.ok) { showToast("err", data.error ?? "Failed to update report."); return; }
+      setReports((c) => c.map((item) => (item.id === id ? { ...item, status: nextStatus } : item)));
+      showToast("ok", "Report updated.");
     } catch {
-      setError("Network error while updating the report.");
+      showToast("err", "Network error.");
     } finally {
       setBusyReportId(null);
     }
@@ -201,39 +359,22 @@ export function AdminPortal({
 
   async function blockPosting(userId: string, authorLabel: string) {
     setBusyBlockedUserId(userId);
-    setStatus(null);
-    setError(null);
-
     try {
+      const reason = `Posting blocked by admin after repeat message board moderation issues. (${authorLabel})`;
       const res = await fetch("/api/admin/message-board-blocks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          reason: `Posting blocked by admin after repeat message board moderation issues. (${authorLabel})`,
-        }),
+        body: JSON.stringify({ userId, reason }),
       });
       const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setError(data.error ?? "Failed to block this user.");
-        return;
-      }
-
-      setBlockedUsers((current) => {
-        if (current.some((item) => item.user_id === userId)) return current;
-        return [
-          {
-            user_id: userId,
-            reason: `Posting blocked by admin after repeat message board moderation issues. (${authorLabel})`,
-            created_at: new Date().toISOString(),
-          },
-          ...current,
-        ];
+      if (!res.ok) { showToast("err", data.error ?? "Failed to block user."); return; }
+      setBlockedUsers((c) => {
+        if (c.some((item) => item.user_id === userId)) return c;
+        return [{ user_id: userId, reason, created_at: new Date().toISOString() }, ...c];
       });
-      setStatus("User blocked from posting on the message board.");
+      showToast("ok", "User blocked from posting.");
     } catch {
-      setError("Network error while blocking this user.");
+      showToast("err", "Network error.");
     } finally {
       setBusyBlockedUserId(null);
     }
@@ -241,267 +382,279 @@ export function AdminPortal({
 
   async function unblockPosting(userId: string) {
     setBusyBlockedUserId(userId);
-    setStatus(null);
-    setError(null);
-
     try {
       const res = await fetch(`/api/admin/message-board-blocks/${userId}`, { method: "DELETE" });
       const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        setError(data.error ?? "Failed to remove posting block.");
-        return;
-      }
-
-      setBlockedUsers((current) => current.filter((item) => item.user_id !== userId));
-      setStatus("Message board posting block removed.");
+      if (!res.ok) { showToast("err", data.error ?? "Failed to remove block."); return; }
+      setBlockedUsers((c) => c.filter((item) => item.user_id !== userId));
+      showToast("ok", "Posting block removed.");
     } catch {
-      setError("Network error while removing the posting block.");
+      showToast("err", "Network error.");
     } finally {
       setBusyBlockedUserId(null);
     }
   }
 
+  const openFeedback = feedback.filter((f) => f.status === "new" || f.status === "reviewing");
+  const closedFeedback = feedback.filter((f) => f.status === "resolved" || f.status === "archived");
+  const pendingSubmissions = submissions.filter((s) => !s.approved);
+  const openReports = reports.filter((r) => r.status === "open");
+
   return (
     <section className="space-y-4">
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <article className="stat-card">
-          <p className="stat-label">Feedback Items</p>
-          <p className="stat-value">{feedback.length}</p>
-        </article>
-        <article className="stat-card">
-          <p className="stat-label">Open Feedback</p>
-          <p className="stat-value">{feedback.filter((item) => item.status === "new" || item.status === "reviewing").length}</p>
-        </article>
-        <article className="stat-card">
-          <p className="stat-label">Pending Submissions</p>
-          <p className="stat-value">{submissions.filter((item) => !item.approved).length}</p>
-        </article>
-        <article className="stat-card">
-          <p className="stat-label">Open Reports</p>
-          <p className="stat-value">{reports.filter((item) => item.status === "open").length}</p>
-        </article>
-        <article className="stat-card">
-          <p className="stat-label">Blocked Posters</p>
-          <p className="stat-value">{blockedUsers.length}</p>
-        </article>
-      </section>
 
-      {status && (
-        <section className="section-card border-[var(--accent)]">
-          <p className="text-sm font-medium text-[var(--accent)]">{status}</p>
-        </section>
-      )}
-      {error && (
-        <section className="section-card border-[#d69f9f]">
-          <p className="text-sm font-medium text-red-700">{error}</p>
-        </section>
+      {/* ── Stats row ─────────────────────────────────────────────── */}
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        {[
+          { label: "Total Tickets", value: feedback.length },
+          { label: "Open Tickets", value: openFeedback.length },
+          { label: "Pending Submissions", value: pendingSubmissions.length },
+          { label: "Open Reports", value: openReports.length },
+          { label: "Blocked Posters", value: blockedUsers.length },
+        ].map(({ label, value }) => (
+          <article key={label} className="stat-card">
+            <p className="stat-label">{label}</p>
+            <p className="stat-value">{value}</p>
+          </article>
+        ))}
+      </div>
+
+      {/* ── Toast ─────────────────────────────────────────────────── */}
+      {toast && (
+        <div
+          className={`rounded-lg border p-3 text-sm font-medium transition-all ${
+            toast.kind === "ok"
+              ? "border-[var(--accent)]/30 bg-[var(--accent-soft)] text-[var(--accent)]"
+              : "border-red-400/30 bg-red-400/5 text-red-400"
+          }`}
+        >
+          {toast.msg}
+        </div>
       )}
 
-      <section className="section-card">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+      {/* ── Tab nav ───────────────────────────────────────────────── */}
+      <div className="section-card p-2">
+        <nav className="flex flex-wrap gap-1">
+          <TabBtn label="Inbox" count={openFeedback.length} active={activeTab === "inbox"} onClick={() => setActiveTab("inbox")} />
+          <TabBtn label="Submissions" count={pendingSubmissions.length} active={activeTab === "submissions"} onClick={() => setActiveTab("submissions")} />
+          <TabBtn label="Reports" count={openReports.length} active={activeTab === "reports"} onClick={() => setActiveTab("reports")} />
+          <TabBtn label="Blocked Users" count={blockedUsers.length} active={activeTab === "blocked"} onClick={() => setActiveTab("blocked")} />
+        </nav>
+      </div>
+
+      {/* ── Inbox ─────────────────────────────────────────────────── */}
+      {activeTab === "inbox" && (
+        <div className="section-card space-y-3">
           <div>
-            <h2 className="section-title">Feedback Queue</h2>
-            <p className="section-description">Review suggestions, bug reports, and tool requests from users.</p>
+            <h2 className="section-title">Feedback Inbox</h2>
+            <p className="section-description">Review and respond to user submissions. Responding triggers an email notification to the user.</p>
           </div>
-        </div>
-        <div className="mt-4 space-y-3">
-          {feedback.length === 0 && <p className="text-sm text-[var(--muted)]">No feedback yet.</p>}
-          {feedback.map((item) => (
-            <article key={item.id} className="subtle-panel p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">{item.feedback_type.toUpperCase()}</p>
-                  <h3 className="mt-1 text-base font-bold">{item.name || item.email || "Unnamed feedback"}</h3>
-                  <p className="mt-1 text-xs text-[var(--muted)]">{new Date(item.created_at).toLocaleString()}</p>
-                </div>
-                <span className="rounded-full bg-[var(--surface)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                  {item.status}
-                </span>
-              </div>
-              <p className="mt-3 text-sm text-[var(--muted)]">{item.message}</p>
-              <div className="mt-3 flex flex-wrap gap-3 text-xs text-[var(--muted)]">
-                {item.email && <span>Email: {item.email}</span>}
-                {item.branch && <span>Branch: {item.branch}</span>}
-                {item.mos && <span>MOS: {item.mos}</span>}
-                {item.suggested_tool && <span>Suggested Tool: {item.suggested_tool}</span>}
-              </div>
-              <div className="mt-4 space-y-2">
-                <label className="block space-y-1">
-                  <span className="text-sm font-medium">Admin Response / Follow-Up Question</span>
-                  <textarea
-                    className="input min-h-24"
-                    value={feedbackResponses[item.id] ?? ""}
-                    onChange={(e) => setFeedbackResponses((current) => ({ ...current, [item.id]: e.target.value }))}
-                    placeholder="Add a response or question the user should see in their feedback tracker."
-                  />
-                </label>
-                {item.admin_response_updated_at ? (
-                  <p className="text-xs text-[var(--muted)]">Last updated {new Date(item.admin_response_updated_at).toLocaleString()}</p>
-                ) : null}
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {item.attachment_signed_url ? (
-                  <a
-                    href={item.attachment_signed_url}
-                    className="btn btn-secondary inline-flex text-sm"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Open Attachment
-                  </a>
-                ) : null}
-                {(["new", "reviewing", "resolved", "archived"] as const).map((nextStatus) => (
-                  <button
-                    key={nextStatus}
-                    className="btn btn-secondary inline-flex text-sm"
-                    type="button"
-                    disabled={busyFeedbackId === item.id || item.status === nextStatus}
-                    onClick={() => void updateFeedbackStatus(item.id, nextStatus)}
-                  >
-                    {busyFeedbackId === item.id && item.status !== nextStatus ? "Updating..." : `Mark ${nextStatus}`}
-                  </button>
-                ))}
-                <button
-                  className="btn btn-secondary inline-flex text-sm"
-                  type="button"
-                  disabled={busyFeedbackId === item.id}
-                  onClick={() => void saveFeedbackResponse(item.id)}
-                >
-                  {busyFeedbackId === item.id ? "Saving..." : "Save Response"}
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
 
-      <section className="section-card">
-        <h2 className="section-title">Library Submission Review</h2>
-        <p className="section-description">Review uploaded community documents and publish approved ones into the public library.</p>
-        <div className="mt-4 space-y-3">
+          {openFeedback.length === 0 && closedFeedback.length === 0 && (
+            <p className="text-sm text-[var(--muted)]">No feedback submitted yet.</p>
+          )}
+
+          {openFeedback.length > 0 && (
+            <div className="space-y-3">
+              <p className="tool-kicker">Open</p>
+              {openFeedback.map((item) => (
+                <FeedbackCard
+                  key={item.id}
+                  item={item}
+                  feedbackResponse={feedbackResponses[item.id] ?? ""}
+                  onResponseChange={(val) => setFeedbackResponses((c) => ({ ...c, [item.id]: val }))}
+                  onStatusChange={(s) => void updateFeedbackStatus(item.id, s)}
+                  onSaveResponse={() => void saveFeedbackResponse(item.id)}
+                  isBusy={busyFeedbackId === item.id}
+                />
+              ))}
+            </div>
+          )}
+
+          {closedFeedback.length > 0 && (
+            <details className={openFeedback.length > 0 ? "mt-2" : ""}>
+              <summary className="cursor-pointer list-none">
+                <span className="flex items-center gap-2 text-sm font-medium text-[var(--muted)]">
+                  <span className="tool-kicker">Closed</span>
+                  <span className="rounded-full bg-[var(--surface)] px-2 py-0.5 text-xs">{closedFeedback.length}</span>
+                </span>
+              </summary>
+              <div className="mt-3 space-y-3">
+                {closedFeedback.map((item) => (
+                  <FeedbackCard
+                    key={item.id}
+                    item={item}
+                    feedbackResponse={feedbackResponses[item.id] ?? ""}
+                    onResponseChange={(val) => setFeedbackResponses((c) => ({ ...c, [item.id]: val }))}
+                    onStatusChange={(s) => void updateFeedbackStatus(item.id, s)}
+                    onSaveResponse={() => void saveFeedbackResponse(item.id)}
+                    isBusy={busyFeedbackId === item.id}
+                  />
+                ))}
+              </div>
+            </details>
+          )}
+        </div>
+      )}
+
+      {/* ── Submissions ───────────────────────────────────────────── */}
+      {activeTab === "submissions" && (
+        <div className="section-card space-y-3">
+          <div>
+            <h2 className="section-title">Library Submissions</h2>
+            <p className="section-description">Review uploaded community documents and publish approved ones to the public library.</p>
+          </div>
           {submissions.length === 0 && <p className="text-sm text-[var(--muted)]">No library submissions yet.</p>}
           {submissions.map((item) => (
-            <article key={item.id} className="subtle-panel p-4">
+            <article key={item.id} className="rounded-lg border border-[var(--line)] bg-[var(--panel)] p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">{item.category}</p>
-                  <h3 className="mt-1 text-base font-bold">{item.title}</h3>
-                  <p className="mt-1 text-xs text-[var(--muted)]">{new Date(item.created_at).toLocaleString()}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">{item.category}</p>
+                  <h3 className="mt-1 font-bold">{item.title}</h3>
+                  <p className="mt-1 text-xs text-[var(--muted)]">{formatDate(item.created_at)}</p>
                 </div>
-                <span className="rounded-full bg-[var(--surface)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                  {item.approved ? "Published" : "Pending"}
+                <span className="ticket-badge" data-status={item.approved ? "resolved" : "new"}>
+                  {item.approved ? "Published" : "Pending Review"}
                 </span>
               </div>
               {item.description && <p className="mt-3 text-sm text-[var(--muted)]">{item.description}</p>}
               <div className="mt-4 flex flex-wrap gap-2">
-                {item.review_url ? (
+                {item.review_url && (
                   <a href={item.review_url} className="btn btn-secondary inline-flex text-sm" target="_blank" rel="noreferrer">
-                    Review File
+                    Open File
                   </a>
-                ) : null}
+                )}
                 <button
-                  className="btn btn-secondary inline-flex text-sm"
+                  className="btn btn-primary inline-flex text-sm"
                   type="button"
                   disabled={busySubmissionId === item.id || item.approved}
                   onClick={() => void approveSubmission(item.id)}
                 >
-                  {busySubmissionId === item.id ? "Publishing..." : item.approved ? "Published" : "Approve And Publish"}
+                  {busySubmissionId === item.id ? "Publishing..." : item.approved ? "Published" : "Approve & Publish"}
                 </button>
               </div>
             </article>
           ))}
         </div>
-      </section>
+      )}
 
-      <section className="section-card">
-        <h2 className="section-title">Message Board Reports</h2>
-        <p className="section-description">Review user reports from the community board and decide whether each item should stay open, be dismissed, or be actioned.</p>
-        <div className="mt-4 space-y-3">
-          {reports.length === 0 && <p className="text-sm text-[var(--muted)]">No message board reports yet.</p>}
+      {/* ── Reports ───────────────────────────────────────────────── */}
+      {activeTab === "reports" && (
+        <div className="section-card space-y-3">
+          <div>
+            <h2 className="section-title">Message Board Reports</h2>
+            <p className="section-description">Review user-reported content and action appropriately.</p>
+          </div>
+          {reports.length === 0 && <p className="text-sm text-[var(--muted)]">No reports yet.</p>}
           {reports.map((item) => (
-            <article key={item.id} className="subtle-panel p-4">
+            <article key={item.id} className="rounded-lg border border-[var(--line)] bg-[var(--panel)] p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold tracking-wide text-[var(--accent)]">{item.reason.toUpperCase()}</p>
-                  <h3 className="mt-1 text-base font-bold">{item.post?.title || "Reply report"}</h3>
-                  <p className="mt-1 text-xs text-[var(--muted)]">{new Date(item.created_at).toLocaleString()}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">{item.reason}</p>
+                  <h3 className="mt-1 font-bold">{item.post?.title ?? "Reply / Comment"}</h3>
+                  <p className="mt-1 text-xs text-[var(--muted)]">{formatDate(item.created_at)}</p>
                 </div>
-                <span className="rounded-full bg-[var(--surface)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                <span className="ticket-badge" data-status={
+                  item.status === "open" ? "new" :
+                  item.status === "reviewed" ? "reviewing" :
+                  item.status === "actioned" ? "resolved" : "archived"
+                }>
                   {item.status}
                 </span>
               </div>
-              <p className="mt-3 text-sm"><span className="font-semibold">Reported content by:</span> {item.post?.author_label || "Unknown author"}</p>
-              <p className="mt-2 text-sm text-[var(--muted)] whitespace-pre-wrap">{item.post?.body || "No post body available."}</p>
-              {item.details ? <p className="mt-3 text-sm text-[var(--muted)]"><span className="font-semibold text-[var(--foreground)]">Reporter notes:</span> {item.details}</p> : null}
+
+              <div className="mt-3 rounded-md border border-[var(--line)] bg-[var(--surface)] p-3">
+                <p className="mb-1 text-xs font-semibold text-[var(--muted)]">
+                  Reported content by {item.post?.author_label ?? "Unknown"}
+                </p>
+                <p className="whitespace-pre-wrap text-sm">{item.post?.body ?? "No content available."}</p>
+              </div>
+
+              {item.details && (
+                <p className="mt-3 text-sm text-[var(--muted)]">
+                  <span className="font-semibold text-[var(--foreground)]">Reporter notes:</span>{" "}
+                  {item.details}
+                </p>
+              )}
+
               <div className="mt-4 flex flex-wrap gap-2">
-                {(["open", "reviewed", "dismissed", "actioned"] as const).map((nextStatus) => (
+                {(["open", "reviewed", "dismissed", "actioned"] as const).map((s) => (
                   <button
-                    key={nextStatus}
-                    className="btn btn-secondary inline-flex text-sm"
+                    key={s}
+                    className="btn btn-secondary inline-flex text-xs"
                     type="button"
-                    disabled={busyReportId === item.id || item.status === nextStatus}
-                    onClick={() => void updateReportStatus(item.id, nextStatus)}
+                    disabled={busyReportId === item.id || item.status === s}
+                    onClick={() => void updateReportStatus(item.id, s)}
                   >
-                    {busyReportId === item.id && item.status !== nextStatus ? "Updating..." : `Mark ${nextStatus}`}
+                    {s.charAt(0).toUpperCase() + s.slice(1)}
                   </button>
                 ))}
                 {item.post?.user_id ? (
-                  blockedUsers.some((blocked) => blocked.user_id === item.post?.user_id) ? (
+                  blockedUsers.some((b) => b.user_id === item.post?.user_id) ? (
                     <button
-                      className="btn btn-secondary inline-flex text-sm"
+                      className="btn btn-secondary inline-flex text-xs"
                       type="button"
                       disabled={busyBlockedUserId === item.post.user_id}
                       onClick={() => void unblockPosting(item.post!.user_id)}
                     >
-                      {busyBlockedUserId === item.post.user_id ? "Updating..." : "Unblock User"}
+                      Unblock User
                     </button>
                   ) : (
                     <button
-                      className="btn btn-secondary inline-flex text-sm"
+                      className="btn btn-secondary inline-flex text-xs"
                       type="button"
                       disabled={busyBlockedUserId === item.post.user_id}
                       onClick={() => void blockPosting(item.post!.user_id, item.post!.author_label)}
                     >
-                      {busyBlockedUserId === item.post.user_id ? "Updating..." : "Block User From Posting"}
+                      Block User
                     </button>
                   )
                 ) : null}
-                <a className="btn btn-secondary inline-flex text-sm" href={`/app/message-board#thread-${item.post_id}`}>
+                <a
+                  className="btn btn-secondary inline-flex text-xs"
+                  href={`/app/message-board#thread-${item.post_id}`}
+                >
                   Open Thread
                 </a>
               </div>
             </article>
           ))}
         </div>
-      </section>
+      )}
 
-      <section className="section-card">
-        <h2 className="section-title">Blocked Message Board Users</h2>
-        <p className="section-description">These users can still access MilVector, but they cannot create new message board posts or replies until you remove the block.</p>
-        <div className="mt-4 space-y-3">
-          {blockedUsers.length === 0 && <p className="text-sm text-[var(--muted)]">No blocked message board users.</p>}
+      {/* ── Blocked Users ─────────────────────────────────────────── */}
+      {activeTab === "blocked" && (
+        <div className="section-card space-y-3">
+          <div>
+            <h2 className="section-title">Blocked Message Board Users</h2>
+            <p className="section-description">
+              These users can still access MilVector but cannot post or reply on the community board.
+            </p>
+          </div>
+          {blockedUsers.length === 0 && (
+            <div className="rounded-lg border border-dashed border-[var(--line)] p-8 text-center">
+              <p className="text-sm text-[var(--muted)]">No blocked users</p>
+            </div>
+          )}
           {blockedUsers.map((item) => (
-            <article key={item.user_id} className="subtle-panel p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-base font-bold">{item.user_id}</h3>
-                  <p className="mt-1 text-xs text-[var(--muted)]">{new Date(item.created_at).toLocaleString()}</p>
-                </div>
-                <button
-                  className="btn btn-secondary inline-flex text-sm"
-                  type="button"
-                  disabled={busyBlockedUserId === item.user_id}
-                  onClick={() => void unblockPosting(item.user_id)}
-                >
-                  {busyBlockedUserId === item.user_id ? "Updating..." : "Remove Block"}
-                </button>
+            <article key={item.user_id} className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-[var(--line)] bg-[var(--panel)] p-4">
+              <div>
+                <p className="font-mono text-sm font-semibold">{item.user_id}</p>
+                <p className="mt-1 text-xs text-[var(--muted)]">Blocked {formatDate(item.created_at)}</p>
+                {item.reason && <p className="mt-2 text-sm text-[var(--muted)]">{item.reason}</p>}
               </div>
-              {item.reason ? <p className="mt-3 text-sm text-[var(--muted)]">{item.reason}</p> : null}
+              <button
+                className="btn btn-secondary text-sm"
+                type="button"
+                disabled={busyBlockedUserId === item.user_id}
+                onClick={() => void unblockPosting(item.user_id)}
+              >
+                {busyBlockedUserId === item.user_id ? "Removing..." : "Remove Block"}
+              </button>
             </article>
           ))}
         </div>
-      </section>
+      )}
     </section>
   );
 }

@@ -122,21 +122,23 @@ export default async function AdminPage() {
 
   return (
     <main className="page-shell">
-      <section className="page-hero">
+      <section className="page-hero-dark">
         <div className="page-hero-grid">
           <div className="relative z-10">
-            <p className="page-kicker">ADMIN</p>
-            <h1 className="page-title">Review platform feedback and community submissions.</h1>
+            <p className="page-kicker-pill">ADMIN PORTAL</p>
+            <h1 className="page-title">Triage feedback, moderate community, review submissions.</h1>
             <p className="page-description">
-              This portal is restricted to your company account so you can triage user input, review uploaded files, and publish approved library submissions from inside MilVector.
+              Restricted to {user.email}. Respond to user support cases, publish library submissions,
+              action community reports, and manage posting blocks — all in one place.
             </p>
           </div>
           <aside className="page-hero-aside">
-            <p className="page-hero-aside-title">ADMIN ACCESS</p>
+            <p className="page-hero-aside-title">ADMIN CAPABILITIES</p>
             <ul className="page-hero-list">
-              <li>Restricted to {user.email}</li>
-              <li>Feedback can be marked new, reviewing, resolved, or archived</li>
-              <li>Library submissions can be reviewed and published</li>
+              <li>Respond to support tickets with email notification</li>
+              <li>Advance ticket status through the triage pipeline</li>
+              <li>Review and publish community library submissions</li>
+              <li>Action board reports and manage posting blocks</li>
             </ul>
           </aside>
         </div>

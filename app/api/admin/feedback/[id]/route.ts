@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
+import { notifyUserAdminResponse } from "@/lib/email";
 
 const UpdateFeedbackSchema = z.object({
   status: z.enum(["new", "reviewing", "resolved", "archived"]).optional(),
@@ -29,11 +30,30 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: "No feedback fields to update." }, { status: 400 });
   }
 
+  // Fetch email + original message before updating (needed for notification)
+  const { data: existing } = await supabase
+    .from("feedback")
+    .select("email, feedback_type, message")
+    .eq("id", id)
+    .single();
+
   const { error } = await supabase
     .from("feedback")
     .update(updates)
     .eq("id", id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Notify user when admin posts/updates a response and they have an email
+  const newResponse = (parsed.data.adminResponse ?? "").trim();
+  if (newResponse && existing?.email) {
+    void notifyUserAdminResponse({
+      to: existing.email,
+      ticketType: existing.feedback_type ?? "general",
+      ticketMessage: existing.message ?? "",
+      adminResponse: newResponse,
+    }).catch((err) => console.error("User notify failed", err));
+  }
+
   return NextResponse.json({ ok: true });
 }

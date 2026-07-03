@@ -1266,6 +1266,59 @@ details[open] .details-chevron {
   border: 1px solid color-mix(in oklab, #c13e2a 35%, var(--line) 65%);
 }
 
+/* Support / admin ticket status badges */
+.ticket-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.ticket-badge[data-status="new"] {
+  background: color-mix(in oklab, var(--panel) 70%, #a07500 30%);
+  color: var(--warn);
+  border-color: color-mix(in oklab, var(--warn) 35%, var(--line) 65%);
+}
+
+.ticket-badge[data-status="reviewing"] {
+  background: color-mix(in oklab, var(--panel) 70%, #1e4a9a 30%);
+  color: #7baaf7;
+  border-color: color-mix(in oklab, #5080d0 35%, var(--line) 65%);
+}
+
+.ticket-badge[data-status="resolved"] {
+  background: color-mix(in oklab, var(--accent-soft) 80%, var(--panel) 20%);
+  color: var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 35%, var(--line) 65%);
+}
+
+.ticket-badge[data-status="archived"] {
+  background: var(--surface);
+  color: var(--muted);
+  border-color: var(--line);
+}
+
+/* Admin response thread block */
+.ticket-reply {
+  background: color-mix(in oklab, var(--accent-soft) 20%, var(--surface) 80%);
+  border: 1px solid color-mix(in oklab, var(--accent) 25%, var(--line) 75%);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+}
+
+.ticket-reply-new {
+  background: color-mix(in oklab, var(--accent-soft) 30%, var(--surface) 70%);
+  border-color: color-mix(in oklab, var(--accent) 50%, var(--line) 50%);
+  border-left-color: var(--accent);
+}
+
 /* Inline contextual alert */
 .tool-alert {
   border-radius: var(--radius-md);

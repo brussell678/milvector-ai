@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
+import { notifyAdminNewTicket } from "@/lib/email";
 
 const MAX_MB = Number(process.env.MAX_UPLOAD_MB ?? "10");
 
@@ -74,6 +75,19 @@ export async function POST(req: Request) {
       });
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    // Fire-and-forget — don't block the response if email fails
+    void notifyAdminNewTicket({
+      id: crypto.randomUUID(),
+      name: parsed.data.name ?? null,
+      email: parsed.data.email ?? null,
+      branch: parsed.data.branch ?? null,
+      mos: parsed.data.mos ?? null,
+      feedback_type: parsed.data.feedback_type,
+      message: parsed.data.message,
+      suggested_tool: parsed.data.suggested_tool ?? null,
+    }).catch((err) => console.error("Admin notify failed", err));
+
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Feedback POST failed", error);
