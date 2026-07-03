@@ -5,6 +5,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { ResumeTargeterInputSchema } from "@/lib/validators/tools";
 import { generateJson } from "@/lib/llm/client";
 import { getEnv } from "@/lib/env";
+import { redactPII } from "@/lib/redact";
 import {
   promptResumeTargeter,
   promptTargetPostingAnalysis,
@@ -545,6 +546,9 @@ export async function POST(req: Request) {
   if (!masterText || masterText.trim().length < 100) {
     return NextResponse.json({ error: "Provide a master resume source (artifact/document) or pasted resume text." }, { status: 400 });
   }
+
+  // Scrub PII from source text (covers pasted text and pre-redaction documents)
+  masterText = redactPII(masterText).text;
 
   const templateGuideText = "";
 

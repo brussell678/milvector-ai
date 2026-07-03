@@ -65,6 +65,7 @@ export default function DocumentsPage() {
   const [dragOver, setDragOver] = useState(false);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const [failedIds, setFailedIds] = useState<Set<string>>(new Set());
+  const [redactionSummary, setRedactionSummary] = useState<{ ssn: number; dodId: number } | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState<string>("");
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -115,6 +116,12 @@ export default function DocumentsPage() {
       if (!res.ok || data.ok === false) {
         setFailedIds((prev) => new Set(prev).add(documentId));
         return false;
+      }
+      if (data.redactionTotal > 0 && data.redactions) {
+        setRedactionSummary((prev) => ({
+          ssn: (prev?.ssn ?? 0) + (data.redactions.ssn ?? 0),
+          dodId: (prev?.dodId ?? 0) + (data.redactions.dodId ?? 0),
+        }));
       }
       return true;
     } catch {
@@ -334,6 +341,7 @@ export default function DocumentsPage() {
               {uploading ? "Working on it…" : "Drop files here or tap to choose"}
             </p>
             <p className="text-xs text-[var(--muted)]">PDF, Word, or text files · up to 10MB each</p>
+            <p className="text-xs text-[var(--muted)]">SSN and DoD ID (EDIPI) numbers are removed automatically</p>
             <input
               ref={fileInputRef}
               type="file"
@@ -372,6 +380,19 @@ export default function DocumentsPage() {
                 </span>
               </div>
             ))}
+          </div>
+        )}
+
+        {redactionSummary && (
+          <div className="mt-4 rounded-md border border-[color-mix(in_oklab,var(--accent)_35%,var(--line)_65%)] bg-[var(--accent-soft)] p-3 text-sm">
+            <span className="font-semibold text-[var(--accent)]">Protected: </span>
+            {[
+              redactionSummary.ssn > 0 ? `${redactionSummary.ssn} SSN${redactionSummary.ssn === 1 ? "" : "s"}` : null,
+              redactionSummary.dodId > 0 ? `${redactionSummary.dodId} DoD ID${redactionSummary.dodId === 1 ? "" : "s"} (EDIPI)` : null,
+            ]
+              .filter(Boolean)
+              .join(" and ")}{" "}
+            automatically removed from your document text before the AI ever sees it.
           </div>
         )}
 

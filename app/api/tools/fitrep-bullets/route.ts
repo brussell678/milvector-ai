@@ -5,6 +5,7 @@ import { FitrepBulletsSchema } from "@/lib/validators/documents";
 import { generateJson } from "@/lib/llm/client";
 import { promptFitrepBullets, promptMasterResumeFromMilitaryDocs } from "@/lib/llm/prompts";
 import { getEnv } from "@/lib/env";
+import { redactPII } from "@/lib/redact";
 
 type FitrepBulletsOutput = {
   bullets: { category: string; bullet: string; metrics_used: string[] }[];
@@ -273,6 +274,9 @@ export async function POST(req: Request) {
     sourceDocumentId = doc.id;
   }
 
+  // Scrub PII from source text (covers pasted text and pre-redaction documents)
+  extractedText = redactPII(extractedText).text;
+
   if (mode === "bullets" && (!extractedText || extractedText.trim().length < 50)) {
     return NextResponse.json({ error: "No usable text. Extract text first or paste content." }, { status: 400 });
   }
@@ -353,6 +357,12 @@ export async function POST(req: Request) {
       12000,
       /(headline|about|summary|experience|skills|certifications|education|leadership|operations|program|project|management|strategy|profile)/i
     );
+
+    // Scrub PII from all source texts before prompt assembly
+    resolvedVmetText = redactPII(resolvedVmetText).text;
+    resolvedJstText = redactPII(resolvedJstText).text;
+    resolvedFitrepsText = redactPII(resolvedFitrepsText).text;
+    resolvedLinkedinProfileText = redactPII(resolvedLinkedinProfileText).text;
 
     const availableSourceCount = [resolvedVmetText, resolvedJstText, resolvedFitrepsText, resolvedLinkedinProfileText]
       .filter((text) => text.trim().length >= 100).length;

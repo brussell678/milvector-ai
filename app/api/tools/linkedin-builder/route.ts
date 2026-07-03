@@ -11,6 +11,7 @@ import {
   promptLinkedinResumeAnalysis,
 } from "@/lib/llm/prompts";
 import { LinkedinBuilderInputSchema } from "@/lib/validators/tools";
+import { redactPII } from "@/lib/redact";
 
 type ResumeAnalysisOutput = {
   strengths: string[];
@@ -230,6 +231,9 @@ async function getMasterResumeText(args: {
 
     masterResumeText = document.extracted_text;
   }
+
+  // Scrub PII from source text (covers pasted text and pre-redaction documents)
+  masterResumeText = redactPII(masterResumeText).text;
 
   return { masterResumeText } as const;
 }

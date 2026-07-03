@@ -3,6 +3,11 @@ import { PageContainer } from "@/components/layout/page-container";
 
 const privacyPoints = [
   {
+    title: "Automatic PII Redaction",
+    detail:
+      "When you upload military records, MilVector automatically removes Social Security Numbers and DoD ID (EDIPI) numbers from the document text before it is stored or sent to any AI model. The same scrubbing runs on text you paste into the tools.",
+  },
+  {
     title: "Free Access, Limited Data",
     detail:
       "MilVector is designed to stay free for service members. We only collect the information needed to operate the workspace, secure access, save outputs, and support follow-up inside the platform.",
@@ -25,6 +30,7 @@ const privacyPoints = [
 ];
 
 const commitments = [
+  "SSN and DoD ID (EDIPI) numbers are auto-removed from document text.",
   "We use email sign-in to reduce bot abuse and protect platform operating costs.",
   "We do not sell your information.",
   "You control what you upload into your workspace.",

@@ -1,5 +1,5 @@
 export const UPLOAD_WARNING_TEXT =
-  "Before uploading documents, redact any sensitive personal information such as SSN, full date of birth, or home address.";
+  "MilVector automatically removes SSN and DoD ID (EDIPI) numbers from your document text before it is stored or used by the AI. Still, redact anything else you wouldn't want kept — full date of birth, home address, or dependent information — before uploading.";
 
 export function UploadWarning() {
   return (

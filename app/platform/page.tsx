@@ -34,6 +34,7 @@ const principles: Principle[] = [
 const trustPoints = [
   "MilVector is free to use.",
   "Your information is not sold.",
+  "SSN and DoD ID (EDIPI) numbers are automatically removed from uploaded document text.",
   "The built-in tools cost you nothing, and your results save to your workspace automatically.",
   "Custom GPT links open in your own ChatGPT account and do not automatically save back into MilVector workflows.",
   "Feedback, moderation, and admin review tools are built into the platform so issues can be tracked and resolved inside the workspace.",

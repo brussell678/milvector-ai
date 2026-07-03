@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { extractTextFromDocumentBuffer } from "@/lib/documents";
+import { redactPII } from "@/lib/redact";
 
 export async function POST(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { userId } = await requireUser();
@@ -60,13 +61,16 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
     }, { status: 200 });
   }
 
+  // Scrub SSN and EDIPI / DoD ID numbers before the text is stored or used
+  const redaction = redactPII(extracted);
+
   const { error: upErr } = await supabase
     .from("documents")
-    .update({ text_extracted: true, extracted_text: extracted })
+    .update({ text_extracted: true, extracted_text: redaction.text })
     .eq("id", documentId)
     .eq("user_id", userId);
 
   if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, redactions: redaction.counts, redactionTotal: redaction.total });
 }
