@@ -165,7 +165,7 @@ function FitrepBulletsContent() {
         setNotice(
           warning
             ? `Master resume generated and saved to Documents. ${warning}`
-            : "Master resume generated and saved to Documents."
+            : "Master resume generated and saved to Documents. This is a strong first draft — expect to polish it. When you're happy with your final version, upload it in My Files as a Master Resume and the tools will use that one."
         );
       } else {
         setNotice("Master bullets generated and saved to your account.");
@@ -202,7 +202,7 @@ function FitrepBulletsContent() {
               <span className="gradient-text">every other tool builds on.</span>
             </h1>
             <p className="page-description">
-              Turns your FITREPs, EVALs, JST, and VMET into one master resume. The targeted resume, LinkedIn, and interview tools all pull from it.
+              Turns your FITREPs, EVALs, JST, and VMET into a strong first draft — most people polish it and re-upload their final version. Already have a master resume? Upload it in My Files instead and skip this step.
             </p>
           </div>
           <aside className="page-hero-aside relative z-10">

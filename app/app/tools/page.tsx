@@ -42,10 +42,10 @@ const foundationTools: ToolCard[] = [
   {
     href: "/app/tools/fitrep-bullets",
     title: "Master Resume Builder",
-    desc: "Turn your uploaded military records into one master resume — the base every other tool builds on.",
+    desc: "Turn your uploaded military records into one master resume — the base every other tool builds on. Already have a master resume? Skip this and upload yours in My Files instead.",
     requirements: [
       { text: "Records uploaded (FITREPs, EVALs, JST, or VMET)", check: "sources" },
-      { text: "Review the result and save the best version." },
+      { text: "Review the result, polish it, and upload your final version as a Master Resume." },
     ],
     gptHref: "https://chatgpt.com/g/g-69d5982e578c819184c2e96ec1c81bbb-milvector-master-resume-generator",
   },
@@ -244,7 +244,7 @@ export default async function ToolsPage() {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const [artifactsRes, recentRunsRes, docsRes, profileRes] = await Promise.all([
+  const [artifactsRes, recentRunsRes, docsRes, profileRes, uploadedMasterRes] = await Promise.all([
     supabase
       .from("resume_artifacts")
       .select("artifact_type")
@@ -262,15 +262,23 @@ export default async function ToolsPage() {
       .eq("user_id", user.id)
       .eq("text_extracted", true),
     supabase.from("profiles").select("id, full_name, mos").eq("id", user.id).maybeSingle(),
+    // An uploaded master resume counts the same as one MilVector built
+    supabase
+      .from("documents")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("doc_type", "MASTER_RESUME")
+      .eq("text_extracted", true),
   ]);
 
   const artifacts: ArtifactRow[] = artifactsRes.data ?? [];
   const recentRuns: RunRow[] = recentRunsRes.data ?? [];
   const extractedDocCount = docsRes.count ?? 0;
 
-  const masterResumeCount = artifacts.filter(
-    (a) => a.artifact_type === "master_resume" || a.artifact_type === "master_bullets"
-  ).length;
+  const uploadedMasterCount = uploadedMasterRes.count ?? 0;
+  const masterResumeCount =
+    artifacts.filter((a) => a.artifact_type === "master_resume" || a.artifact_type === "master_bullets").length +
+    uploadedMasterCount;
   const targetedResumeCount = artifacts.filter((a) => a.artifact_type === "targeted_resume").length;
 
   const hasSources = extractedDocCount > 0;
@@ -294,7 +302,8 @@ export default async function ToolsPage() {
     {
       phase: "Step 2",
       title: "Build Your Master Resume",
-      description: "Turn your records into one master resume that every other tool builds on.",
+      description:
+        "Turn your records into one master resume that every other tool builds on. Already have one? Upload it in My Files as a Master Resume — that counts too.",
       href: "/app/tools/fitrep-bullets",
       status: hasMasterResume ? "complete" : hasSources ? "active" : "pending",
       ctaLabel: hasMasterResume ? "Open Tool" : "Build Master Resume",

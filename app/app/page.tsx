@@ -23,7 +23,7 @@ export default async function DashboardPage() {
   if (!user) return null;
   if (!user.user_metadata?.onboarded) redirect("/welcome");
 
-  const [profileRes, artifactsRes, docsCountRes, sourceDocsCountRes, toolRunsCountRes] = await Promise.all([
+  const [profileRes, artifactsRes, docsCountRes, sourceDocsCountRes, toolRunsCountRes, uploadedMasterRes] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
     supabase.from("resume_artifacts").select("artifact_type").eq("user_id", user.id),
     supabase.from("documents").select("*", { count: "exact", head: true }).eq("user_id", user.id),
@@ -33,6 +33,13 @@ export default async function DashboardPage() {
       .eq("user_id", user.id)
       .in("doc_type", ["FITREP", "EVAL", "VMET", "JST", "LINKEDIN_PROFILE", "OTHER"]),
     supabase.from("tool_runs").select("*", { count: "exact", head: true }).eq("user_id", user.id),
+    // An uploaded master resume counts the same as one MilVector built
+    supabase
+      .from("documents")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("doc_type", "MASTER_RESUME")
+      .eq("text_extracted", true),
   ]);
 
   const easDate = profileRes.data?.eas_date ?? profileRes.data?.separation_date ?? null;
@@ -61,7 +68,9 @@ export default async function DashboardPage() {
 
   const artifactRows = artifactsRes.data ?? [];
   const artifactTypes = new Set(artifactRows.map((row) => row.artifact_type));
-  const hasMasterResume = artifactTypes.has("master_resume") || artifactTypes.has("master_bullets");
+  const uploadedMasterCount = uploadedMasterRes.count ?? 0;
+  const hasMasterResume =
+    artifactTypes.has("master_resume") || artifactTypes.has("master_bullets") || uploadedMasterCount > 0;
   const hasTargetedResume = artifactTypes.has("targeted_resume");
   const sourceDocumentsCount = sourceDocsCountRes.count ?? 0;
   const hasSourceDocuments = sourceDocumentsCount > 0;
@@ -70,7 +79,8 @@ export default async function DashboardPage() {
     (profileRes.data?.off_duty_education?.length ?? 0) +
     (profileRes.data?.civilian_certifications?.length ?? 0) +
     (profileRes.data?.additional_training?.length ?? 0);
-  const masterResumeCount = artifactRows.filter((x) => x.artifact_type === "master_resume").length;
+  const masterResumeCount =
+    artifactRows.filter((x) => x.artifact_type === "master_resume").length + uploadedMasterCount;
   const targetedResumesCount = artifactRows.filter((x) => x.artifact_type === "targeted_resume").length;
   const documentsCount = docsCountRes.count ?? 0;
   const toolRunsCount = toolRunsCountRes.count ?? 0;
