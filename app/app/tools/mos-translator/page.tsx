@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { LoadingBlock } from "@/components/tools/loading-block";
 import { ToolAlert } from "@/components/tools/tool-alert";
 
@@ -102,7 +103,8 @@ function RoleCard({ role, idx }: { role: CivilianRole; idx: number }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────
 
-export default function MosTranslatorPage() {
+function MosTranslatorContent() {
+  const searchParams = useSearchParams();
   const [mos, setMos] = useState("");
   const [billets, setBillets] = useState("");
   const [yearsExp, setYearsExp] = useState("");
@@ -111,6 +113,15 @@ export default function MosTranslatorPage() {
   const [error, setError] = useState<string | null>(null);
   const [copyState, setCopyState] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [fromWelcome, setFromWelcome] = useState(false);
+
+  // Pre-fill from ?mos= (set by the welcome flow and the new-user dashboard)
+  useEffect(() => {
+    const mosParam = searchParams.get("mos");
+    if (mosParam) setMos(decodeURIComponent(mosParam));
+    if (searchParams.get("welcome") === "1") setFromWelcome(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function copyText(label: string, value: string) {
     try {
@@ -210,6 +221,15 @@ export default function MosTranslatorPage() {
 
         {/* ── INPUT PANEL ────────────────────────────────────────── */}
         <div className="tool-input-panel">
+          {fromWelcome && !result && (
+            <ToolAlert variant="info" title="Welcome aboard — here's your first win">
+              <p className="text-sm">
+                {mos
+                  ? `Your MOS (${mos}) is loaded. Hit Translate and see the civilian jobs that match your experience — takes about 30 seconds.`
+                  : "Enter your MOS and hit Translate to see the civilian jobs that match your experience — takes about 30 seconds."}
+              </p>
+            </ToolAlert>
+          )}
           <section className="tool-section">
             <form className="flex flex-col gap-4" onSubmit={onSubmit}>
               <div>
@@ -399,5 +419,13 @@ export default function MosTranslatorPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function MosTranslatorPage() {
+  return (
+    <Suspense fallback={<div className="page-shell" />}>
+      <MosTranslatorContent />
+    </Suspense>
   );
 }

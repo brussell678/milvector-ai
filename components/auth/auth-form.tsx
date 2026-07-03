@@ -16,26 +16,12 @@ type SignupFields = {
   email: string;
   password: string;
   confirmPassword: string;
-  branch: string;
-  easDate: string;
-  rank: string;
-  mos: string;
-  terminalLeaveStart: string;
-  ptadStart: string;
-  retirementCeremonyDate: string;
 };
 
 const initialSignup: SignupFields = {
   email: "",
   password: "",
   confirmPassword: "",
-  branch: "USMC",
-  easDate: "",
-  rank: "",
-  mos: "",
-  terminalLeaveStart: "",
-  ptadStart: "",
-  retirementCeremonyDate: "",
 };
 
 function normalizeMode(value?: string): AuthMode {
@@ -140,32 +126,14 @@ export function AuthForm({ initialError, initialMode }: AuthFormProps) {
         setError(validation);
         return;
       }
-      if (!signup.branch.trim()) {
-        setError("Branch is required.");
-        return;
-      }
-      if (!signup.easDate) {
-        setError("EAS date is required.");
-        return;
-      }
 
       const redirectTo = `${origin}/auth/confirm?next=/app`;
-      const onboardingFields = {
-        branch: signup.branch.trim(),
-        eas_date: signup.easDate,
-        rank: signup.rank || null,
-        mos: signup.mos || null,
-        terminal_leave_start: signup.terminalLeaveStart || null,
-        ptad_start: signup.ptadStart || null,
-        retirement_ceremony_date: signup.retirementCeremonyDate || null,
-      };
       const supabase = supabaseBrowser();
       const { data, error: authError } = await supabase.auth.signUp({
         email: signup.email,
         password: signup.password,
         options: {
           emailRedirectTo: redirectTo,
-          data: onboardingFields,
         },
       });
 
@@ -175,8 +143,8 @@ export function AuthForm({ initialError, initialMode }: AuthFormProps) {
       }
 
       if (data.session) {
-        await syncProfile(onboardingFields);
-        window.location.assign("/app");
+        await syncProfile();
+        window.location.assign("/welcome");
         return;
       }
 
@@ -445,11 +413,11 @@ export function AuthForm({ initialError, initialMode }: AuthFormProps) {
 
           {mode === "signup" ? (
             <form onSubmit={handleSignup} className="mt-6 space-y-4">
+              <label className="block space-y-1">
+                <span className="text-sm font-medium">Email</span>
+                <input className="input" type="email" required value={signup.email} onChange={(e) => setSignup((s) => ({ ...s, email: e.target.value }))} placeholder="you@example.com" />
+              </label>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block space-y-1 sm:col-span-2">
-                  <span className="text-sm font-medium">Email</span>
-                  <input className="input" type="email" required value={signup.email} onChange={(e) => setSignup((s) => ({ ...s, email: e.target.value }))} placeholder="you@example.com" />
-                </label>
                 <label className="block space-y-1">
                   <span className="text-sm font-medium">Password</span>
                   <input className="input" type={showPassword ? "text" : "password"} required minLength={8} value={signup.password} onChange={(e) => setSignup((s) => ({ ...s, password: e.target.value }))} />
@@ -458,41 +426,7 @@ export function AuthForm({ initialError, initialMode }: AuthFormProps) {
                   <span className="text-sm font-medium">Confirm Password</span>
                   <input className="input" type={showPassword ? "text" : "password"} required minLength={8} value={signup.confirmPassword} onChange={(e) => setSignup((s) => ({ ...s, confirmPassword: e.target.value }))} />
                 </label>
-                <label className="block space-y-1">
-                  <span className="text-sm font-medium">Branch</span>
-                  <input className="input" required value={signup.branch} onChange={(e) => setSignup((s) => ({ ...s, branch: e.target.value }))} />
-                </label>
-                <label className="block space-y-1">
-                  <span className="text-sm font-medium">EAS Date</span>
-                  <input className="input" type="date" required value={signup.easDate} onChange={(e) => setSignup((s) => ({ ...s, easDate: e.target.value }))} />
-                </label>
-                <label className="block space-y-1">
-                  <span className="text-sm font-medium">Rank</span>
-                  <input className="input" value={signup.rank} onChange={(e) => setSignup((s) => ({ ...s, rank: e.target.value }))} />
-                </label>
-                <label className="block space-y-1">
-                  <span className="text-sm font-medium">MOS</span>
-                  <input className="input" value={signup.mos} onChange={(e) => setSignup((s) => ({ ...s, mos: e.target.value }))} />
-                </label>
               </div>
-              <details className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
-                <summary className="cursor-pointer text-sm font-semibold">Refine Your Timeline</summary>
-                <p className="mt-2 text-sm text-[var(--muted)]">You can add these later as your transition plan becomes clearer.</p>
-                <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                  <label className="flex flex-col gap-1">
-                    <span className="text-sm font-medium">Terminal Leave</span>
-                    <input className="input" type="date" value={signup.terminalLeaveStart} onChange={(e) => setSignup((s) => ({ ...s, terminalLeaveStart: e.target.value }))} />
-                  </label>
-                  <label className="flex flex-col gap-1">
-                    <span className="text-sm font-medium">PTAD</span>
-                    <input className="input" type="date" value={signup.ptadStart} onChange={(e) => setSignup((s) => ({ ...s, ptadStart: e.target.value }))} />
-                  </label>
-                  <label className="flex flex-col gap-1 sm:col-span-2">
-                    <span className="text-sm font-medium">Retirement Ceremony</span>
-                    <input className="input" type="date" value={signup.retirementCeremonyDate} onChange={(e) => setSignup((s) => ({ ...s, retirementCeremonyDate: e.target.value }))} />
-                  </label>
-                </div>
-              </details>
               <label className="flex items-center gap-2 text-sm text-[var(--muted)]">
                 <input type="checkbox" checked={showPassword} onChange={(e) => setShowPassword(e.target.checked)} />
                 Show passwords
@@ -500,6 +434,9 @@ export function AuthForm({ initialError, initialMode }: AuthFormProps) {
               <button type="submit" className="btn btn-primary w-full" disabled={loading}>
                 {loading ? "Creating account..." : "Create Account"}
               </button>
+              <p className="text-xs text-[var(--muted)]">
+                That&apos;s all we need to start. We&apos;ll ask about your service after you&apos;re in — takes about a minute.
+              </p>
             </form>
           ) : null}
 

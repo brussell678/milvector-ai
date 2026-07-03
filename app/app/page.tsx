@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { daysUntilDate, phaseFromDays, phaseMonthFromDays, TIMELINE_MARKERS } from "@/lib/timeline";
 import { getLibraryLinkFallbacks, getTransitionTaskFallbacks, mergeDashboardTasks, mergeLibraryLinks } from "@/lib/transition-data";
@@ -20,6 +21,7 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
 
   if (!user) return null;
+  if (!user.user_metadata?.onboarded) redirect("/welcome");
 
   const [profileRes, artifactsRes, docsCountRes, sourceDocsCountRes, toolRunsCountRes, toolSuccessCountRes, toolErrorCountRes] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
@@ -98,6 +100,126 @@ export default async function DashboardPage() {
     { label: "Finished Successfully", value: toolSuccessCount, valueClass: "text-[var(--accent)]" },
     { label: "Didn't Finish", value: toolErrorCount, valueClass: "text-[#a33b3b]" },
   ];
+
+  // Brand-new workspace: no uploads, no saved work, no tool runs yet.
+  // Show the path forward instead of a wall of zeros.
+  const isNewUser = documentsCount === 0 && artifactRows.length === 0 && toolRunsCount === 0;
+
+  if (isNewUser) {
+    const profileMos: string = profileRes.data?.mos ?? "";
+    const translatorHref = profileMos
+      ? `/app/tools/mos-translator?mos=${encodeURIComponent(profileMos)}`
+      : "/app/tools/mos-translator";
+    const startSteps = [
+      {
+        step: "1",
+        title: "See your experience translated",
+        detail: profileMos
+          ? `Your MOS (${profileMos}) is already loaded. One click shows the civilian jobs that match it.`
+          : "Enter your MOS and see the civilian jobs that match your experience.",
+        href: translatorHref,
+        cta: "Translate my experience",
+        primary: true,
+      },
+      {
+        step: "2",
+        title: "Upload your records",
+        detail: "FITREPs, EVALs, JST, or VMET — the AI builds from your real record, not a template.",
+        href: "/app/documents",
+        cta: "Upload records",
+        primary: false,
+      },
+      {
+        step: "3",
+        title: "Build your master resume",
+        detail: "One master resume, built from your records. Every other tool uses it.",
+        href: "/app/tools/fitrep-bullets",
+        cta: "Open the builder",
+        primary: false,
+      },
+      {
+        step: "4",
+        title: "Go after a real job",
+        detail: "Decode a posting, build a targeted resume, and prep for the interview.",
+        href: "/app/tools/resume-targeter",
+        cta: "Target a job",
+        primary: false,
+      },
+    ];
+
+    return (
+      <main className="page-shell">
+        <section className="page-hero">
+          <div className="page-hero-grid">
+            <div className="relative z-10">
+              <p className="page-kicker">WELCOME ABOARD</p>
+              <h1 className="page-title">Your next career starts with one click.</h1>
+              <p className="page-description">
+                No forms, no homework — start by seeing what your military experience is worth in the civilian world. The rest of the path builds from there.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <Link href={translatorHref} className="btn btn-primary">
+                  Translate my experience
+                </Link>
+                <Link href="/app/timeline" className="btn btn-secondary">
+                  See my timeline
+                </Link>
+              </div>
+            </div>
+            <aside className="page-hero-aside">
+              <p className="page-hero-aside-title">{daysUntilEas !== null ? "YOUR COUNTDOWN" : "ONE MORE THING"}</p>
+              {daysUntilEas !== null ? (
+                <>
+                  <p className="mt-3 text-4xl font-extrabold leading-tight text-[var(--accent)]">{daysUntilEas}</p>
+                  <p className="mt-1 text-sm text-[var(--muted)]">days until EAS. Your timeline is already tracking it.</p>
+                </>
+              ) : (
+                <p className="mt-3 text-sm text-[var(--muted)]">
+                  Add your EAS date in your <Link href="/app/profile" className="font-semibold text-[var(--accent)] underline">Profile</Link> and this becomes a live countdown with a phase-by-phase plan.
+                </p>
+              )}
+            </aside>
+          </div>
+        </section>
+
+        <section className="section-card">
+          <h2 className="section-title">The path, start to finish</h2>
+          <p className="section-description">Four steps. Do them in order — each one makes the next one better.</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {startSteps.map((item) => (
+              <article
+                key={item.step}
+                className={`flex flex-col gap-3 rounded-xl border p-4 ${
+                  item.primary
+                    ? "border-[var(--accent)] bg-[var(--accent-soft)] shadow-[var(--shadow-sm)]"
+                    : "border-[var(--line)] bg-[var(--surface)]"
+                }`}
+              >
+                <span
+                  className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
+                    item.primary ? "bg-[var(--accent)] text-white" : "bg-[var(--line)] text-[var(--muted)]"
+                  }`}
+                  aria-hidden
+                >
+                  {item.step}
+                </span>
+                <div>
+                  <p className="text-sm font-bold leading-tight">{item.title}</p>
+                  <p className="mt-1.5 text-xs leading-relaxed text-[var(--muted)]">{item.detail}</p>
+                </div>
+                <Link
+                  href={item.href}
+                  className={`mt-auto text-xs font-semibold ${item.primary ? "text-[var(--accent)]" : "text-[var(--muted)]"}`}
+                >
+                  {item.cta} →
+                </Link>
+              </article>
+            ))}
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="page-shell">
