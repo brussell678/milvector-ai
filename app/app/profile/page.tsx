@@ -480,6 +480,10 @@ export default function ProfilePage() {
             onChange={(e) => setForm((f) => ({ ...f, linkedin_url: e.target.value }))}
             placeholder="linkedin.com/in/yourname"
           />
+          <p className="text-xs text-[var(--muted)]">
+            This link is just saved to your profile. For the tools to actually read your LinkedIn content, export your profile to PDF and upload it in{" "}
+            <a href="/app/documents" className="underline">Documents</a>.
+          </p>
         </label>
       </SectionCard>
 

@@ -340,6 +340,9 @@ function FitrepBulletsContent() {
                       <p className="mt-3 text-xs text-[var(--muted)]">
                         Missing records are fine — the tool will ask you follow-up questions to fill the gaps. If you upload a lot, it uses your most recent material first.
                       </p>
+                      <p className="mt-2 text-xs text-[var(--muted)]">
+                        &ldquo;LinkedIn Profile&rdquo; here means a PDF export of your profile uploaded in Documents — the LinkedIn URL saved on your Profile page isn&rsquo;t read by this tool.
+                      </p>
                       <a className="btn btn-secondary mt-3 w-full text-xs" href="/app/documents">
                         Manage Documents
                       </a>
