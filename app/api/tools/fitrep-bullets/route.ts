@@ -26,6 +26,16 @@ type MasterResumeOutput = {
     fitrep_date_range: string;
     source: "MRO" | "RS" | "RO";
     metrics_used: string[];
+    award_recognized?: boolean;
+  }[];
+  awards?: {
+    award_name: string;
+    level: string;
+    action_period: string;
+    mapped_role: string;
+    source: "summary_of_action" | "citation";
+    civilian_summary: string;
+    enriched_existing_bullet?: boolean;
   }[];
   skills_and_credentials: {
     education_training: string[];
@@ -252,7 +262,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { mode, documentId, pastedText, vmetText, jstText, fitrepsText, targetRole } = parsed.data;
+  const { mode, documentId, pastedText, vmetText, jstText, fitrepsText, awardsText, targetRole } = parsed.data;
 
   // Load profile (optional)
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
@@ -300,19 +310,20 @@ export async function POST(req: Request) {
     let resolvedVmetText = vmetText ?? "";
     let resolvedJstText = jstText ?? "";
     let resolvedFitrepsText = fitrepsText ?? "";
+    let resolvedAwardsText = awardsText ?? "";
     let resolvedLinkedinProfileText = "";
     let sourceDocumentIdFromSet: string | null = null;
     let fitrepDocsDetected = 0;
     let fitrepDocsIncluded = 0;
 
-    if (!resolvedVmetText || !resolvedJstText || !resolvedFitrepsText || !resolvedLinkedinProfileText) {
+    if (!resolvedVmetText || !resolvedJstText || !resolvedFitrepsText || !resolvedAwardsText || !resolvedLinkedinProfileText) {
       const { data: docs, error: docsErr } = await supabase
         .from("documents")
         .select("id,doc_type,filename,created_at,extracted_text,text_extracted")
         .eq("user_id", userId)
         .eq("text_extracted", true)
         .not("extracted_text", "is", null)
-        .in("doc_type", ["VMET", "JST", "FITREP", "EVAL", "LINKEDIN_PROFILE"])
+        .in("doc_type", ["VMET", "JST", "FITREP", "EVAL", "AWARD", "LINKEDIN_PROFILE"])
         .order("created_at", { ascending: true });
 
       if (docsErr) {
@@ -322,6 +333,7 @@ export async function POST(req: Request) {
       const vmetDoc = docs?.find((d) => d.doc_type === "VMET");
       const jstDoc = docs?.find((d) => d.doc_type === "JST");
       const fitrepDocs = docs?.filter((d) => d.doc_type === "FITREP" || d.doc_type === "EVAL") ?? [];
+      const awardDocs = docs?.filter((d) => d.doc_type === "AWARD") ?? [];
       const linkedinProfileDocs = docs?.filter((d) => d.doc_type === "LINKEDIN_PROFILE") ?? [];
       fitrepDocsDetected = fitrepDocs.length;
 
@@ -337,7 +349,13 @@ export async function POST(req: Request) {
         resolvedFitrepsText = corpus.text;
         fitrepDocsIncluded = corpus.includedDocCount;
       }
-      sourceDocumentIdFromSet = fitrepDocs.at(-1)?.id ?? vmetDoc?.id ?? jstDoc?.id ?? linkedinProfileDocs.at(-1)?.id ?? null;
+      if (!resolvedAwardsText) {
+        resolvedAwardsText = awardDocs
+          .map((doc) => `### AWARD: ${doc.filename}\n${doc.extracted_text ?? ""}`)
+          .join("\n\n");
+      }
+      sourceDocumentIdFromSet =
+        fitrepDocs.at(-1)?.id ?? vmetDoc?.id ?? jstDoc?.id ?? awardDocs.at(-1)?.id ?? linkedinProfileDocs.at(-1)?.id ?? null;
     } else {
       fitrepDocsDetected = 0;
       fitrepDocsIncluded = 0;
@@ -357,15 +375,26 @@ export async function POST(req: Request) {
       12000,
       /(headline|about|summary|experience|skills|certifications|education|leadership|operations|program|project|management|strategy|profile)/i
     );
+    resolvedAwardsText = compactTextByPriority(
+      resolvedAwardsText,
+      24000,
+      /(led|managed|oversaw|directed|coordinated|supervised|responsible|resulted|reduced|increased|saved|improved|readiness|maintenance|operations|logistics|budget|cost|savings|award|meritorious|achievement|commendation|superior|distinguished|recogniz|period of action|%|\$|\d)/i
+    );
 
     // Scrub PII from all source texts before prompt assembly
     resolvedVmetText = redactPII(resolvedVmetText).text;
     resolvedJstText = redactPII(resolvedJstText).text;
     resolvedFitrepsText = redactPII(resolvedFitrepsText).text;
     resolvedLinkedinProfileText = redactPII(resolvedLinkedinProfileText).text;
+    resolvedAwardsText = redactPII(resolvedAwardsText).text;
 
-    const availableSourceCount = [resolvedVmetText, resolvedJstText, resolvedFitrepsText, resolvedLinkedinProfileText]
-      .filter((text) => text.trim().length >= 100).length;
+    const availableSourceCount = [
+      resolvedVmetText,
+      resolvedJstText,
+      resolvedFitrepsText,
+      resolvedAwardsText,
+      resolvedLinkedinProfileText,
+    ].filter((text) => text.trim().length >= 100).length;
 
     if (availableSourceCount === 0) {
       return NextResponse.json(
@@ -379,6 +408,7 @@ export async function POST(req: Request) {
       vmetText: resolvedVmetText,
       jstText: resolvedJstText,
       fitrepsText: resolvedFitrepsText,
+      awardsText: resolvedAwardsText,
       linkedinProfileText: resolvedLinkedinProfileText,
     });
 
@@ -397,8 +427,10 @@ export async function POST(req: Request) {
         mode,
         hasVmet: !!resolvedVmetText,
         hasJst: !!resolvedJstText,
+        hasAwards: !!resolvedAwardsText,
         hasLinkedinProfile: !!resolvedLinkedinProfileText,
         fitrepsLen: resolvedFitrepsText.length,
+        awardsLen: resolvedAwardsText.length,
         targetRole: targetRole ?? null,
       },
       latency_ms: latency,

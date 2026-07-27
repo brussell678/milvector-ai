@@ -11,9 +11,10 @@ export const FitrepBulletsSchema = z.object({
   vmetText: z.string().min(100).max(40000).optional(),
   jstText: z.string().min(50).max(40000).optional(),
   fitrepsText: z.string().min(150).max(120000).optional(),
+  awardsText: z.string().min(50).max(60000).optional(),
   targetRole: z.string().optional().nullable(),
 });
 
 export const UploadMetaSchema = z.object({
-  doc_type: z.enum(["FITREP", "EVAL", "VMET", "JST", "MASTER_RESUME", "RESUME_TEMPLATE", "TARGETED_RESUME", "LINKEDIN_PROFILE", "OTHER"]).default("FITREP"),
+  doc_type: z.enum(["FITREP", "EVAL", "VMET", "JST", "AWARD", "MASTER_RESUME", "RESUME_TEMPLATE", "TARGETED_RESUME", "LINKEDIN_PROFILE", "OTHER"]).default("FITREP"),
 });

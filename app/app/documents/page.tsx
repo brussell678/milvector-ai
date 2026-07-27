@@ -6,7 +6,7 @@ import { UploadWarning } from "@/components/upload-warning";
 
 type DocumentRow = {
   id: string;
-  doc_type: "FITREP" | "EVAL" | "VMET" | "JST" | "MASTER_RESUME" | "RESUME_TEMPLATE" | "TARGETED_RESUME" | "LINKEDIN_PROFILE" | "OTHER";
+  doc_type: "FITREP" | "EVAL" | "VMET" | "JST" | "AWARD" | "MASTER_RESUME" | "RESUME_TEMPLATE" | "TARGETED_RESUME" | "LINKEDIN_PROFILE" | "OTHER";
   filename: string;
   mime_type: string;
   size_bytes: number;
@@ -22,6 +22,7 @@ const DOC_TYPE_INFO: Record<string, { label: string; hint: string }> = {
   EVAL: { label: "EVAL", hint: "Navy performance evaluation" },
   VMET: { label: "VMET", hint: "Verification of Military Experience & Training" },
   JST: { label: "JST", hint: "Joint Services Transcript" },
+  AWARD: { label: "Award", hint: "Summary of Action preferred; citation works too" },
   MASTER_RESUME: { label: "Master Resume", hint: "Your reusable base resume" },
   RESUME_TEMPLATE: { label: "Resume Template", hint: "A format you want your resumes to follow" },
   TARGETED_RESUME: { label: "Targeted Resume", hint: "A resume built for one specific job" },
@@ -34,6 +35,7 @@ const UPLOAD_TYPES: DocType[] = [
   "EVAL",
   "VMET",
   "JST",
+  "AWARD",
   "MASTER_RESUME",
   "RESUME_TEMPLATE",
   "LINKEDIN_PROFILE",
@@ -415,6 +417,10 @@ export default function DocumentsPage() {
             <div>
               <p className="font-semibold text-[var(--foreground)]">VMET</p>
               <p className="mt-1">A summary of your military experience and training. Download it from milConnect (milconnect.dmdc.osd.mil).</p>
+            </div>
+            <div>
+              <p className="font-semibold text-[var(--foreground)]">Awards</p>
+              <p className="mt-1">Upload the <span className="font-medium text-[var(--foreground)]">Summary of Action</span> if you have it — it carries the real scope and numbers. The citation works too. Awards add depth to the billet you already held; they won&apos;t create a separate job on your resume.</p>
             </div>
             <div>
               <p className="font-semibold text-[var(--foreground)]">LinkedIn profile</p>

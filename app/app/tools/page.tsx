@@ -45,6 +45,7 @@ const foundationTools: ToolCard[] = [
     desc: "Turn your uploaded military records into one master resume — the base every other tool builds on. Already have a master resume? Skip this and upload yours in My Files instead.",
     requirements: [
       { text: "Records uploaded (FITREPs, EVALs, JST, or VMET)", check: "sources" },
+      { text: "Awards, if you have them — upload the Summary of Action to add depth to the billet you held (optional)." },
       { text: "Review the result, polish it, and upload your final version as a Master Resume." },
     ],
     gptHref: "https://chatgpt.com/g/g-69d5982e578c819184c2e96ec1c81bbb-milvector-master-resume-generator",
@@ -294,7 +295,7 @@ export default async function ToolsPage() {
     {
       phase: "Step 1",
       title: "Upload Your Records",
-      description: "Add FITREPs, EVALs, JST, and VMET so the AI has your real experience to work from.",
+      description: "Add FITREPs, EVALs, JST, VMET, and any award Summaries of Action so the AI has your real experience to work from.",
       href: "/app/documents",
       status: hasSources ? "complete" : "active",
       ctaLabel: hasSources ? `${extractedDocCount} ready — manage` : "Upload Records",

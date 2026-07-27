@@ -35,6 +35,7 @@ type DocRow = {
     | "EVAL"
     | "VMET"
     | "JST"
+    | "AWARD"
     | "MASTER_RESUME"
     | "RESUME_TEMPLATE"
     | "TARGETED_RESUME"
@@ -94,7 +95,8 @@ function FitrepBulletsContent() {
     const hasJst = extracted.some((d) => d.doc_type === "JST");
     const linkedinCount = extracted.filter((d) => d.doc_type === "LINKEDIN_PROFILE").length;
     const fitrepCount = extracted.filter((d) => d.doc_type === "FITREP" || d.doc_type === "EVAL").length;
-    return { hasVmet, hasJst, linkedinCount, fitrepCount };
+    const awardCount = extracted.filter((d) => d.doc_type === "AWARD").length;
+    return { hasVmet, hasJst, linkedinCount, fitrepCount, awardCount };
   }, [docs]);
 
   const sourceRows = useMemo(
@@ -113,6 +115,11 @@ function FitrepBulletsContent() {
         label: "JST",
         ready: sourceSummary.hasJst,
         detail: sourceSummary.hasJst ? "Ready" : "Not found",
+      },
+      {
+        label: "Awards (Summary of Action)",
+        ready: sourceSummary.awardCount > 0,
+        detail: sourceSummary.awardCount > 0 ? `${sourceSummary.awardCount} ready` : "Optional",
       },
       {
         label: "LinkedIn Profile",
