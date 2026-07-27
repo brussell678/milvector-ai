@@ -61,11 +61,19 @@ export async function notifyAdminNewTicket(ticket: {
   suggested_tool: string | null;
   createdAt?: string | null;
   attachment?: { filename: string; base64: string; contentType?: string } | null;
+  attachmentFilename?: string | null;
 }) {
   if (!process.env.RESEND_API_KEY) return;
 
   const typeLabel = TYPE_LABELS[ticket.feedback_type] ?? ticket.feedback_type;
   const submitted = ticket.createdAt ? new Date(ticket.createdAt) : new Date();
+
+  // Bytes embedded when available; otherwise point to the admin portal.
+  const attachmentLine = ticket.attachment
+    ? `${ticket.attachment.filename} (included in this email)`
+    : ticket.attachmentFilename
+    ? `${ticket.attachmentFilename} (view in admin portal)`
+    : "none";
 
   // Paste-ready block — the owner copies this straight into their dev tool for a quick fix.
   const pasteText = [
@@ -78,7 +86,7 @@ export async function notifyAdminNewTicket(ticket: {
     ticket.branch ? `Branch: ${ticket.branch}` : null,
     ticket.mos ? `MOS: ${ticket.mos}` : null,
     ticket.suggested_tool ? `Suggested Tool: ${ticket.suggested_tool}` : null,
-    `Attachment: ${ticket.attachment ? `${ticket.attachment.filename} (included in this email)` : "none"}`,
+    `Attachment: ${attachmentLine}`,
     "",
     "MESSAGE:",
     ticket.message,
@@ -109,6 +117,10 @@ export async function notifyAdminNewTicket(ticket: {
         ? `<p class="value" style="margin-top:8px;font-size:13px;color:#39a67f;">&#128206; Attachment included: ${escapeHtml(
             ticket.attachment.filename
           )}</p>`
+        : ticket.attachmentFilename
+        ? `<p class="value" style="margin-top:8px;font-size:13px;color:#6b7a8d;">&#128206; Attachment: ${escapeHtml(
+            ticket.attachmentFilename
+          )} — view inline in the admin portal</p>`
         : ""
     }
     <p class="label" style="margin-top:16px;">Message</p>

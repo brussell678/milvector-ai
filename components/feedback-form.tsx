@@ -2,6 +2,11 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { UploadWarning } from "@/components/upload-warning";
+import { supabaseBrowser } from "@/lib/supabase/client";
+
+// Vercel caps a serverless request body at ~4.5MB, so the file is uploaded
+// directly to Supabase Storage from the browser and only its path is posted.
+const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
 type FeedbackRow = {
   id: string;
@@ -198,6 +203,33 @@ export function FeedbackForm() {
 
     try {
       const formData = new FormData(formElement);
+
+      // Move the file off the request body: upload it to storage directly and
+      // send only its path, so we never hit Vercel's 4.5MB function payload cap.
+      const file = formData.get("attachment");
+      formData.delete("attachment");
+      if (file instanceof File && file.size > 0) {
+        if (file.size > MAX_ATTACHMENT_BYTES) {
+          setSubmitStatus("Attachment is too large (max 10MB). Please attach a smaller file.");
+          setSubmitKind("error");
+          return;
+        }
+        setSubmitStatus("Uploading attachment…");
+        const safeName = file.name.replace(/[^\w.\- ]+/g, "_");
+        const path = `${crypto.randomUUID()}/${safeName}`;
+        const { error: uploadError } = await supabaseBrowser()
+          .storage.from("feedback-attachments")
+          .upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
+        if (uploadError) {
+          setSubmitStatus(`Attachment upload failed: ${uploadError.message}`);
+          setSubmitKind("error");
+          return;
+        }
+        formData.append("attachment_path", path);
+        formData.append("attachment_name", safeName);
+        formData.append("attachment_type", file.type || "");
+      }
+
       const res = await fetch("/api/feedback", { method: "POST", body: formData });
       const rawText = await res.text();
       let data: { error?: unknown } = {};

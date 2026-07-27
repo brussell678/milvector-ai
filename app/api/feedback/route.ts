@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { notifyAdminNewTicket } from "@/lib/email";
 
-const MAX_MB = Number(process.env.MAX_UPLOAD_MB ?? "10");
+// Storage path shape produced by the browser: "<uuid>/<safeName>".
+// Anchored + no slashes in the name to prevent traversal / reading other objects.
+const ATTACHMENT_PATH_RE = /^[0-9a-fA-F-]{36}\/[\w.\- ]{1,200}$/;
 
 const FeedbackSchema = z.object({
   name: z.string().max(120).optional().nullable(),
@@ -24,7 +27,9 @@ export async function POST(req: Request) {
     } = await supabase.auth.getUser();
 
     const form = await req.formData();
-    const attachment = form.get("attachment");
+    const attachmentPath = form.get("attachment_path")?.toString() || null;
+    const attachmentName = form.get("attachment_name")?.toString() || null;
+    const attachmentType = form.get("attachment_type")?.toString() || null;
     const parsed = FeedbackSchema.safeParse({
       name: form.get("name")?.toString() || null,
       email: form.get("email")?.toString() || null,
@@ -40,37 +45,14 @@ export async function POST(req: Request) {
     }
 
     let attachmentUrl: string | null = null;
-    let emailAttachment: { filename: string; base64: string; contentType?: string } | null = null;
 
-    if (attachment instanceof File && attachment.size > 0) {
-      const sizeMb = attachment.size / (1024 * 1024);
-      if (sizeMb > MAX_MB) {
-        return NextResponse.json({ error: `Attachment too large (max ${MAX_MB}MB)` }, { status: 400 });
+    if (attachmentPath) {
+      // The browser already uploaded the file straight to Storage; we only get
+      // the path. Validate it so a caller can't point us at arbitrary objects.
+      if (!ATTACHMENT_PATH_RE.test(attachmentPath)) {
+        return NextResponse.json({ error: "Invalid attachment reference." }, { status: 400 });
       }
-
-      const safeName = attachment.name.replace(/[^\w.\- ]+/g, "_");
-      const feedbackId = crypto.randomUUID();
-      const storagePath = `${feedbackId}/${safeName}`;
-      const buffer = Buffer.from(await attachment.arrayBuffer());
-
-      const { error: uploadError } = await supabase.storage
-        .from("feedback-attachments")
-        .upload(storagePath, buffer, {
-          contentType: attachment.type || "application/octet-stream",
-          upsert: false,
-        });
-
-      if (uploadError) {
-        return NextResponse.json({ error: uploadError.message }, { status: 500 });
-      }
-
-      attachmentUrl = storagePath;
-      // Reuse the buffer we already read so the file rides along in the admin email.
-      emailAttachment = {
-        filename: safeName,
-        base64: buffer.toString("base64"),
-        contentType: attachment.type || undefined,
-      };
+      attachmentUrl = attachmentPath;
     }
 
     const { data: inserted, error } = await supabase
@@ -85,6 +67,29 @@ export async function POST(req: Request) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+    // Best-effort: pull the attachment back down (service role, private bucket)
+    // so it can ride along in the admin email. If the key isn't configured, we
+    // still email the ticket and note that the image lives in the admin portal.
+    let emailAttachment: { filename: string; base64: string; contentType?: string } | null = null;
+    if (attachmentUrl && attachmentName) {
+      try {
+        const admin = supabaseAdmin();
+        if (admin) {
+          const { data: blob } = await admin.storage.from("feedback-attachments").download(attachmentUrl);
+          if (blob) {
+            const buffer = Buffer.from(await blob.arrayBuffer());
+            emailAttachment = {
+              filename: attachmentName,
+              base64: buffer.toString("base64"),
+              contentType: attachmentType ?? undefined,
+            };
+          }
+        }
+      } catch (err) {
+        console.error("Attachment fetch for email failed", err);
+      }
+    }
+
     // Fire-and-forget — don't block the response if email fails
     void notifyAdminNewTicket({
       id: inserted?.id ?? crypto.randomUUID(),
@@ -97,6 +102,7 @@ export async function POST(req: Request) {
       message: parsed.data.message,
       suggested_tool: parsed.data.suggested_tool ?? null,
       attachment: emailAttachment,
+      attachmentFilename: attachmentName,
     }).catch((err) => console.error("Admin notify failed", err));
 
     return NextResponse.json({ ok: true });
