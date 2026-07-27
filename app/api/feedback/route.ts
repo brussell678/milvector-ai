@@ -40,6 +40,7 @@ export async function POST(req: Request) {
     }
 
     let attachmentUrl: string | null = null;
+    let emailAttachment: { filename: string; base64: string; contentType?: string } | null = null;
 
     if (attachment instanceof File && attachment.size > 0) {
       const sizeMb = attachment.size / (1024 * 1024);
@@ -64,21 +65,30 @@ export async function POST(req: Request) {
       }
 
       attachmentUrl = storagePath;
+      // Reuse the buffer we already read so the file rides along in the admin email.
+      emailAttachment = {
+        filename: safeName,
+        base64: buffer.toString("base64"),
+        contentType: attachment.type || undefined,
+      };
     }
 
-    const { error } = await supabase
+    const { data: inserted, error } = await supabase
       .from("feedback")
       .insert({
         user_id: user?.id ?? null,
         ...parsed.data,
         attachment_url: attachmentUrl,
-      });
+      })
+      .select("id, created_at")
+      .single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
     // Fire-and-forget — don't block the response if email fails
     void notifyAdminNewTicket({
-      id: crypto.randomUUID(),
+      id: inserted?.id ?? crypto.randomUUID(),
+      createdAt: inserted?.created_at ?? null,
       name: parsed.data.name ?? null,
       email: parsed.data.email ?? null,
       branch: parsed.data.branch ?? null,
@@ -86,6 +96,7 @@ export async function POST(req: Request) {
       feedback_type: parsed.data.feedback_type,
       message: parsed.data.message,
       suggested_tool: parsed.data.suggested_tool ?? null,
+      attachment: emailAttachment,
     }).catch((err) => console.error("Admin notify failed", err));
 
     return NextResponse.json({ ok: true });

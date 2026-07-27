@@ -46,6 +46,10 @@ function baseHtml(title: string, body: string) {
 </html>`;
 }
 
+function escapeHtml(text: string) {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 export async function notifyAdminNewTicket(ticket: {
   id: string;
   name: string | null;
@@ -55,34 +59,76 @@ export async function notifyAdminNewTicket(ticket: {
   feedback_type: string;
   message: string;
   suggested_tool: string | null;
+  createdAt?: string | null;
+  attachment?: { filename: string; base64: string; contentType?: string } | null;
 }) {
   if (!process.env.RESEND_API_KEY) return;
 
   const typeLabel = TYPE_LABELS[ticket.feedback_type] ?? ticket.feedback_type;
+  const submitted = ticket.createdAt ? new Date(ticket.createdAt) : new Date();
+
+  // Paste-ready block — the owner copies this straight into their dev tool for a quick fix.
+  const pasteText = [
+    "MILVECTOR SUPPORT TICKET",
+    `Type: ${typeLabel}`,
+    `Ticket ID: ${ticket.id}`,
+    `Submitted: ${submitted.toISOString()}`,
+    ticket.name ? `Name: ${ticket.name}` : null,
+    ticket.email ? `Email: ${ticket.email}` : null,
+    ticket.branch ? `Branch: ${ticket.branch}` : null,
+    ticket.mos ? `MOS: ${ticket.mos}` : null,
+    ticket.suggested_tool ? `Suggested Tool: ${ticket.suggested_tool}` : null,
+    `Attachment: ${ticket.attachment ? `${ticket.attachment.filename} (included in this email)` : "none"}`,
+    "",
+    "MESSAGE:",
+    ticket.message,
+  ]
+    .filter((line) => line !== null)
+    .join("\n");
+
   const meta = [
-    ticket.name && `<b>Name:</b> ${ticket.name}`,
-    ticket.email && `<b>Email:</b> ${ticket.email}`,
-    ticket.branch && `<b>Branch:</b> ${ticket.branch}`,
-    ticket.mos && `<b>MOS:</b> ${ticket.mos}`,
-    ticket.suggested_tool && `<b>Suggested Tool:</b> ${ticket.suggested_tool}`,
+    ticket.name && `<b>Name:</b> ${escapeHtml(ticket.name)}`,
+    ticket.email && `<b>Email:</b> ${escapeHtml(ticket.email)}`,
+    ticket.branch && `<b>Branch:</b> ${escapeHtml(ticket.branch)}`,
+    ticket.mos && `<b>MOS:</b> ${escapeHtml(ticket.mos)}`,
+    ticket.suggested_tool && `<b>Suggested Tool:</b> ${escapeHtml(ticket.suggested_tool)}`,
   ]
     .filter(Boolean)
     .join(" &bull; ");
+
+  const copyBlockStyle =
+    "font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;white-space:pre-wrap;" +
+    "background:#0d0f12;border:1px solid #2a2f3a;border-radius:8px;padding:14px;color:#c8d0dc;line-height:1.5;margin:8px 0 4px;";
 
   const body = `
     <p class="label">Ticket Type</p>
     <p class="value">${typeLabel}</p>
     ${meta ? `<p class="value" style="margin-top:8px;font-size:13px;color:#6b7a8d;">${meta}</p>` : ""}
+    ${
+      ticket.attachment
+        ? `<p class="value" style="margin-top:8px;font-size:13px;color:#39a67f;">&#128206; Attachment included: ${escapeHtml(
+            ticket.attachment.filename
+          )}</p>`
+        : ""
+    }
     <p class="label" style="margin-top:16px;">Message</p>
-    <div class="msg-block">${ticket.message.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
+    <div class="msg-block">${escapeHtml(ticket.message)}</div>
+    <p class="label" style="margin-top:20px;">Copy for quick remedy</p>
+    <div style="${copyBlockStyle}">${escapeHtml(pasteText)}</div>
     <a class="btn" href="${APP_URL}/app/admin">Open Admin Portal</a>
   `;
+
+  const attachments = ticket.attachment
+    ? [{ filename: ticket.attachment.filename, content: ticket.attachment.base64 }]
+    : undefined;
 
   await resend.emails.send({
     from: FROM,
     to: ADMIN_EMAIL,
     subject: `[MilVector Support] New ${typeLabel} — ${ticket.name ?? ticket.email ?? "Anonymous"}`,
     html: baseHtml("New Support Case Received", body),
+    text: pasteText,
+    attachments,
   });
 }
 

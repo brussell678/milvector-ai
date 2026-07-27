@@ -129,6 +129,8 @@ function FeedbackCard({
   const [expanded, setExpanded] = useState(false);
   const icon = TYPE_ICONS[item.feedback_type] ?? "📝";
   const nextStatuses = STATUS_NEXT[item.status] ?? [];
+  const isImageAttachment =
+    !!item.attachment_url && /\.(png|jpe?g|gif|webp|bmp)$/i.test(item.attachment_url);
 
   return (
     <article className="rounded-lg border border-[var(--line)] bg-[var(--panel)]">
@@ -165,6 +167,22 @@ function FeedbackCard({
       {/* Message */}
       <div className="border-t border-[var(--line)] px-4 py-3">
         <p className="whitespace-pre-wrap text-sm text-[var(--muted)]">{item.message}</p>
+        {isImageAttachment && item.attachment_signed_url && (
+          <a
+            href={item.attachment_signed_url}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 block w-fit"
+            title="Open full size in a new tab"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={item.attachment_signed_url}
+              alt="Support request attachment"
+              className="max-h-96 rounded-md border border-[var(--line)]"
+            />
+          </a>
+        )}
       </div>
 
       {/* Existing response */}
@@ -186,7 +204,7 @@ function FeedbackCard({
             target="_blank"
             rel="noreferrer"
           >
-            View Attachment
+            {isImageAttachment ? "Open Full Size" : "View Attachment"}
           </a>
         )}
         {nextStatuses.map((s) => (
