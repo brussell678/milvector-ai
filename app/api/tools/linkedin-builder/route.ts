@@ -12,6 +12,7 @@ import {
 } from "@/lib/llm/prompts";
 import { LinkedinBuilderInputSchema } from "@/lib/validators/tools";
 import { redactPII } from "@/lib/redact";
+import { getEnv } from "@/lib/env";
 
 type ResumeAnalysisOutput = {
   strengths: string[];
@@ -476,6 +477,8 @@ export async function POST(req: Request) {
     versionLabel,
   } = parsed.data;
 
+  const toolsModel = getEnv().TOOLS_MODEL;
+
   const baseRun = {
     user_id: userId,
     tool_name: "linkedin_builder" as const,
@@ -514,7 +517,9 @@ export async function POST(req: Request) {
     }
 
     if (workflowStage === "resume_analysis") {
-      const llm = await generateJson<ResumeAnalysisOutput>(promptLinkedinResumeAnalysis({ masterResumeText }));
+      const llm = await generateJson<ResumeAnalysisOutput>(promptLinkedinResumeAnalysis({ masterResumeText }), {
+        model: toolsModel,
+      });
       const latency = Date.now() - started;
 
       if (!llm.ok) {
@@ -541,7 +546,8 @@ export async function POST(req: Request) {
           masterResumeText,
           analysisContextJson: JSON.stringify(analysisContext ?? {}),
           locationPref: locationPref ?? null,
-        })
+        }),
+        { model: toolsModel }
       );
       const latency = Date.now() - started;
 
@@ -577,7 +583,7 @@ export async function POST(req: Request) {
         secondaryRoles: secondaryRoles ?? [],
         locationPref: locationPref ?? null,
       }),
-      { timeoutMs: 90000 }
+      { model: toolsModel, timeoutMs: 90000 }
     );
     const latency = Date.now() - started;
 
@@ -632,7 +638,8 @@ export async function POST(req: Request) {
         industry,
         industryTuning: industryTuning ?? null,
         generatedProfileJson: JSON.stringify(profileJson),
-      })
+      }),
+      { model: toolsModel }
     );
     const latency = Date.now() - started;
 
@@ -729,7 +736,8 @@ export async function POST(req: Request) {
         targetRole,
         industry: effectiveIndustry,
         tone: tone ?? null,
-      })
+      }),
+      { model: toolsModel }
     );
     const latency = Date.now() - started;
 

@@ -4,6 +4,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { MosTranslatorInputSchema } from "@/lib/validators/tools";
 import { generateJson } from "@/lib/llm/client";
 import { promptMosTranslator } from "@/lib/llm/prompts";
+import { getEnv } from "@/lib/env";
 
 type MosTranslatorOutput = {
   civilian_roles: { title: string; match_strength?: string; why_fit: string; common_industries: string[]; keywords: string[] }[];
@@ -22,7 +23,7 @@ export async function POST(req: Request) {
 
   const prompt = promptMosTranslator(parsed.data);
   const started = Date.now();
-  const llm = await generateJson<MosTranslatorOutput>(prompt);
+  const llm = await generateJson<MosTranslatorOutput>(prompt, { model: getEnv().TOOLS_MODEL });
   const latency = Date.now() - started;
 
   const baseRun = {

@@ -5,6 +5,7 @@ import { JdDecoderInputSchema } from "@/lib/validators/tools";
 import { generateJson } from "@/lib/llm/client";
 import { promptJdDecoder } from "@/lib/llm/prompts";
 import { redactPII } from "@/lib/redact";
+import { getEnv } from "@/lib/env";
 
 type PersonalizedFit = {
   assessed_against_resume: boolean;
@@ -116,7 +117,7 @@ export async function POST(req: Request) {
   });
 
   const started = Date.now();
-  const llm = await generateJson<JdDecoderOutput>(prompt);
+  const llm = await generateJson<JdDecoderOutput>(prompt, { model: getEnv().TOOLS_MODEL, timeoutMs: 90000 });
   const latency = Date.now() - started;
 
   const baseRun = {

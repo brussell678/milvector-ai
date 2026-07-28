@@ -891,6 +891,34 @@ function ResumeTargeterContent() {
                 </details>
               )}
 
+              {/* Honest review — the AI's own critique + how to strengthen it.
+                  Surfaced (not collapsed) so the candidate reads it before sending. */}
+              {(stage3.targeting_critique || (stage3.suggested_improvements?.length ?? 0) > 0) && (
+                <div className="rounded-xl border border-[color-mix(in_oklab,var(--accent)_35%,var(--line)_65%)] bg-[var(--surface)] p-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--accent)]">
+                    Honest Review — read before you send
+                  </p>
+                  {stage3.targeting_critique && (
+                    <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+                      {stage3.targeting_critique}
+                    </p>
+                  )}
+                  {stage3.suggested_improvements?.length ? (
+                    <ul className="mt-3 flex flex-col gap-1.5">
+                      {stage3.suggested_improvements.map((item, idx) => (
+                        <li key={idx} className="flex gap-2 text-sm">
+                          <span
+                            className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]"
+                            aria-hidden="true"
+                          />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              )}
+
               <ActionBar>
                 <button
                   className="btn btn-secondary text-sm"
