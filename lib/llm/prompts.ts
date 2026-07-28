@@ -293,7 +293,8 @@ ${
 - overall_fit: honest verdict. Do not inflate to be encouraging; a service member relies on this to decide whether to spend effort applying.
 - matched_strengths: 4-8 real strengths from the resume that map to this posting's must-haves, each tied to concrete evidence.
 - gaps_to_address: 3-8 real gaps between the resume and the posting, stated plainly with how the candidate might honestly offset or address each (never by fabricating).
-- honest_recommendation: a candid go / stretch / probably-not-worth-it recommendation with the reason.`
+- honest_recommendation: a candid go / stretch / probably-not-worth-it recommendation with the reason.
+- Balance honesty with fairness: transitioning service members routinely under-sell themselves and get screened out on civilian terminology rather than true capability. When the candidate is a reasonable stretch, say so and encourage them to apply — do not discourage a capable person over wording gaps that a targeted resume and interview can close. Reserve "Unlikely" for genuine hard-requirement misses (e.g., a required licensure or degree they do not hold).`
     : `Personalized fit (NO candidate resume was provided):
 - Set assessed_against_resume=false and overall_fit="".
 - Do NOT guess how well any specific person fits. In fit_summary, say fit was not personalized because no resume was provided, and that they can run this again after building a master resume.
