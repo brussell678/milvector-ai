@@ -170,3 +170,30 @@ export async function notifyUserAdminResponse(opts: {
     html: baseHtml("Your Support Case Has a Response", body),
   });
 }
+
+export async function notifyUserRequestShipped(opts: {
+  to: string;
+  ticketMessage: string;
+  updateTitle: string;
+  updateBody: string;
+}) {
+  if (!process.env.RESEND_API_KEY) return;
+
+  const body = `
+    <p class="value">You reported something, and it's now live on MilVector. Thanks for helping make the platform better for everyone transitioning.</p>
+    <p class="label" style="margin-top:20px;">What You Told Us</p>
+    <div class="msg-block">${opts.ticketMessage.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
+    <p class="label">What Shipped</p>
+    <div class="reply-block"><b>${opts.updateTitle.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</b><br/>${opts.updateBody
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")}</div>
+    <a class="btn" href="${APP_URL}/app/whats-new">See What's New</a>
+  `;
+
+  await resend.emails.send({
+    from: FROM,
+    to: opts.to,
+    subject: "[MilVector] You asked, we built it — your request is live",
+    html: baseHtml("Your Request Is Live", body),
+  });
+}

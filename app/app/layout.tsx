@@ -4,9 +4,15 @@ import Image from "next/image";
 import { AppNav } from "@/components/app-nav";
 import { AppShell } from "@/components/layout/app-shell";
 import { MobileAppNav } from "@/components/layout/mobile-app-nav";
+import { AnnouncementBar, type AnnouncementUpdate } from "@/components/announcement-bar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { isAdminEmail } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
+
+// Only surface the bar for genuinely recent updates. When it's been dry, the
+// bar is simply absent — no stale "last updated months ago" nag. The full
+// dated record still lives on the What's New page.
+const ANNOUNCEMENT_WINDOW_DAYS = 21;
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const supabase = await supabaseServer();
@@ -31,6 +37,16 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   ]);
   const unreadBoardNotifications = notificationsCountRes.error ? 0 : notificationsCountRes.count ?? 0;
   const hasRecentToolActivity = !toolRunsRes.error && (toolRunsRes.count ?? 0) > 0;
+
+  const announcementCutoff = new Date(Date.now() - ANNOUNCEMENT_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const { data: latestUpdate } = await supabase
+    .from("product_updates")
+    .select("id,title,category,is_user_requested,published_at")
+    .eq("published", true)
+    .gte("published_at", announcementCutoff)
+    .order("published_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   return (
     <AppShell>
@@ -60,6 +76,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           </form>
         </div>
       </header>
+
+      <AnnouncementBar update={(latestUpdate as AnnouncementUpdate | null) ?? null} />
 
       <MobileAppNav isAdmin={isAdmin} unreadBoardNotifications={unreadBoardNotifications} hasRecentToolActivity={hasRecentToolActivity} />
 

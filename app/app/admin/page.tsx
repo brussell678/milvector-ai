@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { AdminPortal } from "@/components/admin/admin-portal";
 import { isAdminEmail } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -131,6 +132,11 @@ export default async function AdminPage() {
               Restricted to {user.email}. Respond to user support cases, publish library submissions,
               action community reports, and manage posting blocks — all in one place.
             </p>
+            <div className="mt-5">
+              <Link href="/app/admin/updates" className="btn btn-primary text-sm">
+                Post a What&apos;s New update →
+              </Link>
+            </div>
           </div>
           <aside className="page-hero-aside">
             <p className="page-hero-aside-title">ADMIN CAPABILITIES</p>
