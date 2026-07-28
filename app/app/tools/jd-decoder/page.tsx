@@ -9,11 +9,21 @@ import { Term } from "@/components/ui/term";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
+type PersonalizedFit = {
+  assessed_against_resume: boolean;
+  overall_fit: string;
+  fit_summary: string;
+  matched_strengths: string[];
+  gaps_to_address: string[];
+  honest_recommendation: string;
+};
+
 type Output = {
   runId: string | null;
   plain_english_summary: string;
   role_mission_summary: string;
   role_level_guess: string;
+  role_level_confidence?: string;
   hard_requirements: string[];
   soft_requirements: string[];
   implied_expectations: string[];
@@ -24,6 +34,7 @@ type Output = {
   clarifying_questions: string[];
   interview_focus_areas: string[];
   likely_interview_questions: string[];
+  personalized_fit?: PersonalizedFit;
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────
@@ -264,6 +275,71 @@ export default function JobDescriptionDecoderPage() {
             </ToolAlert>
           )}
 
+          {/* ── Group 0: Your Fit ─────────────────────────────────── */}
+          {!loading && result?.personalized_fit && (
+            <div className="tool-output-card">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="tool-kicker">YOUR FIT</p>
+                  <p className="section-title mt-0.5">How You Match This Posting</p>
+                </div>
+                {result.personalized_fit.assessed_against_resume && result.personalized_fit.overall_fit && (
+                  <span
+                    className={`tool-badge shrink-0 mt-1 ${
+                      result.personalized_fit.overall_fit === "Strong" || result.personalized_fit.overall_fit === "Moderate"
+                        ? "tool-badge-success"
+                        : result.personalized_fit.overall_fit === "Stretch"
+                        ? "tool-badge-warn"
+                        : "tool-badge-error"
+                    }`}
+                  >
+                    {result.personalized_fit.overall_fit} Fit
+                  </span>
+                )}
+              </div>
+
+              {!result.personalized_fit.assessed_against_resume ? (
+                <ToolAlert variant="info" title="Fit isn't personalized yet">
+                  <p className="text-sm">
+                    {result.personalized_fit.fit_summary ||
+                      "This analysis wasn't matched against your background because you don't have a master resume saved yet."}{" "}
+                    <Link href="/app/tools/fitrep-bullets" className="font-semibold underline">
+                      Build your master resume
+                    </Link>{" "}
+                    and run this again for a personalized fit assessment.
+                  </p>
+                </ToolAlert>
+              ) : (
+                <>
+                  {result.personalized_fit.fit_summary && (
+                    <p className="text-sm leading-relaxed">{result.personalized_fit.fit_summary}</p>
+                  )}
+                  <OutputList title="Where You Match" items={result.personalized_fit.matched_strengths} />
+                  {result.personalized_fit.gaps_to_address.length > 0 && (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
+                        Gaps to Address (honestly)
+                      </p>
+                      {result.personalized_fit.gaps_to_address.map((gap, idx) => (
+                        <ToolAlert key={idx} variant="warn">
+                          <p className="text-sm">{gap}</p>
+                        </ToolAlert>
+                      ))}
+                    </div>
+                  )}
+                  {result.personalized_fit.honest_recommendation && (
+                    <div className="flex flex-col gap-1">
+                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--accent)]">
+                        Straight Recommendation
+                      </p>
+                      <p className="text-sm leading-relaxed">{result.personalized_fit.honest_recommendation}</p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
           {/* ── Group 1: The Role ─────────────────────────────────── */}
           {!loading && result && (
             <div className="tool-output-card">
@@ -274,6 +350,7 @@ export default function JobDescriptionDecoderPage() {
                 </div>
                 <span className="tool-badge tool-badge-success shrink-0 mt-1">
                   {result.role_level_guess}
+                  {result.role_level_confidence ? ` · ${result.role_level_confidence} confidence` : ""}
                 </span>
               </div>
 

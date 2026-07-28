@@ -26,6 +26,10 @@ export type LlmImageResult = {
 import OpenAI from "openai";
 import { jsonrepair } from "jsonrepair";
 import { getEnv } from "@/lib/env";
+import { MILVECTOR_SYSTEM_PROMPT } from "@/lib/llm/prompts";
+
+const JSON_INSTRUCTION =
+  "Return valid JSON only. Do not wrap in markdown code fences. Do not include extra commentary.";
 
 function extractJson(text: string) {
   const trimmed = text.trim();
@@ -167,6 +171,8 @@ type GenerateOptions = {
   timeoutMs?: number;
   model?: string;
   temperature?: number;
+  // Extra task-specific system guidance appended after the shared guardrail.
+  system?: string;
 };
 
 export async function generateJson<T>(prompt: string, options?: GenerateOptions): Promise<LlmJsonResult<T>> {
@@ -191,8 +197,7 @@ export async function generateJson<T>(prompt: string, options?: GenerateOptions)
         input: [
           {
             role: "system",
-            content:
-              "Return valid JSON only. Do not wrap in markdown code fences. Do not include extra commentary.",
+            content: [MILVECTOR_SYSTEM_PROMPT, options?.system, JSON_INSTRUCTION].filter(Boolean).join("\n\n"),
           },
           { role: "user", content: prompt },
         ],

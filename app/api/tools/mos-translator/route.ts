@@ -6,7 +6,7 @@ import { generateJson } from "@/lib/llm/client";
 import { promptMosTranslator } from "@/lib/llm/prompts";
 
 type MosTranslatorOutput = {
-  civilian_roles: { title: string; why_fit: string; common_industries: string[]; keywords: string[] }[];
+  civilian_roles: { title: string; match_strength?: string; why_fit: string; common_industries: string[]; keywords: string[] }[];
   recommended_certs: { name: string; why: string; time_to_get: string }[];
 };
 

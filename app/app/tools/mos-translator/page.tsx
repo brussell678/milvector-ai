@@ -10,6 +10,7 @@ import { ToolAlert } from "@/components/tools/tool-alert";
 
 type CivilianRole = {
   title: string;
+  match_strength?: string;
   why_fit: string;
   common_industries: string[];
   keywords: string[];
@@ -29,16 +30,19 @@ type Output = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────
 
-const CONFIDENCE_LABELS = ["Best Match", "Strong Match", "Good Match"];
-
-function confidenceLabel(idx: number): string {
-  return CONFIDENCE_LABELS[idx] ?? "Match";
+// Honest match label comes from the model's match_strength, not list position.
+function matchBadge(strength?: string): { label: string; className: string } {
+  const value = (strength ?? "").trim().toLowerCase();
+  if (value === "strong") return { label: "Strong Match", className: "tool-badge-success" };
+  if (value === "moderate") return { label: "Moderate Match", className: "tool-badge-success" };
+  if (value === "exploratory") return { label: "Exploratory", className: "tool-badge-warn" };
+  return { label: "Match", className: "tool-badge-warn" };
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────
 
-function RoleCard({ role, idx }: { role: CivilianRole; idx: number }) {
-  const label = confidenceLabel(idx);
+function RoleCard({ role }: { role: CivilianRole }) {
+  const badge = matchBadge(role.match_strength);
   const targeterHref = `/app/tools/resume-targeter?title=${encodeURIComponent(role.title)}`;
   const foundationHref = `/app/tools/fitrep-bullets?role=${encodeURIComponent(role.title)}`;
 
@@ -48,12 +52,10 @@ function RoleCard({ role, idx }: { role: CivilianRole; idx: number }) {
       <div className="flex items-start justify-between gap-2">
         <h3 className="font-bold text-base leading-tight">{role.title}</h3>
         <span
-          className={`tool-badge shrink-0 mt-0.5 ${
-            idx === 0 ? "tool-badge-success" : idx === 1 ? "tool-badge-success" : "tool-badge-warn"
-          }`}
-          style={{ fontSize: "0.65rem", opacity: idx > 1 ? 0.8 : 1 }}
+          className={`tool-badge shrink-0 mt-0.5 ${badge.className}`}
+          style={{ fontSize: "0.65rem" }}
         >
-          {label}
+          {badge.label}
         </span>
       </div>
 
@@ -357,8 +359,8 @@ function MosTranslatorContent() {
                 </p>
               </div>
               <div className="grid gap-3">
-                {result.civilian_roles.map((role, idx) => (
-                  <RoleCard key={role.title} role={role} idx={idx} />
+                {result.civilian_roles.map((role) => (
+                  <RoleCard key={role.title} role={role} />
                 ))}
               </div>
             </div>
@@ -418,7 +420,7 @@ function MosTranslatorContent() {
                 <p className="tool-example-kicker">Example</p>
                 <div className="mt-2 flex items-start justify-between gap-2">
                   <p className="text-sm font-bold text-[var(--foreground)]">Operations Manager</p>
-                  <span className="tool-badge tool-badge-success" style={{ fontSize: "0.6rem" }}>Best Match</span>
+                  <span className="tool-badge tool-badge-success" style={{ fontSize: "0.6rem" }}>Strong Match</span>
                 </div>
                 <p className="mt-1 text-xs text-[var(--muted)]">
                   Your platoon leadership and maintenance management map directly to running teams, schedules, and equipment in civilian operations.
