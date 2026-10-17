@@ -33,6 +33,11 @@ const privacyPoints = [
       "Integrated tools use paid API calls so outputs can connect to your MilVector profile, documents, and saved artifacts. GPT links open in your own ChatGPT account and follow that environment instead.",
   },
   {
+    title: "Analytics On Public Pages Only",
+    detail:
+      "MilVector uses Google Analytics on its public pages, such as the home page, knowledge base, and library, to see how many people visit and how they find the site. It uses cookies and records pages viewed, approximate location, and device type. It is not loaded inside the signed-in workspace, so your records, documents, and tool use are never sent to it. You can block it in your browser's cookie settings or with Google's Analytics opt-out add-on (tools.google.com/dlpage/gaoptout).",
+  },
+  {
     title: "Admin Review And Support",
     detail:
       "Support cases, community moderation, and library submissions can be reviewed by the MilVector admin account so issues can be resolved and unsafe content can be managed inside the workspace.",
@@ -43,6 +48,7 @@ const commitments = [
   "SSN and DoD ID (EDIPI) numbers are auto-removed from document text.",
   "We use email sign-in to reduce bot abuse and protect platform operating costs.",
   "We do not sell your information.",
+  "Site analytics run on public pages only, never inside your workspace.",
   "You control what you upload into your workspace.",
   "Community and support content may be reviewed when moderation or resolution is required.",
 ];

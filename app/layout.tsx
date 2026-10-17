@@ -9,6 +9,8 @@ import { PublicSiteChrome } from "@/components/layout/public-site-chrome";
 import { TopBanner } from "@/components/layout/top-banner";
 import { ScrollObserver } from "@/components/scroll-observer";
 import { shareImage, siteName, siteUrl } from "@/lib/seo";
+import { AnalyticsGuard } from "@/components/analytics-guard";
+import { GA_MEASUREMENT_ID, gaInitScript } from "@/lib/analytics";
 
 const barlow = Barlow({
   variable: "--font-barlow",
@@ -72,9 +74,12 @@ export default function RootLayout({
             __html: `!function(){var t=localStorage.getItem('mv-theme')||(window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t)}();`,
           }}
         />
+        <script dangerouslySetInnerHTML={{ __html: gaInitScript }} />
+        <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`} />
       </head>
       <body className={`${barlow.variable} ${plexMono.variable} antialiased`}>
         <div className="site-watermark" aria-hidden="true" />
+        <AnalyticsGuard />
         <ScrollObserver />
         <TopBanner />
         <PublicSiteChrome>
