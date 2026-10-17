@@ -22,6 +22,9 @@ that reporter), use the admin composer at /app/admin/updates instead — it can
 link the case. This file is for the general changelog.
 -->
 
+## Privacy update: analytics on public pages {improvement}
+MilVector now counts visits to its public pages, like the home page and knowledge base, so we can see how service members find it. Nothing inside your signed-in workspace is tracked, and your records, documents, and tool use are never sent to analytics. Details are on the Privacy page.
+
 ## Add your awards to your Master Resume {new} {requested}
 You can now upload an award Summary of Action (or citation) and the Master Resume Builder folds its scope and impact into the right role — without double-counting what your FITREPs already cover. Upload the Summary of Action if you have it; the citation works too.
 
