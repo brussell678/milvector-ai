@@ -2,6 +2,16 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { getLibraryLinkFallbacks, mergeLibraryLinks } from "@/lib/transition-data";
 import { LibrarySubmissionForm } from "@/components/library-submission-form";
 import { PageContainer } from "@/components/layout/page-container";
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  ...pageMetadata({
+    title: "Transition Resource Library",
+    description: "Curated transition documents and vetted links for service members leaving the military, with new resources reviewed before they are added.",
+    path: "/library",
+  }),
+};
 
 type LibraryDocument = {
   id: string;

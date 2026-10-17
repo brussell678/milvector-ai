@@ -1,5 +1,15 @@
 import Link from "next/link";
 import { PageContainer } from "@/components/layout/page-container";
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  ...pageMetadata({
+    title: "Privacy",
+    description: "How MilVector handles your information: a privacy posture built around trust, not lead generation.",
+    path: "/privacy",
+  }),
+};
 
 const privacyPoints = [
   {

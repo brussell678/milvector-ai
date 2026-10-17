@@ -8,6 +8,7 @@ import { MobileSiteHeader } from "@/components/layout/mobile-site-header";
 import { PublicSiteChrome } from "@/components/layout/public-site-chrome";
 import { TopBanner } from "@/components/layout/top-banner";
 import { ScrollObserver } from "@/components/scroll-observer";
+import { shareImage, siteName, siteUrl } from "@/lib/seo";
 
 const barlow = Barlow({
   variable: "--font-barlow",
@@ -22,8 +23,22 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MilVector AI",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: siteName,
+    template: `%s | ${siteName}`,
+  },
   description: "Connected transition planning, document workflows, and AI support for service members moving into civilian careers.",
+  applicationName: siteName,
+  openGraph: {
+    siteName,
+    type: "website",
+    locale: "en_US",
+    images: [shareImage],
+  },
+  twitter: {
+    card: "summary",
+  },
   icons: {
     icon: "/assets/milvector-ai-logo-transparent.png",
   },

@@ -1,6 +1,16 @@
 import Image from "next/image";
 import { type LucideIcon, Heart, Cpu, ShieldCheck, Users } from "lucide-react";
 import { PageContainer } from "@/components/layout/page-container";
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  ...pageMetadata({
+    title: "Donate",
+    description: "Help keep MilVector free for service members: no paywall, no lead lists, and no subscription.",
+    path: "/donate",
+  }),
+};
 
 const channels = [
   {

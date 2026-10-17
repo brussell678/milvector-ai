@@ -8,6 +8,17 @@ import {
   Upload, Hammer, Crosshair, ListChecks,
 } from "lucide-react";
 import { PageContainer } from "@/components/layout/page-container";
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  ...pageMetadata({
+    title: "Free AI Career Tools for the Military Transition",
+    description: "Free AI tools that translate military experience for civilian employers: resumes, job targeting, LinkedIn, and transition planning built for service members.",
+    path: "/",
+  }),
+  title: { absolute: "MilVector AI | Free AI Career Tools for the Military Transition" },
+};
 
 // ── Types ─────────────────────────────────────────────────────────
 

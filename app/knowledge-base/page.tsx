@@ -2,6 +2,16 @@ import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
 import { KnowledgeBaseSections } from "@/components/knowledge-base-sections";
 import { PageContainer } from "@/components/layout/page-container";
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  ...pageMetadata({
+    title: "Transition Knowledge Base",
+    description: "Military-to-civilian transition guidance organized by mission category, linked straight to the MilVector tool for each step.",
+    path: "/knowledge-base",
+  }),
+};
 
 type Article = {
   id: string;

@@ -1,6 +1,16 @@
 import Link from "next/link";
 import { type LucideIcon, Network, ShieldCheck, ArrowRightLeft, Route, Check } from "lucide-react";
 import { PageContainer } from "@/components/layout/page-container";
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  ...pageMetadata({
+    title: "Why MilVector",
+    description: "One transition workspace for planning, records, AI workflows, and documents, so service members do not rebuild the process at every step.",
+    path: "/platform",
+  }),
+};
 
 type Principle = {
   Icon: LucideIcon;

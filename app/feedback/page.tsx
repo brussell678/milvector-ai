@@ -1,5 +1,15 @@
 import { FeedbackForm } from "@/components/feedback-form";
 import { PageContainer } from "@/components/layout/page-container";
+import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  ...pageMetadata({
+    title: "Support and Feedback",
+    description: "Report a bug or suggest an improvement to MilVector, and track your request in one place.",
+    path: "/feedback",
+  }),
+};
 
 const heroStrip = [
   { label: "Bug reports" },
