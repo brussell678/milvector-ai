@@ -1,0 +1,282 @@
+{
+ "source": "https://www.benefits.va.gov/compensation/dbq_publicdbqs.asp",
+ "retrieved": "2026-11-13",
+ "forms": [
+  {
+   "title": "Separation Health Assessment DBQ - Part A",
+   "url": "https://www.benefits.va.gov/compensation/docs/SHA_DBQ_Part_A_Self-Assessment.pdf"
+  },
+  {
+   "title": "Artery and Vein Conditions",
+   "url": "https://www.benefits.va.gov/compensation/docs/Artery_and_Vein.pdf"
+  },
+  {
+   "title": "Heart Conditions",
+   "url": "https://www.benefits.va.gov/compensation/docs/Heart.pdf"
+  },
+  {
+   "title": "Hypertension",
+   "url": "https://www.benefits.va.gov/compensation/docs/hypertension.pdf"
+  },
+  {
+   "title": "Oral and Dental",
+   "url": "https://www.benefits.va.gov/compensation/docs/oral-and-dental.pdf"
+  },
+  {
+   "title": "Scars",
+   "url": "https://www.benefits.va.gov/compensation/docs/scars.pdf"
+  },
+  {
+   "title": "Skin Diseases",
+   "url": "https://www.benefits.va.gov/compensation/docs/Skin_Diseases.pdf"
+  },
+  {
+   "title": "Diabetes Mellitus",
+   "url": "https://www.benefits.va.gov/compensation/docs/Diabetes_Mellitus.pdf"
+  },
+  {
+   "title": "Endocrine (Other than Thyroid, Parathyroid or Diabetes Mellitus)",
+   "url": "https://www.benefits.va.gov/compensation/docs/Endocrine_Other_than_Thyroid_Parathyroid_and_Diabetes_Mellitus.pdf"
+  },
+  {
+   "title": "Thyroid and Parathyroid",
+   "url": "https://www.benefits.va.gov/compensation/docs/Thyroid_and_Parathyroid.pdf"
+  },
+  {
+   "title": "Ear (including Vestibular and Infectious)",
+   "url": "https://www.benefits.va.gov/compensation/docs/Ear_Including_Vestibular_and_Infectious.pdf"
+  },
+  {
+   "title": "Loss of Sense of Smell and or Taste",
+   "url": "https://www.benefits.va.gov/compensation/docs/Loss_of_Sense_of_Smell_and_or_Taste.pdf"
+  },
+  {
+   "title": "Sinusitis, Rhinitis and Other Conditions of the Nose, Throat, Larynx and Pharynx",
+   "url": "https://www.benefits.va.gov/compensation/docs/Sinusitis_Rhinitis_and_Other_Conditions_of_the_Nose_Throat_Larynx_and_Pharynx.pdf"
+  },
+  {
+   "title": "Esophageal Disorders",
+   "url": "https://www.benefits.va.gov/compensation/docs/esophageal-disorders.pdf"
+  },
+  {
+   "title": "Gallbladder",
+   "url": "https://www.benefits.va.gov/compensation/docs/gallbladder.pdf"
+  },
+  {
+   "title": "Hernias (Including Abdominal, Inguinal and Femoral Hernias)",
+   "url": "https://www.benefits.va.gov/compensation/docs/hernias-including-abdominal-inguinal-and-femoral-hernias.pdf"
+  },
+  {
+   "title": "Intestinal Conditions",
+   "url": "https://www.benefits.va.gov/compensation/docs/intestines.pdf"
+  },
+  {
+   "title": "Liver Conditions",
+   "url": "https://www.benefits.va.gov/compensation/docs/liver-conditions.pdf"
+  },
+  {
+   "title": "Pancreas",
+   "url": "https://www.benefits.va.gov/compensation/docs/pancreas.pdf"
+  },
+  {
+   "title": "Peritoneal Adhesions",
+   "url": "https://www.benefits.va.gov/compensation/docs/peritoneal-adhesions.pdf"
+  },
+  {
+   "title": "Rectum & Anus",
+   "url": "https://www.benefits.va.gov/compensation/docs/rectum-and-anus.pdf"
+  },
+  {
+   "title": "Stomach and Duodenum",
+   "url": "https://www.benefits.va.gov/compensation/docs/stomach-and-duodenum.pdf"
+  },
+  {
+   "title": "Kidney Conditions",
+   "url": "https://www.benefits.va.gov/compensation/docs/kidney.pdf"
+  },
+  {
+   "title": "Male Reproductive Organ Conditions (Including Prostate Cancer)",
+   "url": "https://www.benefits.va.gov/compensation/docs/Male_Reproductive_Organ.pdf"
+  },
+  {
+   "title": "Urinary Tract Conditions",
+   "url": "https://www.benefits.va.gov/compensation/docs/Urinary_Tract_Conditions.pdf"
+  },
+  {
+   "title": "Breast",
+   "url": "https://www.benefits.va.gov/compensation/docs/Breast_Conditions.pdf"
+  },
+  {
+   "title": "Gynecological Conditions",
+   "url": "https://www.benefits.va.gov/compensation/docs/Gynecological_Conditions.pdf"
+  },
+  {
+   "title": "Hematologic and Lymphatic Conditions, Including Leukemia",
+   "url": "https://www.benefits.va.gov/compensation/docs/Hematologic_and_Lymphatic_Conditions_Including_Leukemia.pdf"
+  },
+  {
+   "title": "HIV-Related Illnesses",
+   "url": "https://www.benefits.va.gov/compensation/docs/HIV_Related_Illnesses.pdf"
+  },
+  {
+   "title": "Infectious Diseases (other than HIV-related illness chronic fatigue syndrome and tuberculosis)",
+   "url": "https://www.benefits.va.gov/compensation/docs/Infectious_Diseases_Other_than_HIV_Related_Illness_Chronic_Fatigue_Syndrome_and_Tuberculosis.pdf"
+  },
+  {
+   "title": "Persian Gulf/Afghanistan Infectious Diseases",
+   "url": "https://www.benefits.va.gov/compensation/docs/Persian_Gulf_Afghanistan_Infectious_Diseases.pdf"
+  },
+  {
+   "title": "Tuberculosis",
+   "url": "https://www.benefits.va.gov/compensation/docs/Tuberculosis.pdf"
+  },
+  {
+   "title": "Amputations",
+   "url": "https://www.benefits.va.gov/compensation/docs/amputations.pdf"
+  },
+  {
+   "title": "Ankle",
+   "url": "https://www.benefits.va.gov/compensation/docs/ankle.pdf"
+  },
+  {
+   "title": "Back (Thoracolumbar Spine)",
+   "url": "https://www.benefits.va.gov/compensation/docs/Back_Thoracolumbar_Spine.pdf"
+  },
+  {
+   "title": "Bones and Other Skeletal Conditions",
+   "url": "https://www.benefits.va.gov/compensation/docs/Bones_and_Other_Skeletal_Conditions.pdf"
+  },
+  {
+   "title": "Elbow & Forearm",
+   "url": "https://www.benefits.va.gov/compensation/docs/Elbow_and_Forearm.pdf"
+  },
+  {
+   "title": "Foot Conditions Including Flatfoot (Pes Planus)",
+   "url": "https://www.benefits.va.gov/compensation/docs/Foot_Conditions_Including_Flatfoot_Pes_Planus.pdf"
+  },
+  {
+   "title": "Hand and Finger",
+   "url": "https://www.benefits.va.gov/compensation/docs/Hand_and_Finger.pdf"
+  },
+  {
+   "title": "Hip and Thigh",
+   "url": "https://www.benefits.va.gov/compensation/docs/Hip_and_Thigh.pdf"
+  },
+  {
+   "title": "Knee and Lower Leg",
+   "url": "https://www.benefits.va.gov/compensation/docs/Knee_and_Lower_Leg.pdf"
+  },
+  {
+   "title": "Muscle Injuries",
+   "url": "https://www.benefits.va.gov/compensation/docs/Muscle_Injuries.pdf"
+  },
+  {
+   "title": "Neck (Cervical Spine)",
+   "url": "https://www.benefits.va.gov/compensation/docs/Neck_Conditions_Cervical_Spine.pdf"
+  },
+  {
+   "title": "Osteomyelitis",
+   "url": "https://www.benefits.va.gov/compensation/docs/Osteomyelitis.pdf"
+  },
+  {
+   "title": "Shoulder and/or Arm",
+   "url": "https://www.benefits.va.gov/compensation/docs/Shoulder_and_or_Arm.pdf"
+  },
+  {
+   "title": "Temporomandibular Disorders",
+   "url": "https://www.benefits.va.gov/compensation/docs/Temporomandibular_Disorders.pdf"
+  },
+  {
+   "title": "Wrist",
+   "url": "https://www.benefits.va.gov/compensation/docs/wrist.pdf"
+  },
+  {
+   "title": "ALS (Lou Gehrig's Disease)",
+   "url": "https://www.benefits.va.gov/compensation/docs/ALS_Lou_Gehrigs_Disease.pdf"
+  },
+  {
+   "title": "Central Nervous System and Neuromuscular Diseases",
+   "url": "https://www.benefits.va.gov/compensation/docs/Central_Nervous_System_and_Neuromuscular_Diseases.pdf"
+  },
+  {
+   "title": "Cranial Nerve Conditions",
+   "url": "https://www.benefits.va.gov/compensation/docs/Cranial_Nerve_Conditions.pdf"
+  },
+  {
+   "title": "Diabetic Peripheral Neuropathy",
+   "url": "https://www.benefits.va.gov/compensation/docs/Diabetic_Peripheral_Neuropathy.pdf"
+  },
+  {
+   "title": "Fibromyalgia",
+   "url": "https://www.benefits.va.gov/compensation/docs/Fibromyalgia.pdf"
+  },
+  {
+   "title": "Headaches (including Migraines)",
+   "url": "https://www.benefits.va.gov/compensation/docs/Headaches_Including_Migraines.pdf"
+  },
+  {
+   "title": "Multiple Sclerosis (MS)",
+   "url": "https://www.benefits.va.gov/compensation/docs/Multiple_Sclerosis.pdf"
+  },
+  {
+   "title": "Narcolepsy",
+   "url": "https://www.benefits.va.gov/compensation/docs/Narcolepsy.pdf"
+  },
+  {
+   "title": "Parkinson's Disease",
+   "url": "https://www.benefits.va.gov/compensation/docs/Parkinsons_Disease.pdf"
+  },
+  {
+   "title": "Peripheral Nerves",
+   "url": "https://www.benefits.va.gov/compensation/docs/Peripheral_Nerves.pdf"
+  },
+  {
+   "title": "Seizure Disorders (Epilepsy)",
+   "url": "https://www.benefits.va.gov/compensation/docs/Seizure_Disorders_Epilepsy.pdf"
+  },
+  {
+   "title": "Nutritional Deficiencies",
+   "url": "https://www.benefits.va.gov/compensation/docs/Nutritional_Deficiencies.pdf"
+  },
+  {
+   "title": "Eye Conditions",
+   "url": "https://www.benefits.va.gov/compensation/docs/Eye_Conditions.pdf"
+  },
+  {
+   "title": "Eating Disorders",
+   "url": "https://www.benefits.va.gov/compensation/docs/Eating_Disorders.pdf"
+  },
+  {
+   "title": "Mental Disorders",
+   "url": "https://www.benefits.va.gov/compensation/docs/Mental_Disorders.pdf"
+  },
+  {
+   "title": "PTSD Review",
+   "url": "https://www.benefits.va.gov/compensation/docs/PTSD_Review.pdf"
+  },
+  {
+   "title": "Respiratory Conditions (other than tuberculosis and sleep apnea)",
+   "url": "https://www.benefits.va.gov/compensation/docs/Respiratory_Conditions_Other_than_Tuberculosis_and_Sleep_Apnea.pdf"
+  },
+  {
+   "title": "Sleep Apnea",
+   "url": "https://www.benefits.va.gov/compensation/docs/Sleep_Apnea.pdf"
+  },
+  {
+   "title": "Arthritis",
+   "url": "https://www.benefits.va.gov/compensation/docs/Arthritis.pdf"
+  },
+  {
+   "title": "Chronic Fatigue Syndrome",
+   "url": "https://www.benefits.va.gov/compensation/docs/Chronic_Fatigue_Syndrome.pdf"
+  },
+  {
+   "title": "Systemic Lupus Erythematosus (SLE) and other Autoimmune Diseases",
+   "url": "https://www.benefits.va.gov/compensation/docs/Systemic_Lupus_Erythematosus_and_Other_Autoimmune_Diseases.pdf"
+  },
+  {
+   "title": "Spina Bifida",
+   "url": "https://www.benefits.va.gov/compensation/docs/Spina_Bifida.pdf"
+  }
+ ]
+}

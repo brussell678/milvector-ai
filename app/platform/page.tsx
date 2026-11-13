@@ -46,7 +46,8 @@ const trustPoints = [
   "Your information is not sold.",
   "SSN and DoD ID (EDIPI) numbers are automatically removed from uploaded document text.",
   "The built-in tools cost you nothing, and your results save to your workspace automatically.",
-  "Custom GPT links open in your own ChatGPT account and do not automatically save back into MilVector workflows.",
+  "Every tool runs inside MilVector. Nothing requires a separate ChatGPT account.",
+  "Health details you enter in the VA Rating Navigator are sent to our AI provider to write that analysis and are not saved by MilVector.",
   "Feedback, moderation, and admin review tools are built into the platform so issues can be tracked and resolved inside the workspace.",
 ];
 

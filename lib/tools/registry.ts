@@ -18,9 +18,9 @@ export type ToolCard = {
   title: string;
   desc: string;
   requirements?: Requirement[];
-  // Chat version hosted in ChatGPT, shown beside a built-in tool
+  // Chat version hosted outside MilVector, shown beside a built-in tool
   gptHref?: string;
-  // The tool itself lives in ChatGPT; there is no built-in version yet
+  // The tool lives outside MilVector; there is no built-in version
   isExternal?: boolean;
 };
 
@@ -46,7 +46,6 @@ export const toolGroups: ToolGroupDef[] = [
           { text: "Awards, if you have them — upload the Summary of Action to add depth to the billet you held (optional)." },
           { text: "Review the result, polish it, and upload your final version as a Master Resume." },
         ],
-        gptHref: "https://chatgpt.com/g/g-69d5982e578c819184c2e96ec1c81bbb-milvector-master-resume-generator",
       },
       {
         href: "/app/tools/linkedin-builder",
@@ -73,7 +72,6 @@ export const toolGroups: ToolGroupDef[] = [
           { text: "Profile saved — your contact info goes on the resume", check: "profile" },
           { text: "Copy the full job posting so you can paste it in." },
         ],
-        gptHref: "https://chatgpt.com/g/g-697c169088588191bce63407d421f5b0-milvector-ai-targeted-resume-builder",
       },
       {
         href: "/app/tools/jd-decoder",
@@ -81,15 +79,14 @@ export const toolGroups: ToolGroupDef[] = [
         desc: "Paste a job posting and see what they really want, what to watch out for, and how well you fit — before you apply.",
       },
       {
-        href: "https://chatgpt.com/g/g-69b9fc23c88c81919a3cd53ffcbe1b1a-milvector-ai-interview-strategist",
-        title: "Job Interview Strategist",
-        desc: "Practice interviews for a real job with feedback. Turn on voice mode for a realistic mock interview.",
+        href: "/app/tools/interview-strategist",
+        title: "Interview Strategist",
+        desc: "Prepare for one real interview: what the hiring manager cares about, likely questions with answers from your record, then a spoken mock interview with feedback.",
         requirements: [
-          { text: "Have the job title and full job posting ready." },
+          { text: "A resume saved (or be ready to paste the one you applied with)", check: "master" },
+          { text: "Copy the full job posting so you can paste it in." },
           { text: "Know the company name." },
-          { text: "Bring the resume you're applying with." },
         ],
-        isExternal: true,
       },
     ],
   },
@@ -111,18 +108,16 @@ export const toolGroups: ToolGroupDef[] = [
     description: "Support for benefits and retirement decisions with long-term consequences — VA ratings and the Survivor Benefit Plan.",
     tools: [
       {
-        href: "https://chatgpt.com/g/g-69b6925c39308191b477586de0b7e6ac-va-c-p-rating-navigator-gpt",
-        title: "VA C&P Rating Navigator",
-        desc: "Guided disability rating walkthroughs with the VA C&P Rating Navigator GPT.",
-        requirements: [{ text: "Bring your claimed conditions, symptoms, and any rating decisions or medical evidence you want to review." }],
-        isExternal: true,
+        href: "/app/tools/va-rating-navigator",
+        title: "VA Rating Navigator",
+        desc: "See how VA would rate each condition you plan to claim: the criteria from the regulation, an exam checklist, your evidence gaps, and an estimated combined rating.",
+        requirements: [{ text: "Know the conditions you plan to claim, and how each one affects you day to day." }],
       },
       {
-        href: "https://chatgpt.com/g/g-69b75fcfb8d881918bd6c8a092bdb899-milvector-ai-military-sbp-decision-advisor",
-        title: "Military SBP Decision Advisor",
-        desc: "Guided Survivor Benefit Plan decision support with the SBP Decision Advisor GPT.",
-        requirements: [{ text: "Have your retirement timing, family situation, and SBP decision factors available before you start." }],
-        isExternal: true,
+        href: "/app/tools/sbp-advisor",
+        title: "SBP Decision Advisor",
+        desc: "Compare the Survivor Benefit Plan with life insurance using your real numbers, and see which approach fits your family before you sign.",
+        requirements: [{ text: "Your estimated monthly retired pay, your age, and your spouse's age." }, { text: "A term life quote, if you have one (optional)." }],
       },
     ],
   },
@@ -135,4 +130,7 @@ export const toolLabels: Record<string, string> = {
   jd_decoder: "Job Description Decoder",
   resume_targeter: "Targeted Resume Builder",
   linkedin_builder: "LinkedIn Profile Builder",
+  interview_strategist: "Interview Strategist",
+  va_rating_navigator: "VA Rating Navigator",
+  sbp_advisor: "SBP Decision Advisor",
 };
