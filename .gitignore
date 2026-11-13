@@ -47,8 +47,9 @@ yarn-error.log*
 *.swp
 
 # supabase local development (if used later)
-<<<<<<< HEAD
 .supabase
-=======
-.supabase
->>>>>>> 4e2a28f2380d2e05fb07581d1a41d3a60ed88abe
+
+# Word lock files and scratch renders
+~$*
+tmp-*.docx
+*.inspect.docx

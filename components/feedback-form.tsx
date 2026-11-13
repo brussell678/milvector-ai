@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { UploadWarning } from "@/components/upload-warning";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { useStoredValueAtLoad } from "@/lib/use-stored-value";
 
 // Vercel caps a serverless request body at ~4.5MB, so the file is uploaded
 // directly to Supabase Storage from the browser and only its path is posted.
@@ -54,13 +55,14 @@ function TicketCard({ item, isNew }: { item: FeedbackRow; isNew: boolean }) {
   const hasResponse = !!item.admin_response;
 
   // Determine if the admin response is unread (newer than last-viewed timestamp)
-  const [responseIsUnread, setResponseIsUnread] = useState(false);
-  useEffect(() => {
-    if (!hasResponse || !item.admin_response_updated_at) return;
-    const lastViewed = localStorage.getItem(LAST_VIEWED_KEY);
-    if (!lastViewed) { setResponseIsUnread(true); return; }
-    setResponseIsUnread(new Date(item.admin_response_updated_at) > new Date(lastViewed));
-  }, [hasResponse, item.admin_response_updated_at]);
+  // lastViewed is the value from when the page loaded, so a reply stays marked
+  // NEW for this visit even after the page records the new last-viewed time.
+  const lastViewed = useStoredValueAtLoad(LAST_VIEWED_KEY);
+  const responseIsUnread =
+    hasResponse &&
+    !!item.admin_response_updated_at &&
+    lastViewed !== undefined &&
+    (!lastViewed || new Date(item.admin_response_updated_at) > new Date(lastViewed));
 
   return (
     <article

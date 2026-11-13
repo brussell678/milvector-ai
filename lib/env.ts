@@ -17,6 +17,9 @@ const ServerEnvSchema = PublicEnvSchema.extend({
   TOOLS_MODEL: z.string().min(1).default("gpt-4.1"),
   OPENAI_BASE_URL: z.string().url().optional(),
   LLM_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120000).default(30000),
+  // AI runs allowed per user in a rolling 24 hours (see lib/usage-limit.ts).
+  // A full targeted resume is 3 runs and a full LinkedIn build is about 6.
+  AI_DAILY_RUN_LIMIT: z.coerce.number().int().min(1).max(10000).default(60),
 });
 
 let cachedEnv: z.infer<typeof ServerEnvSchema> | null = null;

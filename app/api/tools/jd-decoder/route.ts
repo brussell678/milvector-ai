@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { enforceAiUsageLimit } from "@/lib/usage-limit";
 import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { JdDecoderInputSchema } from "@/lib/validators/tools";
@@ -100,8 +101,11 @@ async function loadMasterResumeText(
 }
 
 export async function POST(req: Request) {
-  const { userId } = await requireUser();
+  const { userId, email } = await requireUser();
   const supabase = await supabaseServer();
+  const overLimit = await enforceAiUsageLimit({ supabase, userId, email });
+  if (overLimit) return overLimit;
+
 
   const body = await req.json();
   const parsed = JdDecoderInputSchema.safeParse(body);

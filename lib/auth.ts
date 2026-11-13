@@ -14,7 +14,7 @@ export async function requireUser() {
     throw new Response("Unauthorized", { status: 401 });
   }
 
-  return { userId: data.user.id };
+  return { userId: data.user.id, email: data.user.email ?? null };
 }
 
 export async function requireAdmin() {

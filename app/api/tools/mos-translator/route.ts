@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
+import { enforceAiUsageLimit } from "@/lib/usage-limit";
 import { supabaseServer } from "@/lib/supabase/server";
 import { MosTranslatorInputSchema } from "@/lib/validators/tools";
 import { generateJson } from "@/lib/llm/client";
@@ -12,8 +13,11 @@ type MosTranslatorOutput = {
 };
 
 export async function POST(req: Request) {
-  const { userId } = await requireUser();
+  const { userId, email } = await requireUser();
   const supabase = await supabaseServer();
+  const overLimit = await enforceAiUsageLimit({ supabase, userId, email });
+  if (overLimit) return overLimit;
+
 
   const body = await req.json();
   const parsed = MosTranslatorInputSchema.safeParse(body);

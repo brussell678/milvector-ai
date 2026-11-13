@@ -1,25 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
 import { X } from "lucide-react";
+import { setStoredValue, useStoredValue } from "@/lib/use-stored-value";
 
 const BANNER_KEY = "mv-banner-v1";
 
 export function TopBanner() {
-  const [visible, setVisible] = useState(false);
+  // Undefined until storage is read on the client; null or "" means not dismissed.
+  const dismissed = useStoredValue(BANNER_KEY);
 
-  useEffect(() => {
-    if (!localStorage.getItem(BANNER_KEY)) {
-      setVisible(true);
-    }
-  }, []);
-
-  if (!visible) return null;
+  if (dismissed === undefined || dismissed) return null;
 
   function dismiss() {
-    setVisible(false);
-    localStorage.setItem(BANNER_KEY, "1");
+    setStoredValue(BANNER_KEY, "1");
   }
 
   return (

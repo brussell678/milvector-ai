@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { enforceAiUsageLimit } from "@/lib/usage-limit";
 import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { FitrepBulletsSchema } from "@/lib/validators/documents";
@@ -253,8 +254,11 @@ function mergeProfessionalExperience(masterResume: string) {
 
 export async function POST(req: Request) {
   const env = getEnv();
-  const { userId } = await requireUser();
+  const { userId, email } = await requireUser();
   const supabase = await supabaseServer();
+  const overLimit = await enforceAiUsageLimit({ supabase, userId, email });
+  if (overLimit) return overLimit;
+
 
   const body = await req.json();
   const parsed = FitrepBulletsSchema.safeParse(body);

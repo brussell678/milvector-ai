@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { enforceAiUsageLimit } from "@/lib/usage-limit";
 import sharp from "sharp";
 import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -450,7 +451,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const { userId } = await requireUser();
+  const { userId, email } = await requireUser();
   const supabase = await supabaseServer();
   const body = await req.json();
   const parsed = LinkedinBuilderInputSchema.safeParse(body);
@@ -476,6 +477,12 @@ export async function POST(req: Request) {
     bannerPrompt,
     versionLabel,
   } = parsed.data;
+
+  // Saving and updating are not AI runs, so they are never limited.
+  if (workflowStage !== "save_document" && workflowStage !== "update_profile") {
+    const overLimit = await enforceAiUsageLimit({ supabase, userId, email });
+    if (overLimit) return overLimit;
+  }
 
   const toolsModel = getEnv().TOOLS_MODEL;
 

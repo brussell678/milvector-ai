@@ -34,10 +34,12 @@ export function MobileSiteHeader() {
     };
   }, [open, isAppRoute]);
 
-  // Close drawer on route change
-  useEffect(() => {
+  // Close drawer on route change (state adjusted during render, not in an effect)
+  const [lastPathname, setLastPathname] = useState(pathname);
+  if (lastPathname !== pathname) {
+    setLastPathname(pathname);
     setOpen(false);
-  }, [pathname]);
+  }
 
   if (isAppRoute) return null;
 

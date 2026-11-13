@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { setStoredValue, useStoredValue } from "@/lib/use-stored-value";
 
 export type AnnouncementUpdate = {
   id: string;
@@ -24,23 +24,16 @@ function formatDate(iso: string) {
 }
 
 export function AnnouncementBar({ update }: { update: AnnouncementUpdate | null }) {
-  // Start hidden so the server/client markup matches; reveal after the
-  // dismissal check runs on the client.
-  const [visible, setVisible] = useState(false);
+  // Undefined until the client has read storage, so the bar starts hidden and
+  // the server/client markup matches.
+  const dismissedId = useStoredValue(DISMISS_KEY);
 
-  useEffect(() => {
-    if (!update) return;
-    const dismissed = localStorage.getItem(DISMISS_KEY);
-    if (dismissed !== update.id) setVisible(true);
-  }, [update]);
-
-  if (!update || !visible) return null;
+  if (!update || dismissedId === undefined || dismissedId === update.id) return null;
 
   const categoryLabel = CATEGORY_LABEL[update.category] ?? "Update";
 
   function dismiss() {
-    if (update) localStorage.setItem(DISMISS_KEY, update.id);
-    setVisible(false);
+    if (update) setStoredValue(DISMISS_KEY, update.id);
   }
 
   return (

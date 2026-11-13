@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
+import { enforceAiUsageLimit } from "@/lib/usage-limit";
 import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { ResumeTargeterInputSchema } from "@/lib/validators/tools";
@@ -453,8 +454,11 @@ function buildSupplementalSourceContext(args: {
 
 export async function POST(req: Request) {
   const env = getEnv();
-  const { userId } = await requireUser();
+  const { userId, email } = await requireUser();
   const supabase = await supabaseServer();
+  const overLimit = await enforceAiUsageLimit({ supabase, userId, email });
+  if (overLimit) return overLimit;
+
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
 
   const body = await req.json();

@@ -14,6 +14,10 @@ import { supabaseServer } from "@/lib/supabase/server";
 // dated record still lives on the What's New page.
 const ANNOUNCEMENT_WINDOW_DAYS = 21;
 
+function isoDaysAgo(days: number) {
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+}
+
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const supabase = await supabaseServer();
   const {
@@ -22,7 +26,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   if (!user) redirect("/auth");
   const isAdmin = isAdminEmail(user.email);
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const sevenDaysAgo = isoDaysAgo(7);
   const [notificationsCountRes, toolRunsRes] = await Promise.all([
     supabase
       .from("message_board_notifications")
@@ -38,7 +42,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const unreadBoardNotifications = notificationsCountRes.error ? 0 : notificationsCountRes.count ?? 0;
   const hasRecentToolActivity = !toolRunsRes.error && (toolRunsRes.count ?? 0) > 0;
 
-  const announcementCutoff = new Date(Date.now() - ANNOUNCEMENT_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const announcementCutoff = isoDaysAgo(ANNOUNCEMENT_WINDOW_DAYS);
   const { data: latestUpdate } = await supabase
     .from("product_updates")
     .select("id,title,category,is_user_requested,published_at")
