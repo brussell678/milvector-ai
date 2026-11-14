@@ -4,10 +4,15 @@ import { FormEvent, useMemo, useState } from "react";
 import { LoadingBlock } from "@/components/tools/loading-block";
 import { ToolAlert } from "@/components/tools/tool-alert";
 import { combineRatings } from "@/lib/va/combined";
+import { withBilateralFlags, type Limb, type Side } from "@/lib/va/bilateral";
+
+// Kept in step with lib/validators/advisors.ts
+const BATCH = 20;
+const MAX_CONDITIONS = 60;
 
 // ─── Types ────────────────────────────────────────────────────────────
 
-type Candidate = { code: string; title: string; why: string; ratings: number[] };
+type Candidate = { code: string; title: string; why: string; ratings: number[]; limb: Limb | null };
 type Dbq = { title: string; url: string };
 type Identified = { input: string; plainLanguage: string; candidates: Candidate[]; dbq: Dbq[]; note: string };
 
@@ -31,13 +36,31 @@ type Row = Identified & {
   analysis: Analysis | null;
   loading: boolean;
   error: string | null;
-  rating: string; // chosen rating for the combined estimate, "" = leave out
-  bilateral: boolean;
+  rating: string; // rating used in the combined estimate, "" = leave out
+  side: Side;
 };
 
 type Source = { asOf: string; url: string };
 
 // ─── Helpers ──────────────────────────────────────────────────────────
+
+const SIDE_OPTIONS: Record<"upper" | "lower", { value: Side; label: string }[]> = {
+  upper: [
+    { value: "left-upper", label: "Left arm or hand" },
+    { value: "right-upper", label: "Right arm or hand" },
+    { value: "both-upper", label: "Both arms" },
+  ],
+  lower: [
+    { value: "left-lower", label: "Left leg or foot" },
+    { value: "right-lower", label: "Right leg or foot" },
+    { value: "both-lower", label: "Both legs" },
+  ],
+};
+
+function sideOptions(limb: Limb | null) {
+  if (!limb) return [];
+  return limb === "either" ? [...SIDE_OPTIONS.upper, ...SIDE_OPTIONS.lower] : SIDE_OPTIONS[limb];
+}
 
 function Bullets({ title, items }: { title: string; items: string[] }) {
   if (!items.length) return null;
@@ -56,108 +79,43 @@ function Bullets({ title, items }: { title: string; items: string[] }) {
   );
 }
 
+function Fold({ title, children, open }: { title: string; children: React.ReactNode; open?: boolean }) {
+  return (
+    <details className="rounded-lg border border-[var(--line)] bg-[var(--surface)]" open={open}>
+      <summary className="cursor-pointer px-3 py-2.5 text-sm font-semibold">{title}</summary>
+      <div className="grid gap-3 border-t border-[var(--line)] p-3">{children}</div>
+    </details>
+  );
+}
+
 const STATUS_LABEL: Record<string, { label: string; badge: string }> = {
   covered: { label: "You covered this", badge: "tool-badge-success" },
   unclear: { label: "Unclear", badge: "tool-badge-warn" },
   missing: { label: "Not mentioned", badge: "tool-badge-error" },
 };
 
+function rangeText(a: Analysis) {
+  const { low, high } = a.likelyRange;
+  if (low === null || high === null) return "No estimate";
+  return low === high ? `${low}%` : `${low} to ${high}%`;
+}
+
+// The estimate first, then each section folded so one condition never becomes a wall of text.
 function AnalysisView({ a }: { a: Analysis }) {
-  const range =
-    a.likelyRange.low === null || a.likelyRange.high === null
-      ? "Not enough to estimate"
-      : a.likelyRange.low === a.likelyRange.high
-      ? `${a.likelyRange.low} percent`
-      : `${a.likelyRange.low} to ${a.likelyRange.high} percent`;
+  const hasGaps = a.gaps.described.length + a.gaps.missing.length + a.gaps.weak.length + a.gaps.strengthen.length > 0;
+  const hasLanguage = a.criteriaLanguage.lower.length + a.criteriaLanguage.middle.length + a.criteriaLanguage.higher.length > 0;
 
   return (
-    <div className="mt-4 flex flex-col gap-5 border-t border-[var(--line)] pt-4">
+    <div className="grid gap-2">
       {a.crisisNote ? (
         <ToolAlert variant="stop" title="You are not alone">
           <p className="text-sm font-medium">{a.crisisNote}</p>
         </ToolAlert>
       ) : null}
 
-      <div>
-        <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">1. Likely diagnostic code</p>
-        {a.codes.map((c) => (
-          <p key={c.code} className="text-sm">
-            <span className="font-semibold">
-              DC {c.code}, {c.title}
-            </span>{" "}
-            <span className="text-[var(--muted)]">(38 CFR {c.section})</span>
-            {c.why ? <span className="block text-[var(--muted)]">{c.why}</span> : null}
-          </p>
-        ))}
-      </div>
-
-      {a.breakdown.length > 0 && (
-        <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">2. Rating criteria</p>
-          <div className="grid gap-2">
-            {a.breakdown.map((row, idx) => (
-              <div key={idx} className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-3">
-                <p className="text-sm font-bold">{row.rating} percent</p>
-                <p className="mt-1 text-sm">{row.criteria}</p>
-                {row.evidence ? (
-                  <p className="mt-1.5 text-sm text-[var(--muted)]">
-                    <span className="font-semibold">Evidence that supports it:</span> {row.evidence}
-                  </p>
-                ) : null}
-                {row.examiner ? (
-                  <p className="mt-1 text-sm text-[var(--muted)]">
-                    <span className="font-semibold">What the examiner looks for:</span> {row.examiner}
-                  </p>
-                ) : null}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {a.checklist.items.length > 0 && (
-        <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
-            3. Exam form checklist{a.checklist.form ? `: ${a.checklist.form}` : ""}
-          </p>
-          <ul className="grid gap-1.5">
-            {a.checklist.items.map((item, idx) => {
-              const status = STATUS_LABEL[item.status] ?? STATUS_LABEL.unclear;
-              return (
-                <li key={idx} className="flex items-start justify-between gap-3 text-sm">
-                  <span>{item.item}</span>
-                  <span className={`tool-badge ${status.badge} shrink-0`} style={{ fontSize: "0.62rem" }}>
-                    {status.label}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
-
-      <div className="grid gap-4">
-        <p className="-mb-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">4. What the criteria turn on</p>
-        <p className="text-xs text-[var(--muted)]">
-          These are the regulation&apos;s own distinctions between rating levels. They tell you what to describe accurately, not
-          what to say.
-        </p>
-        <Bullets title="Lower ratings" items={a.criteriaLanguage.lower} />
-        <Bullets title="Middle ratings" items={a.criteriaLanguage.middle} />
-        <Bullets title="Higher ratings" items={a.criteriaLanguage.higher} />
-      </div>
-
-      <div className="grid gap-4">
-        <p className="-mb-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">5. Evidence gaps</p>
-        <Bullets title="What you already described" items={a.gaps.described} />
-        <Bullets title="What appears to be missing" items={a.gaps.missing} />
-        <Bullets title="Weak points" items={a.gaps.weak} />
-        <Bullets title="What would strengthen the record" items={a.gaps.strengthen} />
-      </div>
-
       <div className="rounded-xl border border-[var(--accent)] bg-[var(--panel)] p-4">
-        <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">6. Likely rating range (estimate)</p>
-        <p className="mt-1 text-lg font-bold">{range}</p>
+        <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">Likely rating range (estimate)</p>
+        <p className="mt-1 text-lg font-bold">{rangeText(a)}</p>
         <p className="text-xs text-[var(--muted)]">Confidence: {a.likelyRange.confidence}. Based only on what you entered.</p>
         {a.likelyRange.why ? <p className="mt-2 text-sm">{a.likelyRange.why}</p> : null}
         {a.likelyRange.up ? (
@@ -172,9 +130,74 @@ function AnalysisView({ a }: { a: Analysis }) {
         ) : null}
       </div>
 
+      {a.breakdown.length > 0 && (
+        <Fold title="Rating criteria, level by level">
+          {a.breakdown.map((row, idx) => (
+            <div key={idx}>
+              <p className="text-sm font-bold">{row.rating} percent</p>
+              <p className="mt-0.5 text-sm">{row.criteria}</p>
+              {row.evidence ? (
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  <span className="font-semibold">Evidence that supports it:</span> {row.evidence}
+                </p>
+              ) : null}
+              {row.examiner ? (
+                <p className="mt-0.5 text-sm text-[var(--muted)]">
+                  <span className="font-semibold">What the examiner looks for:</span> {row.examiner}
+                </p>
+              ) : null}
+            </div>
+          ))}
+        </Fold>
+      )}
+
+      {hasGaps && (
+        <Fold title="Your evidence gaps">
+          <Bullets title="What you already described" items={a.gaps.described} />
+          <Bullets title="What appears to be missing" items={a.gaps.missing} />
+          <Bullets title="Weak points" items={a.gaps.weak} />
+          <Bullets title="What would strengthen the record" items={a.gaps.strengthen} />
+        </Fold>
+      )}
+
+      {a.checklist.items.length > 0 && (
+        <Fold title={`Exam form checklist${a.checklist.form ? `: ${a.checklist.form}` : ""}`}>
+          <ul className="grid gap-1.5">
+            {a.checklist.items.map((item, idx) => {
+              const status = STATUS_LABEL[item.status] ?? STATUS_LABEL.unclear;
+              return (
+                <li key={idx} className="flex items-start justify-between gap-3 text-sm">
+                  <span>{item.item}</span>
+                  <span className={`tool-badge ${status.badge} shrink-0`} style={{ fontSize: "0.62rem" }}>
+                    {status.label}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </Fold>
+      )}
+
+      {hasLanguage && (
+        <Fold title="What the criteria turn on">
+          <p className="text-xs text-[var(--muted)]">
+            The regulation&apos;s own distinctions between rating levels. They tell you what to describe accurately, not what to
+            say.
+          </p>
+          <Bullets title="Lower ratings" items={a.criteriaLanguage.lower} />
+          <Bullets title="Middle ratings" items={a.criteriaLanguage.middle} />
+          <Bullets title="Higher ratings" items={a.criteriaLanguage.higher} />
+        </Fold>
+      )}
+
+      {a.examPrep.length > 0 && (
+        <Fold title="Preparing for the exam">
+          <Bullets title="" items={a.examPrep} />
+        </Fold>
+      )}
+
       {a.secondary.length > 0 && (
-        <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">7. Possible secondary conditions</p>
+        <Fold title="Possible secondary conditions">
           <ul className="grid gap-1.5">
             {a.secondary.map((s, idx) => (
               <li key={idx} className="text-sm">
@@ -185,10 +208,8 @@ function AnalysisView({ a }: { a: Analysis }) {
               </li>
             ))}
           </ul>
-        </div>
+        </Fold>
       )}
-
-      <Bullets title="Preparing for the exam" items={a.examPrep} />
     </div>
   );
 }
@@ -198,54 +219,72 @@ function AnalysisView({ a }: { a: Analysis }) {
 export default function VaRatingNavigatorPage() {
   const [conditionsText, setConditionsText] = useState("");
   const [rows, setRows] = useState<Row[]>([]);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [source, setSource] = useState<Source | null>(null);
-  const [identifying, setIdentifying] = useState(false);
+  const [identifying, setIdentifying] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const patch = (index: number, change: Partial<Row>) => setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...change } : row)));
 
+  const entered = conditionsText
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length >= 2);
+
   async function identify(e: FormEvent) {
     e.preventDefault();
-    const conditions = conditionsText
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line.length >= 2)
-      .slice(0, 15);
+    const conditions = entered.slice(0, MAX_CONDITIONS).map((c) => c.slice(0, 160));
     if (conditions.length === 0) {
       setError("List at least one condition, one per line.");
       return;
     }
-    setIdentifying(true);
     setError(null);
     setRows([]);
+    setOpenIndex(null);
+
+    const found: Row[] = [];
     try {
-      const res = await fetch("/api/tools/va-rating-navigator", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stage: "identify", conditions }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Something went wrong on our end. Try again in a few seconds.");
-        return;
+      // Long lists go in batches so each request stays fast and reliable.
+      for (let start = 0; start < conditions.length; start += BATCH) {
+        const batch = conditions.slice(start, start + BATCH);
+        setIdentifying(
+          conditions.length > BATCH
+            ? `Matching conditions ${start + 1} to ${start + batch.length} of ${conditions.length}…`
+            : "Matching your conditions to the rating schedule…"
+        );
+        const res = await fetch("/api/tools/va-rating-navigator", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ stage: "identify", conditions: batch }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setError(
+            `${typeof data.error === "string" ? data.error : "Something went wrong on our end."}${
+              found.length ? ` The first ${found.length} conditions are shown below.` : ""
+            }`
+          );
+          break;
+        }
+        setSource(data.source as Source);
+        found.push(
+          ...(data.conditions as Identified[]).map((c) => ({
+            ...c,
+            code: c.candidates[0]?.code ?? "",
+            details: "",
+            analysis: null,
+            loading: false,
+            error: null,
+            rating: "",
+            side: "" as Side,
+          }))
+        );
+        setRows([...found]);
       }
-      setSource(data.source as Source);
-      setRows(
-        (data.conditions as Identified[]).map((c) => ({
-          ...c,
-          code: c.candidates[0]?.code ?? "",
-          details: "",
-          analysis: null,
-          loading: false,
-          error: null,
-          rating: "",
-          bilateral: false,
-        }))
-      );
     } catch {
       setError("That didn't go through. Check your connection and try again.");
     } finally {
-      setIdentifying(false);
+      setIdentifying(null);
     }
   }
 
@@ -259,7 +298,7 @@ export default function VaRatingNavigatorPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           stage: "analyze",
-          condition: row.input,
+          condition: row.input.slice(0, 160),
           codes: [row.code],
           dbqTitles: row.dbq.map((d) => d.title),
           details: row.details || null,
@@ -274,8 +313,8 @@ export default function VaRatingNavigatorPage() {
       patch(index, {
         loading: false,
         analysis,
-        // Start the combined estimate from the low end of the range: the conservative read.
-        rating: analysis.likelyRange.low !== null ? String(analysis.likelyRange.low) : "",
+        // If no rating was picked yet, start from the low end of the range: the conservative read.
+        rating: row.rating !== "" ? row.rating : analysis.likelyRange.low !== null ? String(analysis.likelyRange.low) : "",
       });
     } catch {
       patch(index, { loading: false, error: "That didn't go through. Check your connection and try again." });
@@ -283,9 +322,11 @@ export default function VaRatingNavigatorPage() {
   }
 
   const combined = useMemo(() => {
-    const rated = rows.filter((row) => row.rating !== "").map((row) => ({ rating: Number(row.rating), bilateral: row.bilateral }));
-    return rated.length > 0 ? combineRatings(rated) : null;
+    const rated = rows.filter((row) => row.rating !== "").map((row) => ({ rating: Number(row.rating), side: row.side }));
+    return rated.length > 0 ? combineRatings(withBilateralFlags(rated)) : null;
   }, [rows]);
+
+  const ratedCount = rows.filter((row) => row.rating !== "").length;
 
   return (
     <main className="page-shell">
@@ -320,36 +361,51 @@ export default function VaRatingNavigatorPage() {
             <form className="flex flex-col gap-4" onSubmit={identify}>
               <div>
                 <p className="tool-kicker">STEP 1: YOUR CONDITIONS</p>
-                <p className="section-description mt-1">One per line, in your own words. Up to 15.</p>
+                <p className="section-description mt-1">
+                  One per line, in your own words. List everything you plan to claim, up to {MAX_CONDITIONS}.
+                </p>
               </div>
               <textarea
-                className="input min-h-40"
+                className="input min-h-48"
                 value={conditionsText}
                 onChange={(e) => setConditionsText(e.target.value)}
-                placeholder={"Lower back pain\nTinnitus\nRight knee\nSleep apnea\nMigraines"}
+                placeholder={"Lower back pain\nTinnitus\nRight knee\nLeft knee\nSleep apnea\nMigraines"}
               />
-              <button className="btn btn-primary w-full sm:w-auto" type="submit" disabled={identifying}>
+              <p className="text-xs text-[var(--muted)]">
+                {entered.length} listed
+                {entered.length > MAX_CONDITIONS ? `. Only the first ${MAX_CONDITIONS} will be matched.` : ""}
+              </p>
+              <button className="btn btn-primary w-full sm:w-auto" type="submit" disabled={!!identifying}>
                 {identifying ? "Matching…" : "Find the Rating Codes"}
               </button>
             </form>
           </section>
 
-          {combined && (
-            <section className="tool-section">
+          {rows.length > 0 && (
+            <section className="tool-section lg:sticky lg:top-4">
               <p className="tool-kicker">COMBINED RATING ESTIMATE</p>
-              <p className="text-3xl font-extrabold">{combined.combinedRating}%</p>
-              <p className="text-sm text-[var(--muted)]">
-                VA does not add ratings together. Each one applies to what is left after the one before it. Exact combined value:{" "}
-                {combined.combinedValue}.
-              </p>
-              <ol className="list-decimal space-y-0.5 pl-5 text-xs text-[var(--muted)]">
-                {combined.steps.map((step, idx) => (
-                  <li key={idx}>{step}</li>
-                ))}
-              </ol>
-              <p className="text-xs text-[var(--muted)]">
-                Approximate. It uses the rating you picked for each condition below, and VA decides the real ones.
-              </p>
+              {combined ? (
+                <>
+                  <p className="text-3xl font-extrabold">{combined.combinedRating}%</p>
+                  <p className="text-sm text-[var(--muted)]">
+                    From {ratedCount} of {rows.length} conditions. VA does not add ratings together: each one applies to what is
+                    left after the one before it. Exact combined value: {combined.combinedValue}.
+                  </p>
+                  <details>
+                    <summary className="cursor-pointer text-xs font-semibold text-[var(--accent)]">Show the math</summary>
+                    <ol className="mt-2 list-decimal space-y-0.5 pl-5 text-xs text-[var(--muted)]">
+                      {combined.steps.map((step, idx) => (
+                        <li key={idx}>{step}</li>
+                      ))}
+                    </ol>
+                  </details>
+                </>
+              ) : (
+                <p className="text-sm text-[var(--muted)]">
+                  Pick a rating on any condition to start the estimate. You do not need to analyze a condition first.
+                </p>
+              )}
+              <p className="text-xs text-[var(--muted)]">Approximate. It uses the ratings you pick, and VA decides the real ones.</p>
             </section>
           )}
 
@@ -375,124 +431,197 @@ export default function VaRatingNavigatorPage() {
 
         {/* ── OUTPUT ────────────────────────────────────────────── */}
         <div className="tool-output-panel">
-          {identifying && <LoadingBlock task="Matching your conditions to the rating schedule…" detail="Usually 15 to 30 seconds." />}
+          {identifying && <LoadingBlock task={identifying} detail="About 15 to 30 seconds for every 20 conditions." />}
 
-          {!identifying && error && (
+          {error && (
             <ToolAlert variant="error" title="Could not finish">
               <p className="text-sm">{error}</p>
             </ToolAlert>
           )}
 
-          {!identifying &&
-            rows.map((row, index) => {
-              const candidate = row.candidates.find((c) => c.code === row.code);
-              const ratingOptions = row.analysis?.allowedRatings.length ? row.analysis.allowedRatings : candidate?.ratings ?? [];
-              return (
-                <div key={`${row.input}-${index}`} className="tool-output-card">
-                  <div>
-                    <p className="tool-kicker">CONDITION {index + 1}</p>
-                    <p className="section-title mt-0.5">{row.input}</p>
-                    {row.plainLanguage ? <p className="section-description">{row.plainLanguage}</p> : null}
-                  </div>
+          {rows.length > 0 && (
+            <div className="tool-output-card">
+              <div>
+                <p className="tool-kicker">STEP 2: YOUR CONDITIONS</p>
+                <p className="section-description mt-1">
+                  Pick a rating on each row to build your combined estimate. Open a condition to see its criteria, describe your
+                  symptoms, and get an estimated range.
+                </p>
+              </div>
 
-                  {row.candidates.length === 0 ? (
-                    <ToolAlert variant="warn" title="No matching code found">
-                      <p className="text-sm">
-                        {row.note || "Nothing in the rating schedule clearly matches this wording."} Try the medical name of the
-                        condition, or ask a Veterans Service Officer how it would be rated.
-                      </p>
-                    </ToolAlert>
-                  ) : (
-                    <>
-                      <label className="block space-y-1">
-                        <span className="text-sm font-medium">Rating code</span>
-                        <select className="input" value={row.code} onChange={(e) => patch(index, { code: e.target.value, analysis: null, rating: "" })}>
-                          {row.candidates.map((c) => (
-                            <option key={c.code} value={c.code}>
-                              DC {c.code}: {c.title}
-                            </option>
-                          ))}
-                        </select>
-                        {candidate?.why ? <span className="block text-xs text-[var(--muted)]">{candidate.why}</span> : null}
-                        {row.note ? <span className="block text-xs text-[var(--muted)]">{row.note}</span> : null}
-                      </label>
+              <div className="grid gap-2">
+                {rows.map((row, index) => {
+                  const candidate = row.candidates.find((c) => c.code === row.code);
+                  const ratingOptions = row.analysis?.allowedRatings.length ? row.analysis.allowedRatings : candidate?.ratings ?? [];
+                  const sides = sideOptions(candidate?.limb ?? null);
+                  const open = openIndex === index;
+                  const noMatch = row.candidates.length === 0;
 
-                      {row.dbq.length > 0 && (
-                        <p className="text-sm text-[var(--muted)]">
-                          Exam form:{" "}
-                          {row.dbq.map((d, i) => (
-                            <span key={d.url}>
-                              {i > 0 ? ", " : ""}
-                              <a className="underline" href={d.url} target="_blank" rel="noreferrer">
-                                {d.title}
-                              </a>
+                  return (
+                    <div
+                      key={`${row.input}-${index}`}
+                      className={`rounded-xl border ${open ? "border-[var(--accent)] bg-[var(--panel)]" : "border-[var(--line)] bg-[var(--surface)]"}`}
+                    >
+                      {/* Row summary: always visible */}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 p-3">
+                        <button
+                          type="button"
+                          className="flex min-w-0 flex-1 items-start gap-2 text-left"
+                          aria-expanded={open}
+                          onClick={() => setOpenIndex(open ? null : index)}
+                        >
+                          <span className="mt-0.5 w-5 shrink-0 text-xs font-bold text-[var(--muted)]">{index + 1}</span>
+                          <span className="min-w-0">
+                            <span className="block text-sm font-semibold leading-tight">{row.input}</span>
+                            <span className="block truncate text-xs text-[var(--muted)]">
+                              {noMatch ? "No matching code found" : `DC ${row.code}: ${candidate?.title ?? ""}`}
                             </span>
-                          ))}
-                        </p>
-                      )}
-
-                      <label className="block space-y-1">
-                        <span className="text-sm font-medium">
-                          Step 2: Describe it <span className="font-normal text-[var(--muted)]">(optional, but it makes the estimate real)</span>
-                        </span>
-                        <textarea
-                          className="input min-h-28"
-                          value={row.details}
-                          onChange={(e) => patch(index, { details: e.target.value })}
-                          placeholder="How often it happens, how bad it gets, how long it lasts, what you can't do because of it, treatment and medication, tests or imaging you've had, and how it affects work and daily life."
-                        />
-                        <span className="block text-xs text-[var(--muted)]">
-                          Sent to our AI provider to write this analysis. MilVector does not save it. Leave out names, SSNs, and dates of birth.
-                        </span>
-                      </label>
-
-                      <div className="flex flex-wrap items-center gap-3">
-                        <button className="btn btn-primary text-sm" type="button" disabled={row.loading} onClick={() => void analyze(index)}>
-                          {row.loading ? "Analyzing…" : row.analysis ? "Analyze Again" : "Analyze This Condition"}
+                          </span>
                         </button>
-                        {ratingOptions.length > 0 && (
-                          <>
-                            <label className="flex items-center gap-2 text-sm">
-                              <span className="text-[var(--muted)]">Use in combined estimate:</span>
-                              <select className="input !w-auto !py-1.5" value={row.rating} onChange={(e) => patch(index, { rating: e.target.value })}>
-                                <option value="">Leave out</option>
-                                {ratingOptions.map((r) => (
-                                  <option key={r} value={r}>
-                                    {r}%
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                            <label
-                              className="flex items-center gap-1.5 text-sm text-[var(--muted)]"
-                              title="Check this for conditions affecting both arms, both legs, or paired muscles on both sides."
-                            >
-                              <input type="checkbox" checked={row.bilateral} onChange={(e) => patch(index, { bilateral: e.target.checked })} />
-                              Both sides (bilateral)
-                            </label>
-                          </>
+
+                        {row.analysis && (
+                          <span className="tool-badge tool-badge-success shrink-0" style={{ fontSize: "0.62rem" }} title="Estimated range from your description">
+                            Est. {rangeText(row.analysis)}
+                          </span>
                         )}
+
+                        {sides.length > 0 && (
+                          <select
+                            className="input !w-auto !py-1.5 text-sm"
+                            value={row.side}
+                            onChange={(e) => patch(index, { side: e.target.value as Side })}
+                            aria-label={`Which side, for ${row.input}`}
+                            title="Arms and legs only. When both sides are rated, VA adds a bilateral factor."
+                          >
+                            <option value="">Which side?</option>
+                            {sides.map((s) => (
+                              <option key={s.value} value={s.value}>
+                                {s.label}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+
+                        {ratingOptions.length > 0 && (
+                          <select
+                            className="input !w-auto !py-1.5 text-sm"
+                            value={row.rating}
+                            onChange={(e) => patch(index, { rating: e.target.value })}
+                            aria-label={`Rating to use for ${row.input}`}
+                          >
+                            <option value="">Rating</option>
+                            {ratingOptions.map((r) => (
+                              <option key={r} value={r}>
+                                {r}%
+                              </option>
+                            ))}
+                          </select>
+                        )}
+
+                        <button
+                          type="button"
+                          className="shrink-0 text-xs font-semibold text-[var(--accent)] hover:underline"
+                          onClick={() => setOpenIndex(open ? null : index)}
+                        >
+                          {open ? "Close" : "Details"}
+                        </button>
                       </div>
 
-                      {row.loading && <LoadingBlock task={`Reading the criteria for DC ${row.code}…`} detail="Usually 20 to 40 seconds." />}
-                      {row.error && (
-                        <ToolAlert variant="error" title="Analysis failed">
-                          <p className="text-sm">{row.error}</p>
-                        </ToolAlert>
+                      {/* Expanded detail: one condition at a time */}
+                      {open && (
+                        <div className="grid gap-4 border-t border-[var(--line)] p-3">
+                          {row.plainLanguage ? <p className="text-sm text-[var(--muted)]">{row.plainLanguage}</p> : null}
+
+                          {noMatch ? (
+                            <ToolAlert variant="warn" title="No matching code found">
+                              <p className="text-sm">
+                                {row.note || "Nothing in the rating schedule clearly matches this wording."} Try the medical name of
+                                the condition, or ask a Veterans Service Officer how it would be rated.
+                              </p>
+                            </ToolAlert>
+                          ) : (
+                            <>
+                              {row.candidates.length > 1 ? (
+                                <label className="block space-y-1">
+                                  <span className="text-sm font-medium">Rating code</span>
+                                  <select
+                                    className="input"
+                                    value={row.code}
+                                    onChange={(e) => patch(index, { code: e.target.value, analysis: null, rating: "", side: "" })}
+                                  >
+                                    {row.candidates.map((c) => (
+                                      <option key={c.code} value={c.code}>
+                                        DC {c.code}: {c.title}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </label>
+                              ) : null}
+                              {candidate?.why || row.note ? (
+                                <p className="text-xs text-[var(--muted)]">{[candidate?.why, row.note].filter(Boolean).join(" ")}</p>
+                              ) : null}
+
+                              {row.dbq.length > 0 && (
+                                <p className="text-sm text-[var(--muted)]">
+                                  Exam form:{" "}
+                                  {row.dbq.map((d, i) => (
+                                    <span key={d.url}>
+                                      {i > 0 ? ", " : ""}
+                                      <a className="underline" href={d.url} target="_blank" rel="noreferrer">
+                                        {d.title}
+                                      </a>
+                                    </span>
+                                  ))}
+                                </p>
+                              )}
+
+                              <label className="block space-y-1">
+                                <span className="text-sm font-medium">
+                                  Describe it <span className="font-normal text-[var(--muted)]">(optional, but it makes the estimate real)</span>
+                                </span>
+                                <textarea
+                                  className="input min-h-28"
+                                  value={row.details}
+                                  onChange={(e) => patch(index, { details: e.target.value })}
+                                  placeholder="How often it happens, how bad it gets, how long it lasts, what you can't do because of it, treatment and medication, tests or imaging you've had, and how it affects work and daily life."
+                                />
+                                <span className="block text-xs text-[var(--muted)]">
+                                  Sent to our AI provider to write this analysis. MilVector does not save it. Leave out names, SSNs,
+                                  and dates of birth.
+                                </span>
+                              </label>
+
+                              <div>
+                                <button className="btn btn-primary text-sm" type="button" disabled={row.loading} onClick={() => void analyze(index)}>
+                                  {row.loading ? "Analyzing…" : row.analysis ? "Analyze Again" : "Analyze This Condition"}
+                                </button>
+                              </div>
+
+                              {row.loading && <LoadingBlock task={`Reading the criteria for DC ${row.code}…`} detail="Usually 20 to 40 seconds." />}
+                              {row.error && (
+                                <ToolAlert variant="error" title="Analysis failed">
+                                  <p className="text-sm">{row.error}</p>
+                                </ToolAlert>
+                              )}
+                              {row.analysis && !row.loading && <AnalysisView a={row.analysis} />}
+                            </>
+                          )}
+                        </div>
                       )}
-                      {row.analysis && !row.loading && <AnalysisView a={row.analysis} />}
-                    </>
-                  )}
-                </div>
-              );
-            })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {!identifying && rows.length === 0 && !error && (
             <div className="tool-empty">
               <p className="font-medium">Your conditions will appear here</p>
               <p className="text-sm">
-                List what you plan to claim on the left. For each one you will get the rating code, the criteria for every rating
-                level, an exam checklist, your evidence gaps, and an estimated range.
+                List everything you plan to claim on the left. You will get a compact list with the rating code for each one. Pick
+                ratings to estimate your combined rating, and open any condition for its criteria, an exam checklist, your evidence
+                gaps, and an estimated range.
               </p>
               <div className="tool-example">
                 <p className="tool-example-kicker">Example</p>

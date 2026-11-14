@@ -119,7 +119,21 @@ export function allowedRatings(code: string): number[] {
   if (!entry) return [];
   const all = new Set(entry.ratings);
   for (const formula of formulasFor(entry)) formula.ratings.forEach((r) => all.add(r));
+  const scale = nerveScaleCode(entry);
+  if (scale) codeMap.get(scale)!.ratings.forEach((r) => all.add(r));
   return [...all].sort((a, b) => a - b);
+}
+
+// Neuritis (83xx, 86xx) and neuralgia (84xx, 87xx) of a nerve carry no tiers of
+// their own. 38 CFR 4.123 and 4.124 rate them on that nerve's paralysis scale
+// (82xx, 85xx), with stated maximums the regulation text explains.
+function nerveScaleCode(entry: CodeEntry): string | null {
+  if (entry.section !== "4.124a" || entry.ratings.length > 0) return null;
+  const n = Number(entry.code);
+  const hundreds = Math.floor(n / 100);
+  const offset = hundreds === 83 || hundreds === 86 ? 100 : hundreds === 84 || hundreds === 87 ? 200 : 0;
+  const scale = String(n - offset);
+  return offset && codeMap.has(scale) ? scale : null;
 }
 
 /**
@@ -145,6 +159,8 @@ export function codeContext(code: string, maxChars = 14000): string | null {
   const referenced = [...new Set([...ownText.matchAll(/\b(?:DCs?|diagnostic codes?)\s*((?:\d{4}(?:\s*(?:,|and|or|through|-)\s*)?)+)/gi)].flatMap((m) => m[1].match(/\d{4}/g) ?? []))]
     .filter((ref) => ref !== entry.code && codeMap.has(ref))
     .slice(0, 3);
+  const scale = nerveScaleCode(entry);
+  if (scale && !referenced.includes(scale)) referenced.unshift(scale);
   for (const ref of referenced) {
     const other = codeMap.get(ref)!;
     parts.push(`REFERENCED CODE ${other.code}: ${other.title} (38 CFR ${other.section})\n${renderLines(other.lines)}`);

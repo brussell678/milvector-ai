@@ -54,6 +54,15 @@ describe("VA rating schedule data", () => {
     expect(codeContext("7512")).toMatch(/SHARED CRITERIA, 38 CFR 4\.115a/);
   });
 
+  it("names nerve codes by their nerve and rates neuritis on the paralysis scale", () => {
+    expect(getCode("8520")?.title).toMatch(/Sciatic nerve, paralysis/i);
+    expect(getCode("8620")?.title).toMatch(/Sciatic nerve, neuritis/i);
+    expect(allowedRatings("8620")).toEqual(allowedRatings("8520"));
+    expect(codeContext("8620")).toMatch(/REFERENCED CODE 8520/);
+    // 4.123 and 4.124 state the maximums for neuritis and neuralgia
+    expect(codeContext("8620")).toMatch(/neuritis/i);
+  });
+
   it("builds an index of every code and a DBQ list", () => {
     expect(codeIndexText().split("\n").length).toBeGreaterThan(650);
     expect(dbqForms().length).toBeGreaterThan(50);

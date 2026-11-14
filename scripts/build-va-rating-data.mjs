@@ -88,15 +88,27 @@ for (const match of xml.matchAll(sectionRe)) {
       }
       current = null;
     };
+    let nerveHeading = "";
     for (const cells of rows) {
       const first = cells[0] ?? "";
       const rating = cells.length > 1 ? cells[cells.length - 1] : "";
       const codeMatch = first.match(/^(\d{4})\s+(.*)$/);
       const isFormula = FORMULA_RE.test(first);
 
+      // Peripheral nerve tables name the nerve in a heading row, then list
+      // "8520 Paralysis of", "8620 Neuritis", "8720 Neuralgia" beneath it.
+      if (!codeMatch && cells.slice(1).every((c) => !c) && first.length < 90 && /\b(nerves?|plexus|radicular groups?)\b/i.test(first)) {
+        nerveHeading = first.replace(/[:.]\s*$/, "");
+      }
+
       if (codeMatch) {
         flush();
-        current = { kind: "code", code: codeMatch[1], title: codeMatch[2].replace(/[:.]\s*$/, ""), section: number, table: tableId, lines: [] };
+        if (/^\[Removed\]/i.test(codeMatch[2])) continue;
+        let title = codeMatch[2].replace(/[:.]\s*$/, "");
+        if (nerveHeading && /^(Paralysis of|Neuritis|Neuralgia)$/i.test(title)) {
+          title = `${nerveHeading}, ${title.replace(/ of$/i, "").toLowerCase()}`;
+        }
+        current = { kind: "code", code: codeMatch[1], title, section: number, table: tableId, lines: [] };
         if (/^\d{1,3}$/.test(rating)) current.lines.push({ text: codeMatch[2], rating: Number(rating) });
         continue;
       }

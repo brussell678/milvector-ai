@@ -85,10 +85,14 @@ export const SbpAdvisorInputSchema = z.object({
   notes: z.string().max(2000).optional().nullable(),
 });
 
+export const VA_IDENTIFY_BATCH = 20;
+export const VA_MAX_CONDITIONS = 60;
+
 export const VaNavigatorInputSchema = z.discriminatedUnion("stage", [
   z.object({
     stage: z.literal("identify"),
-    conditions: z.array(z.string().min(2).max(160)).min(1).max(15),
+    // One batch. The page sends long lists in several batches.
+    conditions: z.array(z.string().min(2).max(160)).min(1).max(VA_IDENTIFY_BATCH),
   }),
   z.object({
     stage: z.literal("analyze"),

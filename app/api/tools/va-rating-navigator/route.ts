@@ -8,6 +8,7 @@ import { promptVaAnalyze, promptVaIdentify } from "@/lib/llm/prompts-advisors";
 import { allowedRatings, codeContext, codeIndexText, dbqForms, dbqIndexText, getCode, isValidCode, SCHEDULE_AS_OF, SCHEDULE_SOURCE_URL } from "@/lib/va/schedule";
 import { runLoggedJson } from "@/lib/tools/run";
 import { redactPII } from "@/lib/redact";
+import { limbForCode } from "@/lib/va/bilateral";
 
 const TOOL = "va_rating_navigator";
 
@@ -24,7 +25,7 @@ export async function POST(req: Request) {
   const supabase = await supabaseServer();
 
   const parsed = VaNavigatorInputSchema.safeParse(await req.json());
-  if (!parsed.success) return NextResponse.json({ error: "List at least one condition, one per line." }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: "List at least one condition, one per line, each under 160 characters." }, { status: 400 });
   const input = parsed.data;
 
   const overLimit = await enforceAiUsageLimit({ supabase, userId, email });
@@ -61,7 +62,7 @@ export async function POST(req: Request) {
         .map((c) => ({ code: text(c.code), why: text(c.why) }))
         .filter((c) => isValidCode(c.code))
         .slice(0, 3)
-        .map((c) => ({ ...c, title: getCode(c.code)!.title, ratings: allowedRatings(c.code) }));
+        .map((c) => ({ ...c, title: getCode(c.code)!.title, ratings: allowedRatings(c.code), limb: limbForCode(c.code) }));
       const dbq = (Array.isArray(row.dbq_numbers) ? row.dbq_numbers : [])
         .map((n) => forms[Number(n) - 1])
         .filter(Boolean)
