@@ -4,6 +4,7 @@ import { cardBuilderEnabled } from "@/lib/cards/access";
 import { appleConfig } from "@/lib/cards/apple-pass";
 import { googleConfig } from "@/lib/cards/google-pass";
 import { piiProblem } from "@/lib/cards/opsec";
+import { PDF_MIME, RESUME_DOC_TYPES, RESUME_MIMES, resumeOptions } from "@/lib/cards/resume";
 import { CardDataSchema, MAX_CARDS_PER_USER, readCardData, slugFromName } from "@/lib/cards/schema";
 import { isMissingSchema, MIGRATION_MESSAGE } from "@/lib/cards/store";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -42,6 +43,24 @@ export async function GET() {
     .maybeSingle();
   const fullName = String(user.user_metadata?.full_name ?? user.user_metadata?.name ?? "").trim();
 
+  // Resume attachments arrive with migration 0030. Until it is run this query
+  // fails and the editor shows the feature as not ready, without breaking.
+  const { data: attached, error: attachedError } = await supabase
+    .from("business_cards")
+    .select("id,resume_name,resume_mime,resume_updated_at")
+    .eq("user_id", user.id);
+  const attachedById = new Map(
+    ((attached ?? []) as { id: string; resume_name: string | null; resume_mime: string | null; resume_updated_at: string | null }[]).map((row) => [row.id, row]),
+  );
+  const { data: docs } = await supabase
+    .from("documents")
+    .select("id,filename,doc_type,mime_type,size_bytes,created_at")
+    .eq("user_id", user.id)
+    .in("doc_type", [...RESUME_DOC_TYPES])
+    .in("mime_type", [...RESUME_MIMES])
+    .order("created_at", { ascending: false })
+    .limit(100);
+
   return NextResponse.json({
     cards: ((data ?? []) as Row[]).map((row) => ({
       id: row.id,
@@ -51,7 +70,16 @@ export async function GET() {
       published: row.published,
       suspended: row.suspended,
       updatedAt: row.updated_at,
+      resume: attachedById.get(row.id)?.resume_name
+        ? {
+            name: attachedById.get(row.id)!.resume_name!,
+            isPdf: attachedById.get(row.id)!.resume_mime === PDF_MIME,
+            updatedAt: attachedById.get(row.id)!.resume_updated_at,
+          }
+        : null,
     })),
+    resumeReady: !attachedError,
+    resumeOptions: resumeOptions(docs ?? []),
     maxCards: MAX_CARDS_PER_USER,
     wallet: { apple: !!appleConfig(), google: !!googleConfig() },
     defaults: {
@@ -100,7 +128,7 @@ export async function POST(req: Request) {
       .single<Row>();
     if (!error && data) {
       return NextResponse.json({
-        card: { id: data.id, slug: data.slug, card: readCardData(data.data), photo: null, published: false, suspended: false, updatedAt: data.updated_at },
+        card: { id: data.id, slug: data.slug, card: readCardData(data.data), photo: null, published: false, suspended: false, updatedAt: data.updated_at, resume: null },
       });
     }
     if (error?.code !== "23505") return NextResponse.json({ error: error?.message ?? "The card could not be created." }, { status: 500 });

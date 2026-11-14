@@ -39,7 +39,18 @@ function initials(name: string) {
 
 const telHref = (phone: string) => phone.replace(/[^\d+]/g, "");
 
-export function CardView({ card, photoSrc, children }: { card: CardData; photoSrc?: string | null; children?: ReactNode }) {
+export function CardView({
+  card,
+  photoSrc,
+  resume,
+  children,
+}: {
+  card: CardData;
+  photoSrc?: string | null;
+  // The attached resume. `href` is omitted in the editor preview.
+  resume?: { href?: string; isPdf: boolean } | null;
+  children?: ReactNode;
+}) {
   const quick = [
     card.phone && { href: `tel:${telHref(card.phone)}`, label: "Call", Icon: Phone },
     card.phone && { href: `sms:${telHref(card.phone)}`, label: "Text", Icon: MessageSquare },
@@ -135,6 +146,21 @@ export function CardView({ card, photoSrc, children }: { card: CardData; photoSr
               </a>
             ))}
           </div>
+        )}
+
+        {resume && (
+          <a
+            href={resume.href}
+            data-card-resume=""
+            className="mt-4 flex min-h-[52px] items-center gap-3 rounded-2xl px-4 text-sm font-bold"
+            style={{ background: "var(--card-soft)", color: "var(--card-fg)", border: "1px solid var(--card-accent)" }}
+          >
+            <FileText size={18} aria-hidden="true" style={{ color: "var(--card-icon)" }} />
+            <span className="flex-1">Download my resume</span>
+            <span className="text-xs font-semibold" style={{ color: "var(--card-muted)" }}>
+              {resume.isPdf ? "PDF" : "Word"}
+            </span>
+          </a>
         )}
 
         {card.links.length > 0 && (

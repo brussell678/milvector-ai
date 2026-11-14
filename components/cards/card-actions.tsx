@@ -18,7 +18,7 @@ type Props = {
   track: boolean;
 };
 
-function send(slug: string, kind: "view" | "save" | "link", source: EventSource) {
+function send(slug: string, kind: "view" | "save" | "link" | "resume", source: EventSource) {
   const body = JSON.stringify({ kind, source });
   try {
     if (navigator.sendBeacon?.(`/c/${slug}/event`, new Blob([body], { type: "application/json" }))) return;
@@ -51,8 +51,9 @@ export function CardActions({ slug, ownerFirstName, source, leadCapture, qrSvg, 
     }
     // Count taps on the card's links without making every link a client component.
     const onClick = (event: MouseEvent) => {
-      const link = (event.target as HTMLElement | null)?.closest?.("a[data-card-link]");
-      if (link) send(slug, "link", source);
+      const target = event.target as HTMLElement | null;
+      if (target?.closest?.("a[data-card-resume]")) send(slug, "resume", source);
+      else if (target?.closest?.("a[data-card-link]")) send(slug, "link", source);
     };
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);

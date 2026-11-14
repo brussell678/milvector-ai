@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cardBuilderEnabled } from "@/lib/cards/access";
 import { summarizeStats, type StatRow } from "@/lib/cards/insights";
 import { piiProblem } from "@/lib/cards/opsec";
+import { isResumeMime, matchesMime, PDF_MIME, RESUME_DOC_TYPES, RESUME_MAX_BYTES, resumeDownloadName } from "@/lib/cards/resume";
 import { CardDataSchema, readCardData, slugProblem, validPhoto } from "@/lib/cards/schema";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -69,6 +70,7 @@ export async function PATCH(req: Request, { params }: Params) {
     slug?: unknown;
     published?: unknown;
     photo?: { jpeg?: unknown; png?: unknown } | null;
+    resume?: { documentId?: unknown } | null;
   } | null;
   if (!body) return NextResponse.json({ error: "Nothing to save." }, { status: 400 });
 
@@ -107,15 +109,57 @@ export async function PATCH(req: Request, { params }: Params) {
     update.photo_png = png;
   }
 
+  // Attach a resume: copy one of the member's own files onto the card.
+  let resume: { name: string; isPdf: boolean; updatedAt: string } | null | undefined;
+  if (body.resume === null) {
+    Object.assign(update, { resume_data: null, resume_name: null, resume_mime: null, resume_updated_at: null });
+    resume = null;
+  } else if (body.resume) {
+    const documentId = String(body.resume.documentId ?? "");
+    if (!UUID_RE.test(documentId)) return NextResponse.json({ error: "Pick a resume from the list." }, { status: 400 });
+    const { data: doc } = await supabase
+      .from("documents")
+      .select("id,doc_type,mime_type,storage_path,size_bytes")
+      .eq("id", documentId)
+      .eq("user_id", user.id)
+      .maybeSingle<{ id: string; doc_type: string; mime_type: string; storage_path: string; size_bytes: number }>();
+    if (!doc || !(RESUME_DOC_TYPES as readonly string[]).includes(doc.doc_type)) {
+      return NextResponse.json({ error: "That file was not found in My Files. Refresh the page and pick again." }, { status: 404 });
+    }
+    if (!isResumeMime(doc.mime_type)) {
+      return NextResponse.json({ error: "Only PDF and Word resumes can go on a card. Upload a PDF version to My Files." }, { status: 400 });
+    }
+    if (doc.size_bytes > RESUME_MAX_BYTES) {
+      return NextResponse.json({ error: "That file is larger than 3 MB. Upload a smaller PDF to My Files." }, { status: 400 });
+    }
+    const { data: file, error: downloadError } = await supabase.storage.from("documents").download(doc.storage_path);
+    if (downloadError || !file) return NextResponse.json({ error: "That file could not be read. Try again in a moment." }, { status: 500 });
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    if (bytes.length > RESUME_MAX_BYTES || !matchesMime(bytes, doc.mime_type)) {
+      return NextResponse.json({ error: "That file does not look like a valid PDF or Word document. Upload it again to My Files." }, { status: 400 });
+    }
+    const { data: current } = await supabase.from("business_cards").select("data").eq("id", id).eq("user_id", user.id).maybeSingle<{ data: unknown }>();
+    if (!current) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    const cardName = update.data ? (update.data as { name: string }).name : readCardData(current.data).name;
+    const updatedAt = new Date().toISOString();
+    const name = resumeDownloadName(cardName, doc.mime_type);
+    Object.assign(update, { resume_data: Buffer.from(bytes).toString("base64"), resume_name: name, resume_mime: doc.mime_type, resume_updated_at: updatedAt });
+    resume = { name, isPdf: doc.mime_type === PDF_MIME, updatedAt };
+  }
+
   if (Object.keys(update).length === 0) return NextResponse.json({ error: "Nothing to save." }, { status: 400 });
 
   const { data, error } = await supabase.from("business_cards").update(update).eq("id", id).eq("user_id", user.id).select(COLUMNS).maybeSingle<Row>();
   if (error?.code === "23505") {
     return NextResponse.json({ error: "That address is already taken. Pick another.", field: "slug" }, { status: 409 });
   }
+  if (error && resume !== undefined && /resume_/.test(error.message)) {
+    return NextResponse.json({ error: "Resume attachments are not set up yet. Run migration 0030_business_card_resume.sql in the Supabase SQL editor." }, { status: 503 });
+  }
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json({ card: present(data) });
+  // `resume` is included only when this request changed it.
+  return NextResponse.json({ card: present(data), ...(resume !== undefined ? { resume } : {}) });
 }
 
 // Deletes the card, or one contact when ?lead=<id> is given.

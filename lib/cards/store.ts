@@ -60,6 +60,31 @@ export async function loadCardForViewer(supabase: SupabaseClient, slug: string):
   return { id: row.id, slug: row.slug, card: readCardData(row.data), hasPhoto: row.has_photo, state: "live", viewer: "public" };
 }
 
+// The attached resume's file name, or null when there is none. Also null
+// when migration 0030 has not been run, so the card simply shows no button.
+export async function loadCardResumeName(supabase: SupabaseClient, slug: string): Promise<string | null> {
+  const clean = slug.toLowerCase();
+  const { data } = await supabase.rpc("get_public_card_resume_name", { p_slug: clean });
+  if (typeof data === "string" && data) return data;
+  // Draft preview for the owner.
+  const { data: own } = await supabase.from("business_cards").select("resume_name").eq("slug", clean).maybeSingle<{ resume_name: string | null }>();
+  return own?.resume_name ?? null;
+}
+
+export async function loadCardResume(supabase: SupabaseClient, slug: string): Promise<{ name: string; mime: string; data: string } | null> {
+  const clean = slug.toLowerCase();
+  const { data } = await supabase.rpc("get_public_card_resume", { p_slug: clean });
+  const row = Array.isArray(data) ? (data[0] as { name: string; mime: string; data: string } | undefined) : undefined;
+  if (row?.data) return row;
+  const { data: own } = await supabase
+    .from("business_cards")
+    .select("resume_name,resume_mime,resume_data")
+    .eq("slug", clean)
+    .maybeSingle<{ resume_name: string | null; resume_mime: string | null; resume_data: string | null }>();
+  if (!own?.resume_data || !own.resume_name || !own.resume_mime) return null;
+  return { name: own.resume_name, mime: own.resume_mime, data: own.resume_data };
+}
+
 // Photo bytes for a card the viewer is allowed to see.
 export async function loadCardPhoto(supabase: SupabaseClient, slug: string, format: "jpeg" | "png"): Promise<string | null> {
   const clean = slug.toLowerCase();

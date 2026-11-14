@@ -8,6 +8,7 @@ export type Insights = {
   saves: number;
   linkTaps: number;
   walletAdds: number;
+  resumeDownloads: number;
   // Share of visitors who saved the contact, as a whole percent, or null with no views
   saveRate: number | null;
   viewsBySource: { source: EventSource; count: number }[];
@@ -22,6 +23,7 @@ export function summarizeStats(rows: StatRow[], today: Date): Insights {
   let saves = 0;
   let linkTaps = 0;
   let walletAdds = 0;
+  let resumeDownloads = 0;
   const bySource = new Map<EventSource, number>();
   const byDay = new Map<string, { views: number; saves: number }>();
 
@@ -33,6 +35,7 @@ export function summarizeStats(rows: StatRow[], today: Date): Insights {
     } else if (row.kind === "save") saves += count;
     else if (row.kind === "link") linkTaps += count;
     else if (row.kind === "apple" || row.kind === "google") walletAdds += count;
+    else if (row.kind === "resume") resumeDownloads += count;
 
     if (row.kind === "view" || row.kind === "save") {
       const entry = byDay.get(row.day) ?? { views: 0, saves: 0 };
@@ -53,6 +56,7 @@ export function summarizeStats(rows: StatRow[], today: Date): Insights {
     saves,
     linkTaps,
     walletAdds,
+    resumeDownloads,
     saveRate: views > 0 ? Math.min(100, Math.round((saves / views) * 100)) : null,
     viewsBySource: EVENT_SOURCES.map((source) => ({ source, count: bySource.get(source) ?? 0 })).filter((entry) => entry.count > 0),
     daily,

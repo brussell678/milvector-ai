@@ -20,6 +20,7 @@ import {
   validPhoto,
   type CardData,
 } from "@/lib/cards/schema";
+import { DOCX_MIME, matchesMime, PDF_MIME, RESUME_MAX_BYTES, resumeDownloadName, resumeOptions } from "@/lib/cards/resume";
 import { buildVCard, vcardFilename } from "@/lib/cards/vcard";
 import { crc32, zipStore } from "@/lib/cards/zip";
 
@@ -196,6 +197,7 @@ describe("insights", () => {
       { day: "2026-11-01", kind: "link", source: "direct", count: 5 },
       { day: "2026-10-01", kind: "apple", source: "direct", count: 1 },
       { day: "2026-10-01", kind: "google", source: "direct", count: 2 },
+      { day: "2026-10-02", kind: "resume", source: "qr", count: 4 },
       { day: "2026-09-01", kind: "view", source: "nfc", count: 10 },
     ],
     today,
@@ -206,6 +208,7 @@ describe("insights", () => {
     expect(stats.saves).toBe(3);
     expect(stats.linkTaps).toBe(5);
     expect(stats.walletAdds).toBe(3);
+    expect(stats.resumeDownloads).toBe(4);
     expect(stats.saveRate).toBe(15);
     expect(stats.viewsBySource).toEqual([
       { source: "direct", count: 4 },
@@ -421,5 +424,52 @@ describe("Google Wallet pass", () => {
     expect(JSON.parse(Buffer.from(jwt.split(".")[0], "base64url").toString())).toEqual({ alg: "RS256", typ: "JWT" });
     expect(decode(jwt).iat).toBe(1_800_000_000);
     expect(verifies(jwt)).toBe(true);
+  });
+});
+
+describe("resume on a card", () => {
+  const doc = (over: Record<string, unknown>) => ({
+    id: "1",
+    filename: "resume.pdf",
+    doc_type: "MASTER_RESUME",
+    mime_type: PDF_MIME,
+    size_bytes: 200_000,
+    created_at: "2026-11-01T00:00:00Z",
+    ...over,
+  });
+
+  it("offers only PDF and Word files within the size limit", () => {
+    const options = resumeOptions([
+      doc({ id: "pdf" }),
+      doc({ id: "word", mime_type: DOCX_MIME, filename: "resume.docx" }),
+      doc({ id: "text", mime_type: "text/plain", filename: "master.txt" }),
+      doc({ id: "huge", size_bytes: RESUME_MAX_BYTES + 1 }),
+    ]);
+    expect(options.map((o) => o.id)).toEqual(["pdf", "word"]);
+  });
+
+  it("lists PDFs first, then master before targeted, then newest", () => {
+    const options = resumeOptions([
+      doc({ id: "word-master", mime_type: DOCX_MIME }),
+      doc({ id: "pdf-targeted", doc_type: "TARGETED_RESUME" }),
+      doc({ id: "pdf-master-old", created_at: "2026-01-01T00:00:00Z" }),
+      doc({ id: "pdf-master-new", created_at: "2026-11-10T00:00:00Z" }),
+    ]);
+    expect(options.map((o) => o.id)).toEqual(["pdf-master-new", "pdf-master-old", "pdf-targeted", "word-master"]);
+    expect(options[2].kind).toBe("targeted");
+  });
+
+  it("checks the file really is what it claims to be", () => {
+    expect(matchesMime(Buffer.from("%PDF-1.7 ..."), PDF_MIME)).toBe(true);
+    expect(matchesMime(Buffer.from([0x50, 0x4b, 0x03, 0x04, 0]), DOCX_MIME)).toBe(true);
+    expect(matchesMime(Buffer.from("<html><script>"), PDF_MIME)).toBe(false);
+    expect(matchesMime(Buffer.from("%PDF-1.7"), DOCX_MIME)).toBe(false);
+    expect(matchesMime(Buffer.from("%P"), PDF_MIME)).toBe(false);
+  });
+
+  it("names the download after the person, never after the stored file", () => {
+    expect(resumeDownloadName("Jordan A. Reyes", PDF_MIME)).toBe("Jordan-A-Reyes-Resume.pdf");
+    expect(resumeDownloadName("José Núñez", DOCX_MIME)).toBe("Jose-Nunez-Resume.docx");
+    expect(resumeDownloadName("", PDF_MIME)).toBe("Resume.pdf");
   });
 });

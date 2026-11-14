@@ -7,6 +7,7 @@ import { CardView } from "@/components/cards/card-view";
 import { ToolAlert } from "@/components/tools/tool-alert";
 import { leadsCsv, type Insights } from "@/lib/cards/insights";
 import { opsecWarnings } from "@/lib/cards/opsec";
+import type { ResumeOption } from "@/lib/cards/resume";
 import {
   ACCENT_PRESETS,
   CARD_STYLES,
@@ -22,7 +23,17 @@ import {
   type LinkType,
 } from "@/lib/cards/schema";
 
-type SavedCard = { id: string; slug: string; card: CardData; photo: string | null; published: boolean; suspended: boolean; updatedAt: string };
+type AttachedResume = { name: string; isPdf: boolean; updatedAt: string | null };
+type SavedCard = {
+  id: string;
+  slug: string;
+  card: CardData;
+  photo: string | null;
+  published: boolean;
+  suspended: boolean;
+  updatedAt: string;
+  resume: AttachedResume | null;
+};
 type Lead = { id: string; name: string; email: string | null; phone: string | null; company: string | null; note: string | null; source: string; created_at: string };
 type Defaults = { name: string; email: string; phone: string; location: string; linkedin: string };
 type Tab = "edit" | "share" | "insights" | "contacts";
@@ -97,6 +108,9 @@ export function BusinessCardBuilder() {
   const [defaults, setDefaults] = useState<Defaults | null>(null);
   const [maxCards, setMaxCards] = useState(3);
   const [wallet, setWallet] = useState({ apple: false, google: false });
+  const [resumeChoices, setResumeChoices] = useState<ResumeOption[]>([]);
+  const [resumeReady, setResumeReady] = useState(true);
+  const [resumePick, setResumePick] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
@@ -130,6 +144,8 @@ export function BusinessCardBuilder() {
         setDefaults(json.defaults ?? null);
         setMaxCards(json.maxCards ?? 3);
         setWallet(json.wallet ?? { apple: false, google: false });
+        setResumeChoices(json.resumeOptions ?? []);
+        setResumeReady(json.resumeReady !== false);
         if (json.cards?.[0]) open(json.cards[0]);
       }
       setLoading(false);
@@ -141,8 +157,9 @@ export function BusinessCardBuilder() {
 
   const set = <K extends keyof CardData>(key: K, value: CardData[K]) => setDraft((prev) => ({ ...prev, [key]: value }));
 
-  function replaceCard(next: SavedCard) {
-    setCards((prev) => prev.map((card) => (card.id === next.id ? next : card)));
+  // A save returns the card without its resume unless that save changed it.
+  function replaceCard(next: Omit<SavedCard, "resume">, resume?: AttachedResume | null) {
+    setCards((prev) => prev.map((card) => (card.id === next.id ? { ...next, resume: resume !== undefined ? resume : card.resume } : card)));
   }
 
   async function createCard() {
@@ -191,7 +208,7 @@ export function BusinessCardBuilder() {
       setMessage({ kind: "error", text: json.error ?? "That did not save. Check your connection and try again." });
       return false;
     }
-    replaceCard(json.card);
+    replaceCard(json.card, json.resume);
     if (body.card !== undefined) setDraft(json.card.card);
     if (body.slug !== undefined) setSlugDraft(json.card.slug);
     setMessage({ kind: "ok", text: okText });
@@ -504,6 +521,115 @@ export function BusinessCardBuilder() {
             </section>
 
             <section className="section-card space-y-4">
+              <h2 className="section-title">Resume</h2>
+              <p className="section-description">
+                Put one of your resumes from My Files on the card. Visitors get a &quot;Download my resume&quot; button.
+              </p>
+              {!resumeReady ? (
+                <ToolAlert variant="warn">
+                  Resume attachments are not set up yet. Run migration 0030_business_card_resume.sql in the Supabase SQL editor.
+                </ToolAlert>
+              ) : (
+                <>
+                  {active.resume && (
+                    <div className="subtle-panel flex flex-wrap items-center justify-between gap-3 p-3 text-sm">
+                      <div>
+                        <p className="font-bold">On your card now: {active.resume.name}</p>
+                        <p className="text-[var(--muted)]">
+                          {active.resume.isPdf ? "PDF" : "Word document"}
+                          {active.resume.updatedAt ? `, added ${new Date(active.resume.updatedAt).toLocaleDateString()}` : ""}. This is a copy: changes
+                          to the file in My Files do not reach the card until you attach it again.
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <a href={`/c/${active.slug}/resume`} className="btn btn-secondary text-sm">
+                          <Download size={14} aria-hidden="true" />
+                          Check It
+                        </a>
+                        <button type="button" className="btn btn-ghost text-sm" onClick={() => patch({ resume: null }, "Resume removed from the card.")} disabled={saving}>
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {active.resume && !active.resume.isPdf && (
+                    <ToolAlert variant="warn" title="This resume is a Word file">
+                      Recruiters and phones open a PDF more reliably, and a PDF keeps your layout exactly as you made it. In Word, choose File, Save As,
+                      PDF, upload that file to My Files as a Master Resume, then attach it here.
+                    </ToolAlert>
+                  )}
+                  {resumeChoices.length === 0 ? (
+                    <ToolAlert variant="info" title="No resume files in My Files yet">
+                      Upload your finished resume to My Files as a Master Resume, saved as a PDF, and it will appear here. PDF is the format to use for
+                      a card: it opens on any phone and keeps your layout.{" "}
+                      <a href="/app/documents" className="font-bold underline">
+                        Go to My Files
+                      </a>
+                    </ToolAlert>
+                  ) : (
+                    <>
+                      <div className="flex flex-wrap items-end gap-3">
+                        <div className="min-w-[240px] flex-1">
+                          <Field label={active.resume ? "Replace it with" : "Choose a resume"}>
+                            <select className="input" value={resumePick} onChange={(e) => setResumePick(e.target.value)}>
+                              <option value="">Select a file from My Files</option>
+                              {resumeChoices.map((option) => (
+                                <option key={option.id} value={option.id}>
+                                  {option.isPdf ? "PDF" : "Word"} · {option.kind === "targeted" ? "Targeted" : "Master"} · {option.filename}
+                                </option>
+                              ))}
+                            </select>
+                          </Field>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn btn-primary text-sm"
+                          disabled={saving || !resumePick}
+                          onClick={async () => {
+                            if (await patch({ resume: { documentId: resumePick } }, "Resume attached to your card.")) setResumePick("");
+                          }}
+                        >
+                          {saving ? "Attaching..." : "Attach to Card"}
+                        </button>
+                      </div>
+                      {(() => {
+                        const picked = resumeChoices.find((option) => option.id === resumePick);
+                        if (!picked) return null;
+                        return (
+                          <>
+                            {!picked.isPdf && (
+                              <ToolAlert variant="warn" title="This is a Word file. A PDF is the better choice.">
+                                A Word file can look different on the reader&apos;s device and may not open on a phone at all. Save the resume as a PDF
+                                (in Word: File, Save As, PDF), upload the PDF to My Files as a Master Resume, and pick that one instead.
+                              </ToolAlert>
+                            )}
+                            {picked.kind === "targeted" && (
+                              <ToolAlert variant="warn" title="This resume was written for one job">
+                                Everyone who opens your card can download it. A general master resume is usually the better one to hand out.
+                              </ToolAlert>
+                            )}
+                          </>
+                        );
+                      })()}
+                      {!resumeChoices.some((option) => option.isPdf) && (
+                        <p className="text-sm text-[var(--muted)]">
+                          None of your saved resumes is a PDF. For the best result, save your resume as a PDF and upload it to{" "}
+                          <a href="/app/documents" className="font-bold underline">
+                            My Files
+                          </a>{" "}
+                          as a Master Resume.
+                        </p>
+                      )}
+                    </>
+                  )}
+                  <p className="text-xs text-[var(--muted)]">
+                    Anyone with your card link can download this file, including the phone number and email in its header. Files up to 3 MB.
+                  </p>
+                </>
+              )}
+            </section>
+
+            <section className="section-card space-y-4">
               <h2 className="section-title">Look</h2>
               <div>
                 <p className="text-sm font-medium">Color</p>
@@ -599,7 +725,11 @@ export function BusinessCardBuilder() {
 
           <aside className="lg:sticky lg:top-4 lg:self-start">
             <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">Live preview</p>
-            <CardView card={draft} photoSrc={active.photo ? `data:image/jpeg;base64,${active.photo}` : null}>
+            <CardView
+              card={draft}
+              photoSrc={active.photo ? `data:image/jpeg;base64,${active.photo}` : null}
+              resume={active.resume ? { isPdf: active.resume.isPdf } : null}
+            >
               <div
                 className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold"
                 style={{ background: "var(--card-accent)", color: "var(--card-on-accent)" }}
@@ -900,6 +1030,7 @@ function InsightsPanel({ cardId, view, cardName }: { cardId: string; view: "insi
     { label: "Views", value: insights.views },
     { label: "Contact saves", value: insights.saves },
     { label: "Link taps", value: insights.linkTaps },
+    { label: "Resume downloads", value: insights.resumeDownloads },
     { label: "Wallet adds", value: insights.walletAdds },
     { label: "Contacts received", value: data.leads.length },
   ];
@@ -909,7 +1040,7 @@ function InsightsPanel({ cardId, view, cardName }: { cardId: string; view: "insi
       <section className="section-card">
         <h2 className="section-title">Last 90 days</h2>
         <p className="section-description">Counts only. MilVector does not record who viewed your card or anything about their device.</p>
-        <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {tiles.map((tile) => (
             <div key={tile.label} className="subtle-panel p-4">
               <dt className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--muted)]">{tile.label}</dt>

@@ -7,7 +7,7 @@ import { CardActions } from "@/components/cards/card-actions";
 import { CardView } from "@/components/cards/card-view";
 import { cardUrl } from "@/lib/cards/access";
 import { qrColor, readSource } from "@/lib/cards/schema";
-import { loadCardForViewer } from "@/lib/cards/store";
+import { loadCardForViewer, loadCardResumeName } from "@/lib/cards/store";
 import { supabaseServer } from "@/lib/supabase/server";
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ s?: string }> };
@@ -42,6 +42,7 @@ export default async function CardPage({ params, searchParams }: Props) {
   if (!loaded) notFound();
 
   const { card } = loaded;
+  const resumeName = await loadCardResumeName(supabase, loaded.slug);
   const qrSvg = await QRCode.toString(cardUrl(loaded.slug, "qr"), {
     type: "svg",
     margin: 1,
@@ -63,7 +64,11 @@ export default async function CardPage({ params, searchParams }: Props) {
       )}
       {loaded.viewer === "admin" && <AdminCardControls cardId={loaded.id} suspended={loaded.state === "suspended"} />}
 
-      <CardView card={card} photoSrc={loaded.hasPhoto ? `/c/${loaded.slug}/photo` : null}>
+      <CardView
+        card={card}
+        photoSrc={loaded.hasPhoto ? `/c/${loaded.slug}/photo` : null}
+        resume={resumeName ? { href: `/c/${loaded.slug}/resume`, isPdf: resumeName.toLowerCase().endsWith(".pdf") } : null}
+      >
         <CardActions
           slug={loaded.slug}
           ownerFirstName={card.name.trim().split(/\s+/)[0] ?? ""}

@@ -175,7 +175,7 @@ export function validPhoto(base64: string, kind: "jpeg" | "png"): boolean {
   return kind === "jpeg" ? base64.startsWith("/9j/") : base64.startsWith("iVBORw0KGgo");
 }
 
-export const EVENT_KINDS = ["view", "save", "link", "apple", "google"] as const;
+export const EVENT_KINDS = ["view", "save", "link", "apple", "google", "resume"] as const;
 export type EventKind = (typeof EVENT_KINDS)[number];
 export const EVENT_SOURCES = ["direct", "qr", "wallet", "nfc", "sig"] as const;
 export type EventSource = (typeof EVENT_SOURCES)[number];
