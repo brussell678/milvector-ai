@@ -260,7 +260,7 @@ export function AuthForm({ initialError, initialMode }: AuthFormProps) {
       <div className="grid gap-0 md:grid-cols-[1.05fr_0.95fr]">
         {/* ── Dark left panel — matches site-wide hero palette ── */}
         <div
-          className="relative overflow-hidden border-b border-[rgba(255,255,255,0.08)] p-6 sm:p-8 md:border-b-0 md:border-r md:border-r-[rgba(255,255,255,0.08)] md:p-10"
+          className="relative order-2 overflow-hidden border-t border-[rgba(255,255,255,0.08)] p-6 sm:p-8 md:order-1 md:border-r md:border-t-0 md:border-r-[rgba(255,255,255,0.08)] md:p-10"
           style={{
             background: "linear-gradient(-45deg, #061209, #0a1c10, #06120a, #081510)",
             backgroundSize: "400% 400%",
@@ -361,7 +361,8 @@ export function AuthForm({ initialError, initialMode }: AuthFormProps) {
           </div>
         </div>
 
-        <div className="p-6 sm:p-8 md:p-10">
+        {/* On a phone the form comes first; the pitch sits below it. */}
+        <div className="order-1 p-6 sm:p-8 md:order-2 md:p-10">
           <p className="text-xs font-semibold tracking-[0.22em] text-[var(--accent)]">SECURE ACCESS</p>
           <h2 className="mt-3 text-3xl font-extrabold tracking-tight">Open your workspace</h2>
           <p className="mt-2 text-sm text-[var(--muted)]">

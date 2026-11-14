@@ -1451,3 +1451,35 @@ summary:focus-visible,
   font-size: 0.875rem;
   line-height: 1.5;
 }
+
+/* ─── Phone Safety Net ───────────────────────────────────────────── */
+/* Nothing may push a page wider than the phone it is on. A grid child is
+   allowed to shrink below its content, and a long unbroken string (a file
+   name, an email address, a link) wraps instead of sticking out. */
+
+@media (max-width: 767px) {
+  .grid > *,
+  .flex > .flex-1 {
+    min-width: 0;
+  }
+
+  body {
+    overflow-wrap: anywhere;
+  }
+
+  /* iOS zooms the page when a field's text is under 16px. */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* The slide-in menu is a phone control. These component rules outrank the
+   utility classes, so hide it on wider screens here. */
+@media (min-width: 768px) {
+  .nav-drawer,
+  .nav-drawer-overlay {
+    display: none;
+  }
+}

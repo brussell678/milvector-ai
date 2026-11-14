@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { calculateIncome, projectIncome, reserveYearsOfService, type RetirementPlan } from "@/lib/retirement/calc";
 import { estimateHigh3, PAY_GRADES, PAY_TABLE_YEAR } from "@/lib/retirement/pay";
 import { TAX_YEAR, type FilingStatus } from "@/lib/retirement/tax";
@@ -97,6 +97,17 @@ export function RetirementCalculator() {
       }) ?? 0
     );
   }, [high3Mode, high3Entered, grade, component, yearsOfService, years, retireYear, retireMonth, promotedRecently, monthsInGrade, previousGrade, futureRaise]);
+
+  // Phone only: hide the bottom total bar once the full result is on screen.
+  const resultRef = useRef<HTMLDivElement>(null);
+  const [resultInView, setResultInView] = useState(false);
+  useEffect(() => {
+    const node = resultRef.current;
+    if (!node || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(([entry]) => setResultInView(entry.isIntersecting), { rootMargin: "0px 0px -120px 0px" });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   const result = useMemo(() => {
     const preview = calculateIncome({ high3Average: high3, yearsOfService, plan, vaRating: 0, dependents: { spouse: false, childrenUnder18: 0, childrenInSchool: 0, dependentParents: 0 }, filingStatus });
@@ -359,7 +370,7 @@ export function RetirementCalculator() {
       </div>
 
       {/* ── RESULTS ────────────────────────────────────────────── */}
-      <div className="tool-output-panel">
+      <div className="tool-output-panel scroll-mt-20" id="monthly-income" ref={resultRef}>
         <div className="tool-output-card lg:sticky lg:top-4">
           <div>
             <p className="tool-kicker">YOUR MONTHLY INCOME</p>
@@ -453,6 +464,20 @@ export function RetirementCalculator() {
           </ul>
         </div>
       </div>
+
+      {!resultInView && (
+        <a
+          href="#monthly-income"
+          className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 border-t border-[var(--line)] bg-[var(--panel)] px-4 py-2.5 shadow-[var(--shadow-lg)] lg:hidden"
+          style={{ paddingBottom: "calc(0.625rem + env(safe-area-inset-bottom))" }}
+        >
+          <span>
+            <span className="block text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[var(--muted)]">Your monthly income</span>
+            <span className="block text-xl font-extrabold tabular-nums">{usd(result.totalNetMonthly)}</span>
+          </span>
+          <span className="btn btn-primary text-sm">See the breakdown</span>
+        </a>
+      )}
     </div>
   );
 }

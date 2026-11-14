@@ -54,7 +54,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <AppShell>
-      <header className="panel mb-4 flex items-center justify-between gap-4 p-4">
+      <MobileAppNav
+        email={user.email}
+        isAdmin={isAdmin}
+        unreadBoardNotifications={unreadBoardNotifications}
+        hasRecentToolActivity={hasRecentToolActivity}
+      />
+
+      <header className="panel mb-4 hidden items-center justify-between gap-4 p-4 md:flex">
         <div className="flex items-center gap-3">
           <Image
             src="/assets/milvector-ai-logo-transparent.png"
@@ -68,13 +75,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             <p className="text-sm text-[var(--muted)]">{user.email}</p>
           </div>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="flex items-center gap-2">
           <ThemeToggle />
-          <a href="/app/profile" className="btn btn-secondary hidden text-sm sm:inline-flex sm:w-auto">
+          <a href="/app/profile" className="btn btn-secondary text-sm">
             Profile
           </a>
           <form action="/api/auth/signout" method="post">
-            <button className="btn btn-secondary w-full text-sm sm:w-auto" type="submit">
+            <button className="btn btn-secondary text-sm" type="submit">
               Sign Out
             </button>
           </form>
@@ -82,8 +89,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       </header>
 
       <AnnouncementBar update={(latestUpdate as AnnouncementUpdate | null) ?? null} />
-
-      <MobileAppNav isAdmin={isAdmin} unreadBoardNotifications={unreadBoardNotifications} hasRecentToolActivity={hasRecentToolActivity} />
 
       <section className="panel mb-6 hidden p-3 md:block">
         <AppNav isAdmin={isAdmin} unreadBoardNotifications={unreadBoardNotifications} hasRecentToolActivity={hasRecentToolActivity} />

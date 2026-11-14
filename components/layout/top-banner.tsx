@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { X } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { setStoredValue, useStoredValue } from "@/lib/use-stored-value";
 
 const BANNER_KEY = "mv-banner-v1";
@@ -9,8 +10,9 @@ const BANNER_KEY = "mv-banner-v1";
 export function TopBanner() {
   // Undefined until storage is read on the client; null or "" means not dismissed.
   const dismissed = useStoredValue(BANNER_KEY);
+  const pathname = usePathname();
 
-  if (dismissed === undefined || dismissed) return null;
+  if (dismissed === undefined || dismissed || pathname.startsWith("/app")) return null;
 
   function dismiss() {
     setStoredValue(BANNER_KEY, "1");
@@ -31,7 +33,7 @@ export function TopBanner() {
         <button
           type="button"
           onClick={dismiss}
-          className="btn btn-ghost shrink-0 !min-h-7 !min-w-7 !p-1.5 text-[var(--muted)]"
+          className="btn btn-ghost shrink-0 !min-h-11 !min-w-11 !p-1.5 text-[var(--muted)]"
           aria-label="Dismiss banner"
         >
           <X size={14} strokeWidth={2.5} />

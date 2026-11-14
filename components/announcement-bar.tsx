@@ -37,8 +37,28 @@ export function AnnouncementBar({ update }: { update: AnnouncementUpdate | null 
   }
 
   return (
-    <div className="mb-4 rounded-xl border border-[color-mix(in_oklab,var(--accent)_45%,var(--line)_55%)] bg-[color-mix(in_oklab,var(--accent-soft)_55%,var(--panel)_45%)] px-4 py-3">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+    <div className="mb-4 rounded-xl border border-[color-mix(in_oklab,var(--accent)_45%,var(--line)_55%)] bg-[color-mix(in_oklab,var(--accent-soft)_55%,var(--panel)_45%)] py-1.5 pl-3 pr-1 sm:px-4 sm:py-3">
+      {/* Phone: one line. The whole message opens What's New. */}
+      <div className="flex items-center gap-2 sm:hidden">
+        <span className="tool-badge tool-badge-success shrink-0" style={{ fontSize: "0.62rem" }}>
+          {categoryLabel}
+        </span>
+        <Link href="/app/whats-new" className="flex min-h-11 min-w-0 flex-1 items-center text-sm font-semibold leading-snug">
+          <span className="line-clamp-2">{update.title}</span>
+        </Link>
+        <button
+          type="button"
+          onClick={dismiss}
+          aria-label="Dismiss update"
+          className="flex h-11 w-11 shrink-0 items-center justify-center text-[var(--muted)]"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div className="hidden flex-wrap items-center gap-x-3 gap-y-2 sm:flex">
         <span className="tool-badge tool-badge-success shrink-0" style={{ fontSize: "0.62rem" }}>
           {categoryLabel}
         </span>

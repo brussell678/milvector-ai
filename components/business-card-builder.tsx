@@ -706,6 +706,10 @@ export function BusinessCardBuilder() {
                   <input className="input" value={slugDraft} maxLength={40} onChange={(e) => setSlugDraft(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} />
                 </div>
               </Field>
+              <button type="button" className="btn btn-ghost text-sm" onClick={removeCard} disabled={saving}>
+                <Trash2 size={14} aria-hidden="true" />
+                Delete This Card
+              </button>
             </section>
 
             <div className="sticky bottom-3 z-10 flex flex-wrap items-center gap-3 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--shadow-sm)]">
@@ -716,10 +720,6 @@ export function BusinessCardBuilder() {
                 <ExternalLink size={14} aria-hidden="true" />
                 {active.published ? "Open Live Card" : "Preview Saved Draft"}
               </a>
-              <button type="button" className="btn btn-ghost ml-auto text-sm" onClick={removeCard} disabled={saving}>
-                <Trash2 size={14} aria-hidden="true" />
-                Delete Card
-              </button>
             </div>
           </div>
 
