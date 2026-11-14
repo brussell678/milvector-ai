@@ -22,9 +22,6 @@ that reporter), use the admin composer at /app/admin/updates instead — it can
 link the case. This file is for the general changelog.
 -->
 
-## Interview Strategist, VA Rating Navigator, and SBP Advisor now run inside MilVector {new}
-These three tools used to open in ChatGPT, which is retiring that feature in December. They are now built in, so you no longer need a ChatGPT account. The Interview Strategist uses your saved resume and runs a spoken mock interview with feedback. The VA Rating Navigator works from the actual rating regulation and estimates your combined rating. The SBP Advisor shows what each option costs and pays using your own numbers.
-
 ## Privacy update: analytics on public pages {improvement}
 MilVector now counts visits to its public pages, like the home page and knowledge base, so we can see how service members find it. Nothing inside your signed-in workspace is tracked, and your records, documents, and tool use are never sent to analytics. Details are on the Privacy page.
 
