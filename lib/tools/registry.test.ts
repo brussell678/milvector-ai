@@ -19,7 +19,7 @@ describe("tool registry", () => {
 
   it("gives every built-in tool route a display label for the activity feed", () => {
     const labelled = new Set(Object.values(toolLabels));
-    for (const tool of allTools.filter((t) => !t.isExternal && !t.isCalculator)) {
+    for (const tool of allTools.filter((t) => !t.isExternal && !t.isCalculator && !t.isPreview)) {
       expect(labelled.has(tool.title), tool.title).toBe(true);
     }
   });

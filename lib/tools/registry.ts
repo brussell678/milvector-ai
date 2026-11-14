@@ -24,6 +24,8 @@ export type ToolCard = {
   isExternal?: boolean;
   // A calculator that runs in the browser: no AI run, nothing logged
   isCalculator?: boolean;
+  // Shown only to members with preview access (see lib/resume/studio-access.ts)
+  isPreview?: boolean;
 };
 
 export type ToolGroupDef = {
@@ -48,6 +50,13 @@ export const toolGroups: ToolGroupDef[] = [
           { text: "Awards, if you have them — upload the Summary of Action to add depth to the billet you held (optional)." },
           { text: "Review the result, polish it, and upload your final version as a Master Resume." },
         ],
+      },
+      {
+        href: "/app/tools/resume-studio",
+        title: "Resume Studio (Preview)",
+        desc: "The next version of the resume builders. Reads every record you uploaded, traces each accomplishment to its source, and checks every bullet and figure in your resume against it.",
+        requirements: [{ text: "Records uploaded (FITREPs, EVALs, awards, JST, or VMET)", check: "sources" }],
+        isPreview: true,
       },
       {
         href: "/app/tools/linkedin-builder",

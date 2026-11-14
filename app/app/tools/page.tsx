@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
+import { resumeStudioEnabled } from "@/lib/resume/studio-access";
 import { toolGroups, toolLabels, type ChecksState, type ToolCard } from "@/lib/tools/registry";
 
 // ─── Types ────────────────────────────────────────────────────────────
@@ -394,7 +395,12 @@ export default async function ToolsPage() {
 
       {/* ── Tool groups ────────────────────────────────────────────── */}
       {toolGroups.map((group) => (
-        <ToolGroup key={group.kicker} {...group} checks={checks} />
+        <ToolGroup
+          key={group.kicker}
+          {...group}
+          tools={group.tools.filter((tool) => !tool.isPreview || resumeStudioEnabled(user.email))}
+          checks={checks}
+        />
       ))}
     </main>
   );
