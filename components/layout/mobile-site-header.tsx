@@ -11,6 +11,7 @@ const navLinks = [
   { href: "/", label: "Home" },
   { href: "/platform", label: "Why MilVector" },
   { href: "/app/tools", label: "Tools" },
+  { href: "/retirement-calculator", label: "Retirement Pay Calculator" },
   { href: "/knowledge-base", label: "Knowledge Base" },
   { href: "/library", label: "Resource Library" },
   { href: "/message-board", label: "Community" },

@@ -22,6 +22,8 @@ export type ToolCard = {
   gptHref?: string;
   // The tool lives outside MilVector; there is no built-in version
   isExternal?: boolean;
+  // A calculator that runs in the browser: no AI run, nothing logged
+  isCalculator?: boolean;
 };
 
 export type ToolGroupDef = {
@@ -105,8 +107,15 @@ export const toolGroups: ToolGroupDef[] = [
   {
     kicker: "DECIDE",
     title: "Make the Big Calls",
-    description: "Support for benefits and retirement decisions with long-term consequences — VA ratings and the Survivor Benefit Plan.",
+    description: "Support for benefits and retirement decisions with long-term consequences: your retirement income, VA ratings, and the Survivor Benefit Plan.",
     tools: [
+      {
+        href: "/retirement-calculator",
+        title: "Retirement Pay Calculator",
+        desc: "See your full monthly income after retirement: retired pay, VA disability, CRDP or CRSC, SBP, and taxes together. Runs in your browser and saves nothing.",
+        requirements: [{ text: "Your pay grade and years of service at retirement, or your High-3 if you know it." }],
+        isCalculator: true,
+      },
       {
         href: "/app/tools/va-rating-navigator",
         title: "VA Rating Navigator",

@@ -59,7 +59,7 @@ export async function POST(req: Request) {
       const row = byInput.get(condition.toLowerCase()) ?? rows(run.data.conditions)[index] ?? {};
       // A code the model returns is kept only if it exists in the schedule.
       const candidates = rows(row.candidate_codes)
-        .map((c) => ({ code: text(c.code), why: text(c.why) }))
+        .map((c) => ({ code: text(c.code), why: text(c.why), analogous: c.analogous === true }))
         .filter((c) => isValidCode(c.code))
         .slice(0, 3)
         .map((c) => ({ ...c, title: getCode(c.code)!.title, ratings: allowedRatings(c.code), limb: limbForCode(c.code) }));

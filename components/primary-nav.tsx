@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const navLinks = [
   { href: "/platform", label: "Why MilVector" },
   { href: "/app/tools", label: "Tools" },
+  { href: "/retirement-calculator", label: "Pay Calculator" },
   { href: "/knowledge-base", label: "Knowledge Base" },
   { href: "/library", label: "Library" },
   { href: "/message-board", label: "Community" },

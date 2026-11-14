@@ -12,7 +12,7 @@ const MAX_CONDITIONS = 60;
 
 // ─── Types ────────────────────────────────────────────────────────────
 
-type Candidate = { code: string; title: string; why: string; ratings: number[]; limb: Limb | null };
+type Candidate = { code: string; title: string; why: string; ratings: number[]; limb: Limb | null; analogous?: boolean };
 type Dbq = { title: string; url: string };
 type Identified = { input: string; plainLanguage: string; candidates: Candidate[]; dbq: Dbq[]; note: string };
 
@@ -474,7 +474,9 @@ export default function VaRatingNavigatorPage() {
                           <span className="min-w-0">
                             <span className="block text-sm font-semibold leading-tight">{row.input}</span>
                             <span className="block truncate text-xs text-[var(--muted)]">
-                              {noMatch ? "No matching code found" : `DC ${row.code}: ${candidate?.title ?? ""}`}
+                              {noMatch
+                                ? "No matching code found"
+                                : `${candidate?.analogous ? "By analogy, " : ""}DC ${row.code}: ${candidate?.title ?? ""}`}
                             </span>
                           </span>
                         </button>
@@ -556,6 +558,14 @@ export default function VaRatingNavigatorPage() {
                                     ))}
                                   </select>
                                 </label>
+                              ) : null}
+                              {candidate?.analogous ? (
+                                <ToolAlert variant="info" title="Rated by analogy">
+                                  <p className="text-sm">
+                                    This condition has no rating code of its own. VA rates conditions like it under the closest
+                                    related code (38 CFR 4.20), and this is the one usually used. VA may choose a different one.
+                                  </p>
+                                </ToolAlert>
                               ) : null}
                               {candidate?.why || row.note ? (
                                 <p className="text-xs text-[var(--muted)]">{[candidate?.why, row.note].filter(Boolean).join(" ")}</p>
