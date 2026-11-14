@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { DesktopNav } from "@/components/layout/desktop-nav";
 import { MobileSiteHeader } from "@/components/layout/mobile-site-header";
-import { PublicSiteChrome } from "@/components/layout/public-site-chrome";
+import { HideOnCardPage, PublicSiteChrome } from "@/components/layout/public-site-chrome";
 import { TopBanner } from "@/components/layout/top-banner";
 import { ScrollObserver } from "@/components/scroll-observer";
 import { shareImage, siteName, siteUrl } from "@/lib/seo";
@@ -81,13 +81,16 @@ export default function RootLayout({
         <div className="site-watermark" aria-hidden="true" />
         <AnalyticsGuard />
         <ScrollObserver />
-        <TopBanner />
+        <HideOnCardPage>
+          <TopBanner />
+        </HideOnCardPage>
         <PublicSiteChrome>
           <MobileSiteHeader />
           <DesktopNav />
         </PublicSiteChrome>
         <div className="relative z-10 pb-0 pt-4">{children}</div>
 
+        <HideOnCardPage>
         <footer className="site-footer">
           <div className="mx-auto max-w-6xl">
 
@@ -181,6 +184,7 @@ export default function RootLayout({
             </div>
           </div>
         </footer>
+        </HideOnCardPage>
       </body>
     </html>
   );

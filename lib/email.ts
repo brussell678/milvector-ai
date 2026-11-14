@@ -197,3 +197,29 @@ export async function notifyUserRequestShipped(opts: {
     html: baseHtml("Your Request Is Live", body),
   });
 }
+
+export async function notifyCardOwnerNewLead(opts: {
+  to: string;
+  cardName: string;
+  lead: { name: string; email: string; phone: string; company: string; note: string };
+}) {
+  if (!process.env.RESEND_API_KEY) return;
+  const row = (label: string, value: string) =>
+    value ? `<p class="label" style="margin-top:12px;">${label}</p><p class="value">${escapeHtml(value)}</p>` : "";
+  const body = `
+    <p class="value">Someone who viewed your digital business card shared their contact details with you.</p>
+    ${row("Name", opts.lead.name)}
+    ${row("Email", opts.lead.email)}
+    ${row("Phone", opts.lead.phone)}
+    ${row("Organization", opts.lead.company)}
+    ${opts.lead.note ? `<p class="label" style="margin-top:12px;">Note</p><div class="msg-block">${escapeHtml(opts.lead.note)}</div>` : ""}
+    <a class="btn" href="${APP_URL}/app/tools/business-card">Open Your Contacts</a>
+    <p class="value" style="margin-top:16px;font-size:12px;color:#6b7a8d;">You can turn these emails off in the card editor.</p>
+  `;
+  await resend.emails.send({
+    from: FROM,
+    to: opts.to,
+    subject: `${opts.lead.name} shared their contact with you`,
+    html: baseHtml(`New contact from your card`, body),
+  });
+}

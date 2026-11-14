@@ -134,7 +134,7 @@ function TicketCard({ item, isNew }: { item: FeedbackRow; isNew: boolean }) {
   );
 }
 
-export function FeedbackForm() {
+export function FeedbackForm({ initialMessage = "" }: { initialMessage?: string }) {
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -142,7 +142,7 @@ export function FeedbackForm() {
     mos: "",
     feedback_type: "general",
     suggested_tool: "",
-    message: "",
+    message: initialMessage,
   });
   const [submitStatus, setSubmitStatus] = useState<string>("");
   const [submitKind, setSubmitKind] = useState<"success" | "error" | "">("");

@@ -24,7 +24,7 @@ export type ToolCard = {
   isExternal?: boolean;
   // A calculator that runs in the browser: no AI run, nothing logged
   isCalculator?: boolean;
-  // Shown only to members with preview access (see lib/resume/studio-access.ts)
+  // Shown only to members with preview access (see lib/tools/preview.ts)
   isPreview?: boolean;
 };
 
@@ -66,6 +66,13 @@ export const toolGroups: ToolGroupDef[] = [
           { text: "Master resume saved (or be ready to paste one)", check: "master" },
           { text: "Know roughly what role and industry you want." },
         ],
+      },
+      {
+        href: "/app/tools/business-card",
+        title: "Digital Business Card (Preview)",
+        desc: "A card you share with a tap, a link, or a QR code. Add it to Apple or Google Wallet, let people send their details back, and see how often it is viewed.",
+        requirements: [{ text: "The contact details you want a recruiter or new connection to have." }],
+        isPreview: true,
       },
     ],
   },

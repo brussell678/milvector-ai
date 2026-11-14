@@ -18,7 +18,10 @@ const heroStrip = [
   { label: "Tracked status" },
 ];
 
-export default function FeedbackPage() {
+export default async function FeedbackPage({ searchParams }: { searchParams: Promise<{ card?: string }> }) {
+  // "Report this card" on a digital business card lands here with the card's address.
+  const { card } = await searchParams;
+  const reportedCard = card && /^[a-z0-9-]{3,40}$/.test(card) ? card : null;
   return (
     <PageContainer className="flex flex-col gap-6" size="lg">
 
@@ -68,7 +71,9 @@ export default function FeedbackPage() {
         </div>
       </section>
 
-      <FeedbackForm />
+      <FeedbackForm
+        initialMessage={reportedCard ? `I am reporting the business card at www.milvector.org/c/${reportedCard}. The problem with it: ` : ""}
+      />
 
     </PageContainer>
   );

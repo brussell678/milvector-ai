@@ -38,6 +38,11 @@ const privacyPoints = [
       "MilVector uses Google Analytics on its public pages, such as the home page, knowledge base, and library, to see how many people visit and how they find the site. It uses cookies and records pages viewed, approximate location, and device type. It is not loaded inside the signed-in workspace, so your records, documents, and tool use are never sent to it. You can block it in your browser's cookie settings or with Google's Analytics opt-out add-on (tools.google.com/dlpage/gaoptout).",
   },
   {
+    title: "Digital Business Cards",
+    detail:
+      "A business card you publish is a public page: anyone with its link or QR code can see what you put on it, so include only what you would hand to a stranger. Cards are kept out of search engines and are not covered by site analytics. MilVector counts views and contact saves as totals only, with no record of who the visitor was. Details a visitor chooses to send you go only to you, and you can unpublish or delete a card at any time.",
+  },
+  {
     title: "Admin Review And Support",
     detail:
       "Support cases, community moderation, and library submissions can be reviewed by the MilVector admin account so issues can be resolved and unsafe content can be managed inside the workspace.",

@@ -1,0 +1,425 @@
+import { createHash, createVerify, generateKeyPairSync } from "node:crypto";
+import forge from "node-forge";
+import { describe, expect, it } from "vitest";
+import { cardUrl } from "@/lib/cards/access";
+import { appleConfig, buildApplePass, buildPassJson, readPem } from "@/lib/cards/apple-pass";
+import { buildGoogleObject, googleConfig, googleSaveJwt, googleSaveUrl } from "@/lib/cards/google-pass";
+import { leadsCsv, summarizeStats } from "@/lib/cards/insights";
+import { opsecWarnings, piiProblem } from "@/lib/cards/opsec";
+import {
+  CardDataSchema,
+  EMPTY_CARD,
+  LeadSchema,
+  qrColor,
+  readCardData,
+  readSource,
+  safeHttpsUrl,
+  slugFromName,
+  slugProblem,
+  textOnColor,
+  validPhoto,
+  type CardData,
+} from "@/lib/cards/schema";
+import { buildVCard, vcardFilename } from "@/lib/cards/vcard";
+import { crc32, zipStore } from "@/lib/cards/zip";
+
+const card: CardData = {
+  ...EMPTY_CARD,
+  name: "Jordan A. Reyes",
+  title: "Operations Manager",
+  company: "Reyes Logistics, LLC",
+  service: "U.S. Marine Corps Veteran",
+  headline: "20 years leading logistics teams; PMP",
+  email: "jordan@example.com",
+  phone: "(910) 555-0142",
+  website: "https://example.com/",
+  location: "Jacksonville, NC",
+  links: [{ type: "linkedin", label: "LinkedIn", url: "https://www.linkedin.com/in/jordan-reyes" }],
+};
+
+describe("card schema", () => {
+  it("accepts a complete card and fills defaults on a minimal one", () => {
+    expect(CardDataSchema.safeParse(card).success).toBe(true);
+    const minimal = CardDataSchema.parse({ name: "Sam Lee" });
+    expect(minimal.links).toEqual([]);
+    expect(minimal.leadCapture).toBe(true);
+    expect(minimal.style).toBe("band");
+  });
+
+  it("rejects a missing name, a bad color, and too many links", () => {
+    expect(CardDataSchema.safeParse({ ...card, name: " " }).success).toBe(false);
+    expect(CardDataSchema.safeParse({ ...card, accent: "red" }).success).toBe(false);
+    const links = Array.from({ length: 9 }, () => card.links[0]);
+    expect(CardDataSchema.safeParse({ ...card, links }).success).toBe(false);
+  });
+
+  it("only allows https links", () => {
+    expect(safeHttpsUrl("linkedin.com/in/x")).toBe("https://linkedin.com/in/x");
+    expect(safeHttpsUrl("https://example.com/a?b=1")).toBe("https://example.com/a?b=1");
+    expect(safeHttpsUrl("http://example.com")).toBeNull();
+    expect(safeHttpsUrl("javascript:alert(1)")).toBeNull();
+    expect(safeHttpsUrl("data:text/html,x")).toBeNull();
+    expect(safeHttpsUrl("https://user:pw@example.com")).toBeNull();
+    expect(safeHttpsUrl("https://localhost")).toBeNull();
+    expect(CardDataSchema.safeParse({ ...card, website: "javascript:alert(1)" }).success).toBe(false);
+    expect(CardDataSchema.safeParse({ ...card, links: [{ type: "other", label: "x", url: "http://example.com" }] }).success).toBe(false);
+  });
+
+  it("validates phone and email but lets them be blank", () => {
+    expect(CardDataSchema.safeParse({ ...card, phone: "", email: "" }).success).toBe(true);
+    expect(CardDataSchema.safeParse({ ...card, phone: "call me" }).success).toBe(false);
+    expect(CardDataSchema.safeParse({ ...card, email: "nope" }).success).toBe(false);
+    expect(CardDataSchema.safeParse({ ...card, phone: "+1 910-555-0142 x12" }).success).toBe(true);
+  });
+
+  it("strips control characters from text", () => {
+    expect(CardDataSchema.parse({ ...card, title: "Ops\u0000 Lead\u0007" }).title).toBe("Ops Lead");
+  });
+
+  it("reads a damaged stored row without throwing", () => {
+    const read = readCardData({ name: "Sam Lee", accent: "bogus", links: "nope", title: "Analyst" });
+    expect(read.name).toBe("Sam Lee");
+    expect(read.title).toBe("Analyst");
+    expect(read.accent).toBe(EMPTY_CARD.accent);
+    expect(read.links).toEqual([]);
+    expect(readCardData(null).name).toBe("");
+  });
+});
+
+describe("slugs", () => {
+  it("builds an address from a name", () => {
+    expect(slugFromName("Jordan A. Reyes", "a1b2c")).toBe("jordan-a-reyes-a1b2c");
+    expect(slugFromName("José Núñez", "a1b2c")).toBe("jose-nunez-a1b2c");
+    expect(slugFromName("!!!", "a1b2c")).toBe("card-a1b2c");
+    expect(slugProblem(slugFromName("x".repeat(80), "a1b2c"))).toBeNull();
+  });
+
+  it("rejects bad and reserved addresses", () => {
+    expect(slugProblem("jordan-reyes")).toBeNull();
+    expect(slugProblem("ab")).not.toBeNull();
+    expect(slugProblem("-jordan")).not.toBeNull();
+    expect(slugProblem("Jordan")).not.toBeNull();
+    expect(slugProblem("jordan--reyes")).not.toBeNull();
+    expect(slugProblem("admin")).not.toBeNull();
+    expect(slugProblem("milvector")).not.toBeNull();
+  });
+
+  it("tags the address with where the visit came from", () => {
+    expect(cardUrl("jordan")).toBe("https://www.milvector.org/c/jordan");
+    expect(cardUrl("jordan", "qr")).toBe("https://www.milvector.org/c/jordan?s=qr");
+    expect(cardUrl("jordan", "direct")).toBe("https://www.milvector.org/c/jordan");
+    expect(readSource("qr")).toBe("qr");
+    expect(readSource("evil")).toBe("direct");
+    expect(readSource(undefined)).toBe("direct");
+  });
+});
+
+describe("photos and colors", () => {
+  it("accepts only real JPEG and PNG data within the size cap", () => {
+    const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]).toString("base64");
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1]).toString("base64");
+    expect(validPhoto(jpeg, "jpeg")).toBe(true);
+    expect(validPhoto(png, "png")).toBe(true);
+    expect(validPhoto(png, "jpeg")).toBe(false);
+    expect(validPhoto("<svg onload=alert(1)>", "png")).toBe(false);
+    expect(validPhoto("/9j/" + "A".repeat(300_000), "jpeg")).toBe(false);
+    expect(validPhoto("", "jpeg")).toBe(false);
+  });
+
+  it("picks readable text and a scannable QR color", () => {
+    expect(textOnColor("#0f172a")).toBe("#ffffff");
+    expect(textOnColor("#ffe45c")).toBe("#0b1220");
+    expect(qrColor("#1d4e89")).toBe("#1d4e89");
+    expect(qrColor("#ffe45c")).toBe("#0b1220");
+  });
+});
+
+describe("vCard", () => {
+  const vcf = buildVCard(card, "https://www.milvector.org/c/jordan", null);
+
+  it("carries the contact fields with CRLF line endings", () => {
+    expect(vcf.startsWith("BEGIN:VCARD\r\nVERSION:3.0\r\n")).toBe(true);
+    expect(vcf.endsWith("END:VCARD\r\n")).toBe(true);
+    expect(vcf).toContain("FN:Jordan A. Reyes");
+    expect(vcf).toContain("N:Reyes;Jordan;A.;;");
+    expect(vcf).toContain("TEL;TYPE=CELL,VOICE:(910) 555-0142");
+    expect(vcf).toContain("EMAIL;TYPE=INTERNET,WORK:jordan@example.com");
+    expect(vcf).toContain("URL;TYPE=Card:https://www.milvector.org/c/jordan");
+  });
+
+  it("escapes commas, semicolons, and line breaks", () => {
+    expect(vcf).toContain("ORG:Reyes Logistics\\, LLC");
+    expect(vcf).toContain("NOTE:20 years leading logistics teams\\; PMP | U.S. Marine Corps Veteran");
+    const injected = buildVCard({ ...card, title: "Lead\nEND:VCARD\nBEGIN:VCARD" }, "https://x.example/c/a", null);
+    expect(injected.match(/^BEGIN:VCARD/gm)?.length).toBe(1);
+    expect(injected.match(/^END:VCARD/gm)?.length).toBe(1);
+  });
+
+  it("folds long lines to 75 bytes and embeds a photo", () => {
+    const photo = "/9j/" + "A".repeat(400);
+    const withPhoto = buildVCard(card, "https://www.milvector.org/c/jordan", photo);
+    for (const line of withPhoto.split("\r\n")) expect(Buffer.byteLength(line, "utf8")).toBeLessThanOrEqual(75);
+    expect(withPhoto.replace(/\r\n /g, "")).toContain(`PHOTO;ENCODING=b;TYPE=JPEG:${photo}`);
+    expect(vcardFilename("Jordan A. Reyes")).toBe("Jordan-A-Reyes.vcf");
+    expect(vcardFilename("???")).toBe("contact.vcf");
+  });
+});
+
+describe("contact exchange", () => {
+  it("needs a name and an email or a phone", () => {
+    expect(LeadSchema.safeParse({ name: "Pat Kim", email: "pat@example.com" }).success).toBe(true);
+    expect(LeadSchema.safeParse({ name: "Pat Kim", phone: "910-555-0100" }).success).toBe(true);
+    expect(LeadSchema.safeParse({ name: "Pat Kim" }).success).toBe(false);
+    expect(LeadSchema.safeParse({ name: "P", email: "pat@example.com" }).success).toBe(false);
+  });
+
+  it("writes a CSV that a spreadsheet will not execute", () => {
+    const csv = leadsCsv([
+      { name: '=HYPERLINK("http://evil")', email: "a@b.co", phone: null, company: 'Acme "East"', note: "+1 back", source: "qr", created_at: "2026-11-14T10:00:00Z" },
+    ]);
+    const [header, row] = csv.split("\r\n");
+    expect(header).toBe("Name,Email,Phone,Organization,Note,Came from,Date");
+    expect(row.startsWith(`"'=HYPERLINK(""http://evil"")"`)).toBe(true);
+    expect(row).toContain(`"Acme ""East"""`);
+    expect(row).toContain(`"'+1 back"`);
+    expect(row.endsWith(`"2026-11-14"`)).toBe(true);
+  });
+});
+
+describe("insights", () => {
+  const today = new Date("2026-11-14T15:00:00Z");
+  const stats = summarizeStats(
+    [
+      { day: "2026-11-14", kind: "view", source: "qr", count: 6 },
+      { day: "2026-11-14", kind: "view", source: "direct", count: 4 },
+      { day: "2026-11-13", kind: "save", source: "qr", count: 3 },
+      { day: "2026-11-01", kind: "link", source: "direct", count: 5 },
+      { day: "2026-10-01", kind: "apple", source: "direct", count: 1 },
+      { day: "2026-10-01", kind: "google", source: "direct", count: 2 },
+      { day: "2026-09-01", kind: "view", source: "nfc", count: 10 },
+    ],
+    today,
+  );
+
+  it("totals each kind of activity", () => {
+    expect(stats.views).toBe(20);
+    expect(stats.saves).toBe(3);
+    expect(stats.linkTaps).toBe(5);
+    expect(stats.walletAdds).toBe(3);
+    expect(stats.saveRate).toBe(15);
+    expect(stats.viewsBySource).toEqual([
+      { source: "direct", count: 4 },
+      { source: "qr", count: 6 },
+      { source: "nfc", count: 10 },
+    ]);
+  });
+
+  it("returns 30 days, oldest first, with empty days filled", () => {
+    expect(stats.daily).toHaveLength(30);
+    expect(stats.daily[0].day).toBe("2026-10-16");
+    expect(stats.daily[29]).toEqual({ day: "2026-11-14", views: 10, saves: 0 });
+    expect(stats.daily[28]).toEqual({ day: "2026-11-13", views: 0, saves: 3 });
+  });
+
+  it("has no save rate without views", () => {
+    expect(summarizeStats([], today).saveRate).toBeNull();
+  });
+});
+
+describe("OPSEC checks", () => {
+  it("blocks a Social Security number and a labeled DoD ID", () => {
+    expect(piiProblem(card)).toBeNull();
+    expect(piiProblem({ ...card, bio: "SSN 123-45-6789" })).toMatch(/Social Security/);
+    expect(piiProblem({ ...card, bio: "DoD ID 1234567890" })).toMatch(/DoD ID/);
+  });
+
+  it("does not mistake the phone number field for an ID", () => {
+    expect(piiProblem({ ...card, phone: "9105550142" })).toBeNull();
+  });
+
+  it("warns about clearance, street addresses, duty stations, and .mil email", () => {
+    expect(opsecWarnings(card)).toEqual([]);
+    expect(opsecWarnings({ ...card, headline: "Active TS/SCI" })).toHaveLength(1);
+    expect(opsecWarnings({ ...card, location: "412 Gum Branch Road" })).toHaveLength(1);
+    expect(opsecWarnings({ ...card, bio: "Currently stationed at Camp Lejeune" })).toHaveLength(1);
+    expect(opsecWarnings({ ...card, email: "jordan.reyes@usmc.mil" })).toHaveLength(1);
+  });
+});
+
+// ─── Wallet passes ───────────────────────────────────────────────────
+
+function selfSigned(commonName: string) {
+  const keys = forge.pki.rsa.generateKeyPair(2048);
+  const cert = forge.pki.createCertificate();
+  cert.publicKey = keys.publicKey;
+  cert.serialNumber = "01";
+  cert.validity.notBefore = new Date(Date.now() - 86_400_000);
+  cert.validity.notAfter = new Date(Date.now() + 86_400_000 * 30);
+  const attrs = [{ name: "commonName", value: commonName }];
+  cert.setSubject(attrs);
+  cert.setIssuer(attrs);
+  cert.sign(keys.privateKey, forge.md.sha256.create());
+  return { certPem: forge.pki.certificateToPem(cert), keyPem: forge.pki.privateKeyToPem(keys.privateKey) };
+}
+
+// Reads a stored (uncompressed) ZIP back into its files.
+function unzip(zip: Buffer) {
+  const files: Record<string, Buffer> = {};
+  let offset = 0;
+  while (zip.readUInt32LE(offset) === 0x04034b50) {
+    const size = zip.readUInt32LE(offset + 18);
+    const nameLength = zip.readUInt16LE(offset + 26);
+    const name = zip.subarray(offset + 30, offset + 30 + nameLength).toString("utf8");
+    const data = zip.subarray(offset + 30 + nameLength, offset + 30 + nameLength + size);
+    expect(crc32(data)).toBe(zip.readUInt32LE(offset + 14));
+    files[name] = data;
+    offset += 30 + nameLength + size;
+  }
+  return files;
+}
+
+describe("ZIP writer", () => {
+  it("matches the standard CRC-32 check value", () => {
+    expect(crc32(Buffer.from("123456789"))).toBe(0xcbf43926);
+  });
+
+  it("round-trips files and writes a valid end record", () => {
+    const zip = zipStore([
+      { name: "a.txt", data: Buffer.from("hello") },
+      { name: "b.json", data: Buffer.from("{}") },
+    ]);
+    const files = unzip(zip);
+    expect(files["a.txt"].toString()).toBe("hello");
+    expect(files["b.json"].toString()).toBe("{}");
+    const end = zip.length - 22;
+    expect(zip.readUInt32LE(end)).toBe(0x06054b50);
+    expect(zip.readUInt16LE(end + 10)).toBe(2);
+    expect(zip.readUInt32LE(zip.readUInt32LE(end + 16))).toBe(0x02014b50);
+  });
+});
+
+describe("Apple Wallet pass", () => {
+  it("is off unless every setting is present, and reads PEM or base64 PEM", () => {
+    expect(appleConfig({} as NodeJS.ProcessEnv)).toBeNull();
+    const pem = "-----BEGIN CERTIFICATE-----\nabc\n-----END CERTIFICATE-----";
+    expect(readPem(pem)).toBe(pem);
+    expect(readPem(Buffer.from(pem).toString("base64"))).toBe(pem);
+    expect(readPem(pem.replace(/\n/g, "\\n"))).toBe(pem);
+    expect(readPem("not a key")).toBeNull();
+    const env = { APPLE_PASS_CERT: pem, APPLE_PASS_KEY: pem, APPLE_WWDR_CERT: pem, APPLE_PASS_TYPE_ID: "pass.org.milvector.card" };
+    expect(appleConfig(env as unknown as NodeJS.ProcessEnv)).toBeNull();
+    expect(appleConfig({ ...env, APPLE_TEAM_ID: "ABCDE12345" } as unknown as NodeJS.ProcessEnv)?.teamId).toBe("ABCDE12345");
+  });
+
+  it("describes the card and points its QR code at the live page", () => {
+    const json = buildPassJson({ card, slug: "jordan", cardId: "id-1", config: { passTypeId: "pass.org.milvector.card", teamId: "ABCDE12345" } });
+    expect(json.passTypeIdentifier).toBe("pass.org.milvector.card");
+    expect(json.serialNumber).toBe("id-1");
+    expect(json.generic.primaryFields[0].value).toBe("Jordan A. Reyes");
+    expect(json.barcodes[0]).toMatchObject({ format: "PKBarcodeFormatQR", message: "https://www.milvector.org/c/jordan?s=wallet" });
+    expect(json.backgroundColor).toBe("rgb(31, 111, 84)");
+    expect(json.foregroundColor).toBe("rgb(255, 255, 255)");
+  });
+
+  it("builds a signed package whose manifest matches every file", () => {
+    const signer = selfSigned("Pass Type ID: pass.test");
+    const wwdr = selfSigned("Test WWDR");
+    const photo = Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]).toString("base64");
+    const pass = buildApplePass({
+      card,
+      slug: "jordan",
+      cardId: "id-1",
+      photoPngBase64: photo,
+      config: { passTypeId: "pass.test", teamId: "TEAM123456", certPem: signer.certPem, keyPem: signer.keyPem, wwdrPem: wwdr.certPem },
+    });
+    const files = unzip(pass);
+    for (const required of ["pass.json", "icon.png", "icon@2x.png", "logo.png", "thumbnail.png", "manifest.json", "signature"]) {
+      expect(files[required], required).toBeDefined();
+    }
+    const manifest = JSON.parse(files["manifest.json"].toString()) as Record<string, string>;
+    expect(Object.keys(manifest).sort()).toEqual(Object.keys(files).filter((n) => n !== "manifest.json" && n !== "signature").sort());
+    for (const [name, hash] of Object.entries(manifest)) {
+      expect(createHash("sha1").update(files[name]).digest("hex"), name).toBe(hash);
+    }
+
+    // The signature is a detached PKCS#7 over the manifest, carrying both certificates.
+    const p7 = forge.pkcs7.messageFromAsn1(forge.asn1.fromDer(files["signature"].toString("binary"))) as forge.pkcs7.PkcsSignedData;
+    expect(p7.certificates).toHaveLength(2);
+    const names = p7.certificates.map((c) => c.subject.getField("CN").value);
+    expect(names).toContain("Pass Type ID: pass.test");
+    expect(names).toContain("Test WWDR");
+  }, 30_000);
+});
+
+describe("Google Wallet pass", () => {
+  const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+  const config = {
+    issuerId: "3388000000012345678",
+    serviceAccountEmail: "milvector-wallet@milvector-production.iam.gserviceaccount.com",
+    privateKeyPem: privateKey.export({ type: "pkcs8", format: "pem" }).toString(),
+  };
+  const args = { card, slug: "jordan", cardId: "3f1c9a2e-0000-4000-8000-000000000001", hasPhoto: true };
+  const decode = (jwt: string) => JSON.parse(Buffer.from(jwt.split(".")[1], "base64url").toString());
+  const verifies = (jwt: string) => {
+    const [head, body, signature] = jwt.split(".");
+    return createVerify("RSA-SHA256").update(`${head}.${body}`).verify(publicKey, Buffer.from(signature, "base64url"));
+  };
+
+  it("is off unless every setting is present", () => {
+    expect(googleConfig({} as NodeJS.ProcessEnv)).toBeNull();
+    expect(googleConfig({ GOOGLE_WALLET_ISSUER_ID: "1", GOOGLE_WALLET_SERVICE_ACCOUNT_EMAIL: "a@b.co" } as unknown as NodeJS.ProcessEnv)).toBeNull();
+  });
+
+  it("describes the card and points its QR code at the live page", () => {
+    const object = buildGoogleObject({ ...args, issuerId: config.issuerId }, true);
+    expect(object.id).toBe("3388000000012345678.card_3f1c9a2e000040008000000000000001");
+    expect(object.classId).toBe("3388000000012345678.milvector_business_card");
+    expect(object.barcode.value).toBe("https://www.milvector.org/c/jordan?s=wallet");
+    expect(object.logo.sourceUri.uri).toBe("https://www.milvector.org/c/jordan/photo");
+    expect(object.header.defaultValue.value).toBe("Jordan A. Reyes");
+    expect(object.linksModuleData.uris.map((u) => u.id)).toEqual(["card", "web", "link0"]);
+    expect(buildGoogleObject({ ...args, issuerId: config.issuerId }, false).linksModuleData.uris).toHaveLength(1);
+  });
+
+  it("registers the pass with Google and hands out a short signed link", async () => {
+    const calls: { url: string; method: string }[] = [];
+    const fetcher = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      calls.push({ url, method: init?.method ?? "GET" });
+      if (url.includes("oauth2")) return Response.json({ access_token: "token-1" });
+      if (url.endsWith("/genericClass")) return new Response("{}", { status: 409 });
+      if (init?.method === "PUT") return new Response("{}", { status: 404 });
+      return Response.json({});
+    }) as typeof fetch;
+
+    const result = await googleSaveUrl({ ...args, config }, fetcher);
+    expect(result.mode).toBe("registered");
+    expect(calls.map((c) => c.method)).toEqual(["POST", "POST", "PUT", "POST"]);
+    expect(calls[2].url).toContain("/genericObject/3388000000012345678.card_3f1c9a2e000040008000000000000001");
+
+    const jwt = result.url.replace("https://pay.google.com/gp/v/save/", "");
+    expect(verifies(jwt)).toBe(true);
+    const claims = decode(jwt);
+    expect(claims).toMatchObject({ aud: "google", typ: "savetowallet", iss: config.serviceAccountEmail, origins: ["https://www.milvector.org"] });
+    expect(claims.payload.genericObjects).toEqual([{ id: "3388000000012345678.card_3f1c9a2e000040008000000000000001", classId: "3388000000012345678.milvector_business_card" }]);
+    expect(result.url.length).toBeLessThan(1000);
+  });
+
+  it("falls back to a pass carried in the link when Google's API is unreachable", async () => {
+    const down = (async () => new Response("no", { status: 500 })) as unknown as typeof fetch;
+    const result = await googleSaveUrl({ ...args, config }, down);
+    expect(result.mode).toBe("embedded");
+    const jwt = result.url.replace("https://pay.google.com/gp/v/save/", "");
+    expect(verifies(jwt)).toBe(true);
+    const claims = decode(jwt);
+    expect(claims.payload.genericClasses).toEqual([{ id: "3388000000012345678.milvector_business_card" }]);
+    expect(claims.payload.genericObjects[0].header.defaultValue.value).toBe("Jordan A. Reyes");
+  });
+
+  it("signs the save link so Google can verify it", () => {
+    const jwt = googleSaveJwt(config, [{ id: "a", classId: "b" }], [], 1_800_000_000);
+    expect(JSON.parse(Buffer.from(jwt.split(".")[0], "base64url").toString())).toEqual({ alg: "RS256", typ: "JWT" });
+    expect(decode(jwt).iat).toBe(1_800_000_000);
+    expect(verifies(jwt)).toBe(true);
+  });
+});
