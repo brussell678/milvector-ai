@@ -727,8 +727,16 @@ function LookTab({
           location data phones keep in photos.
         </p>
         {cover && (
-          // eslint-disable-next-line @next/next/no-img-element -- local preview of the member's own photo
-          <img src={cover} alt="Your cover photo" className="max-h-56 w-full rounded-xl border border-[var(--line)] object-cover" />
+          <>
+            {/* The whole photo, uncropped, so the member sees what they uploaded */}
+            {/* eslint-disable-next-line @next/next/no-img-element -- local preview of the member's own photo */}
+            <img src={cover} alt="Your cover photo" className="h-auto max-h-[28rem] w-full rounded-xl border border-[var(--line)] bg-[var(--surface)] object-contain" />
+            <p className="text-xs text-[var(--muted)]">
+              This is your whole photo. Behind your name, the page shows the middle of it and trims the edges to fit the screen.{" "}
+              <span className="lg:hidden">The Preview tab shows exactly how it looks on a phone.</span>
+              <span className="hidden lg:inline">The phone preview beside this shows exactly how.</span>
+            </p>
+          </>
         )}
         <div className="flex flex-wrap gap-2">
           <label className={`btn btn-secondary cursor-pointer text-sm ${saving ? "pointer-events-none opacity-60" : ""}`}>
