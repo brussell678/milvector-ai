@@ -39,8 +39,14 @@ export const toolGroups: ToolGroupDef[] = [
   {
     kicker: "STEP 1 + 2",
     title: "Build Your Base",
-    description: "Start here. These build the master resume and LinkedIn profile that everything else uses.",
+    description:
+      "Start here. Not sure what to aim for? The MOS Translator shows which civilian jobs fit. Then build the master resume and LinkedIn profile that everything else uses.",
     tools: [
+      {
+        href: "/app/tools/mos-translator",
+        title: "MOS Translator",
+        desc: "Enter your MOS and see which civilian jobs match your experience, in the words hiring managers use. Pick one as your target role and the resume builders aim at it.",
+      },
       {
         href: "/app/tools/fitrep-bullets",
         title: "Master Resume Builder",
@@ -105,18 +111,6 @@ export const toolGroups: ToolGroupDef[] = [
           { text: "Copy the full job posting so you can paste it in." },
           { text: "Know the company name." },
         ],
-      },
-    ],
-  },
-  {
-    kicker: "EXPLORE",
-    title: "Figure Out What's Next",
-    description: "Not sure what civilian job fits? Start here to see your options in plain language.",
-    tools: [
-      {
-        href: "/app/tools/mos-translator",
-        title: "MOS Translator",
-        desc: "Enter your MOS and see which civilian jobs match your experience — with the words hiring managers use for it.",
       },
     ],
   },
