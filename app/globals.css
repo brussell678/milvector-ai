@@ -658,12 +658,13 @@ body {
   transition: background-color var(--duration-base) var(--ease-default), border-color var(--duration-base) var(--ease-default);
 }
 
-/* Desktop nav links */
+/* Desktop nav links. The horizontal padding is part of the width budget in
+   components/primary-nav.tsx; widen it and the row can overflow again. */
 .nav-link {
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--foreground);
-  padding: 0.375rem 0.75rem;
+  padding: 0.375rem 0.625rem;
   border-radius: var(--radius-md);
   white-space: nowrap;
   transition: background-color var(--duration-fast) var(--ease-default), color var(--duration-fast) var(--ease-default);
@@ -678,7 +679,7 @@ body {
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--accent);
-  padding: 0.375rem 0.75rem;
+  padding: 0.375rem 0.625rem;
   border-radius: var(--radius-md);
   background: var(--accent-soft);
   white-space: nowrap;
