@@ -1,13 +1,25 @@
 import type { CSSProperties } from "react";
 import { CalendarPlus, MapPin } from "lucide-react";
+import { BaseAccess } from "@/components/invites/base-access";
 import { headingFamily, inviteFontVariables } from "@/components/invites/fonts";
+import { RsvpForm } from "@/components/invites/rsvp-form";
 import { ShareActions } from "@/components/invites/share-actions";
-import { BRANCH_NAMES, type InviteData, type InviteEvent } from "@/lib/invites/schema";
+import { StickyRsvp } from "@/components/invites/sticky-rsvp";
+import { BRANCH_NAMES, hasBaseEvent, type InviteData, type InviteEvent } from "@/lib/invites/schema";
 import { contrastRatio, inviteColors, readTemplate } from "@/lib/invites/templates";
+import { ceremonyOf, directionsUrl, eventIsComplete, formatDateLong, formatTime, formatTimeRange, googleCalendarUrl, publicLocation, sortEvents } from "@/lib/invites/time";
 
 // The dark shade laid over a cover photo so white text reads on any picture.
 const SCRIM_TONE = "#141a22";
-import { ceremonyOf, directionsUrl, eventIsComplete, formatDateLong, formatTime, formatTimeRange, googleCalendarUrl, publicLocation, sortEvents } from "@/lib/invites/time";
+
+// Today at the venue, as YYYY-MM-DD, for deadline countdowns.
+function todayIn(timeZone: string): string {
+  try {
+    return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  } catch {
+    return new Date().toISOString().slice(0, 10);
+  }
+}
 
 // The guest-facing invitation. Renders the same on the public page and in the
 // builder's preview. It sizes itself by its own width (container queries), not
@@ -52,14 +64,26 @@ export function InviteView({ data, slug, pageUrl, coverSrc, qrSvg, framed = fals
   // The builder also blocks pointer events on the preview; this keeps keyboard
   // focus out of it.
   const inert = framed ? { tabIndex: -1, "aria-disabled": true } : {};
+  const rsvpOpen = data.rsvp.enabled;
+  // The template's colors as CSS variables, for the interactive parts (the
+  // RSVP form) that style themselves with utility classes.
+  const vars = {
+    background: c.bg,
+    color: c.ink,
+    "--iv-bg": c.bg,
+    "--iv-surface": c.surface,
+    "--iv-ink": c.ink,
+    "--iv-muted": c.muted,
+    "--iv-line": c.line,
+    "--iv-accent": c.accent,
+    "--iv-on-accent": c.onAccent,
+    "--iv-accent-text": c.accentText,
+  } as CSSProperties;
 
   return (
-    <div
-      className={`${inviteFontVariables} @container relative w-full overflow-hidden ${framed ? "" : "min-h-screen"}`}
-      style={{ background: c.bg, color: c.ink }}
-    >
+    <div className={`${inviteFontVariables} @container relative w-full overflow-hidden ${framed ? "" : "min-h-screen"}`} style={vars}>
       {/* ── Cover ─────────────────────────────────────────────── */}
-      <header className="relative">
+      <header className="relative" id="invite-hero">
         {coverSrc && (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element -- member photo from the invite route or a local preview */}
@@ -95,12 +119,12 @@ export function InviteView({ data, slug, pageUrl, coverSrc, qrSvg, framed = fals
           )}
           <p className="mt-8">
             <a
-              href="#events"
-              className="inline-flex min-h-12 items-center justify-center rounded-xl px-7 text-base font-bold"
+              href={rsvpOpen ? "#rsvp" : "#events"}
+              className="inline-flex min-h-12 min-w-40 items-center justify-center rounded-xl px-7 text-base font-bold"
               style={heroButton}
               {...inert}
             >
-              See the details
+              {rsvpOpen ? "RSVP" : "See the details"}
             </a>
           </p>
         </div>
@@ -121,6 +145,17 @@ export function InviteView({ data, slug, pageUrl, coverSrc, qrSvg, framed = fals
               ))}
             </div>
           )}
+        </section>
+
+        {/* ── Getting on base ────────────────────────────────── */}
+        {hasBaseEvent(data) && (
+          <BaseAccess data={data} today={todayIn(data.timeZone)} heading={<SectionHead title="Getting on base" accentText={c.accentText} heading={heading} upper={upper} />} />
+        )}
+
+        {/* ── RSVP ───────────────────────────────────────────── */}
+        <section id="rsvp" className="scroll-mt-4">
+          <SectionHead title="RSVP" accentText={c.accentText} heading={heading} upper={upper} />
+          <RsvpForm data={data} slug={slug} pageUrl={pageUrl} framed={framed} />
         </section>
 
         {/* ── The day at a glance ────────────────────────────── */}
@@ -195,6 +230,8 @@ export function InviteView({ data, slug, pageUrl, coverSrc, qrSvg, framed = fals
           , free for service members
         </p>
       </footer>
+
+      {!framed && rsvpOpen && ceremony && eventIsComplete(ceremony) && <StickyRsvp dateLine={formatDateLong(ceremony.date)} />}
     </div>
   );
 }
@@ -288,7 +325,8 @@ function EventCard({
 
       {event.onBase && (
         <p className="mt-4 rounded-xl border-l-4 px-4 py-3 text-sm leading-relaxed" style={{ borderColor: c.accent, background: c.bg }}>
-          <strong>Aboard a military installation.</strong> Guests without a DoD ID need a visitor pass to get through the gate.
+          <strong>Aboard a military installation.</strong> Guests without a DoD ID need a visitor pass to get through the gate. See Getting on base
+          below.
         </p>
       )}
 

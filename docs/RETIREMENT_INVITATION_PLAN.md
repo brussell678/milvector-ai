@@ -288,6 +288,7 @@ that is how pages break on phones, and it is a website builder, not a tool.
 |---|---|
 | Plan | Approved 2026-11-19 |
 | A | **Built 2026-11-19, awaiting Brandon's gate.** Needs migration 0031 run in the Supabase SQL editor first. Verified: 29 database access checks (in-memory Postgres), 25 unit tests, and a 39-check browser walkthrough against a stand-in database (create, events, private address, cover photo, publish, all three templates as a guest at 390 and 320 wide, calendar file, desktop editor). Not yet seen against the real database or on a real phone |
-| B | Not started |
+| A gate | Passed 2026-11-19. Brandon's findings fixed: meaningless color dots on the QR buttons, cramped icon buttons site-wide, cropped cover photo in the Look tab |
+| B | **Built 2026-11-19, awaiting Brandon's gate.** Needs migration 0032 run in the Supabase SQL editor first. Verified: 57 database checks for 0032 (in-memory Postgres), 43 unit tests for the feature, and a 35-check browser walkthrough against a stand-in database running the REAL migrations (host setup, two guests on phones at 390 and 320, personal link, pass ticks, spreadsheet, add by hand). Not yet seen against the real database or on a real phone |
 | C | Not started |
 | D | Not started |

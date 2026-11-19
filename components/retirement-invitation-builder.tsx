@@ -2,20 +2,26 @@
 
 import { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
-import { Camera, Check, Copy, Download, ExternalLink, Plus, Trash2 } from "lucide-react";
+import { Camera, Check, Download, ExternalLink, Plus, Trash2 } from "lucide-react";
+import { CopyButton, Field, Toggle, download } from "@/components/invites/builder-ui";
+import { GuestsTab } from "@/components/invites/guests-tab";
 import { InviteView } from "@/components/invites/invite-view";
 import { ToolAlert } from "@/components/tools/tool-alert";
 import { opsecWarnings } from "@/lib/invites/opsec";
+import { NO_SSN_NOTE, passSteps } from "@/lib/invites/rsvp";
 import {
   BRANCHES,
   BRANCH_NAMES,
   COVER_MAX_CHARS,
   MAX_EVENTS,
+  MAX_MEAL_OPTIONS,
   TIME_ZONES,
   blankEvent,
   starterInvite,
+  type BaseAccess,
   type InviteData,
   type InviteEvent,
+  type RsvpSettings,
 } from "@/lib/invites/schema";
 import { ACCENT_PRESETS, TEMPLATES, TEMPLATE_IDS, inviteColors, readTemplate } from "@/lib/invites/templates";
 import { ceremonyOf, eventIsComplete, formatDateLong, formatTime, publicLocation, sortEvents } from "@/lib/invites/time";
@@ -31,48 +37,10 @@ type SavedInvite = {
   updatedAt: string;
 };
 type Defaults = { name: string; rank: string; branch: string; ceremonyDate: string; email: string };
-type Tab = "basics" | "events" | "look" | "preview" | "share";
+type Tab = "basics" | "events" | "base" | "rsvp" | "look" | "preview" | "share" | "guests";
 type Message = { kind: "ok" | "error"; text: string } | null;
 
 const pageUrlFor = (slug: string) => `${siteUrl}/r/${slug}`;
-
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <label className="block space-y-1">
-      <span className="text-sm font-medium">{label}</span>
-      {children}
-      {hint ? <span className="block text-xs text-[var(--muted)]">{hint}</span> : null}
-    </label>
-  );
-}
-
-function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
-  const [done, setDone] = useState(false);
-  return (
-    <button
-      type="button"
-      className="btn btn-secondary text-sm"
-      onClick={async () => {
-        await navigator.clipboard.writeText(text).catch(() => {});
-        setDone(true);
-        setTimeout(() => setDone(false), 1800);
-      }}
-    >
-      {done ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
-      {done ? "Copied" : label}
-    </button>
-  );
-}
-
-function download(filename: string, content: string | Blob, type = "text/plain") {
-  const blob = typeof content === "string" ? new Blob([content], { type }) : content;
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
 
 // Shrinks a photo to at most 1600px on its long edge and re-encodes it as a
 // JPEG in the browser. Re-encoding also drops the location data phones store
@@ -246,11 +214,16 @@ export function RetirementInvitationBuilder() {
   const tabs: { id: Tab; label: string; phoneOnly?: boolean }[] = [
     { id: "basics", label: "Basics" },
     { id: "events", label: "Events" },
+    { id: "base", label: "Base" },
+    { id: "rsvp", label: "RSVP" },
     { id: "look", label: "Look" },
     { id: "preview", label: "Preview", phoneOnly: true },
     { id: "share", label: "Share" },
+    { id: "guests", label: "Guests" },
   ];
   const coverSrc = saved.cover ? `data:image/jpeg;base64,${saved.cover}` : null;
+  // The guest list is a working table, so it gets the full width.
+  const wide = tab === "guests";
 
   return (
     <div className="flex flex-col gap-4">
@@ -275,7 +248,7 @@ export function RetirementInvitationBuilder() {
         </ToolAlert>
       )}
 
-      <nav className="grid grid-cols-3 gap-1 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-1 sm:grid-cols-5 lg:grid-cols-4" aria-label="Invitation sections">
+      <nav className="grid grid-cols-4 gap-1 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-1 sm:grid-cols-8 lg:grid-cols-7" aria-label="Invitation sections">
         {tabs.map((item) => (
           <button
             key={item.id}
@@ -293,7 +266,7 @@ export function RetirementInvitationBuilder() {
 
       <div aria-live="polite">{message && <ToolAlert variant={message.kind === "ok" ? "info" : "error"}>{message.text}</ToolAlert>}</div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
+      <div className={`grid gap-4 lg:items-start ${wide ? "" : "lg:grid-cols-[minmax(0,1fr)_400px]"}`}>
         <div className="flex min-w-0 flex-col gap-4">
           {warnings.length > 0 && (tab === "basics" || tab === "events") && (
             <ToolAlert variant="warn" title="Before you publish">
@@ -309,6 +282,9 @@ export function RetirementInvitationBuilder() {
             <BasicsTab draft={draft} slugDraft={slugDraft} setSlugDraft={setSlugDraft} set={set} setRetiree={setRetiree} onDelete={removeInvite} saving={saving} />
           )}
           {tab === "events" && <EventsTab draft={draft} set={set} setEvent={setEvent} addEvent={addEvent} removeEvent={removeEvent} />}
+          {tab === "base" && <BaseTab draft={draft} set={set} goToEvents={() => setTab("events")} />}
+          {tab === "rsvp" && <RsvpTab draft={draft} set={set} />}
+          {tab === "guests" && <GuestsTab inviteId={saved.id} slug={saved.slug} data={saved.invite} published={saved.published} />}
           {tab === "look" && <LookTab draft={draft} set={set} cover={coverSrc} onCover={onCover} onRemoveCover={() => patch({ cover: null }, "Cover photo removed.")} saving={saving} />}
           {tab === "preview" && (
             <div className="overflow-hidden rounded-2xl border border-[var(--line)] lg:hidden">
@@ -321,7 +297,7 @@ export function RetirementInvitationBuilder() {
         </div>
 
         {/* Live preview beside the editor on wide screens */}
-        <aside className="hidden lg:sticky lg:top-4 lg:block" aria-label="Preview of the guest page">
+        <aside className={`hidden lg:sticky lg:top-4 ${wide ? "" : "lg:block"}`} aria-label="Preview of the guest page">
           <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">What a guest sees on a phone</p>
           <div className="h-[760px] overflow-y-auto rounded-[28px] border-[10px] border-[#1a1f1b] bg-[#1a1f1b] shadow-[var(--shadow-lg)]">
             <div className="pointer-events-none select-none overflow-hidden rounded-[18px]" aria-hidden="true">
@@ -625,6 +601,184 @@ function EventsTab({
           Add a reception, party, or dinner
         </button>
       )}
+    </>
+  );
+}
+
+// ─── Base access ──────────────────────────────────────────────────────
+
+function BaseTab({ draft, set, goToEvents }: { draft: InviteData; set: <K extends keyof InviteData>(key: K, value: InviteData[K]) => void; goToEvents: () => void }) {
+  const baseEvents = draft.events.filter((event) => event.onBase);
+  const setBase = (patch: Partial<BaseAccess>) => set("base", { ...draft.base, ...patch });
+
+  if (baseEvents.length === 0) {
+    return (
+      <section className="tool-section">
+        <p className="tool-kicker">BASE ACCESS</p>
+        <p className="text-sm">
+          None of your events is marked as aboard a military installation, so the page has no base access section. If guests will need a visitor pass,
+          turn on &quot;Aboard a military installation&quot; for that event.
+        </p>
+        <button type="button" className="btn btn-secondary w-full text-sm sm:w-auto" onClick={goToEvents}>
+          Go to Events
+        </button>
+      </section>
+    );
+  }
+
+  return (
+    <>
+      <section className="tool-section">
+        <p className="tool-kicker">GUESTS WITHOUT A DOD ID</p>
+        <p className="section-description">
+          {baseEvents.map((event) => event.name || "An event").join(" and ")} {baseEvents.length === 1 ? "is" : "are"} aboard an installation. The page walks
+          guests without a DoD ID through getting a pass, in this order:
+        </p>
+        <ol className="grid gap-2 text-sm">
+          {passSteps(draft).map((step) => (
+            <li key={step} className="rounded-xl border border-[var(--line)] bg-[var(--surface)] px-3 py-2">
+              {step}
+            </li>
+          ))}
+        </ol>
+        <ToolAlert variant="info" title="Only names, never ID numbers">
+          <p className="text-sm">
+            {NO_SSN_NOTE} The form collects full legal names only, and you send those to the base. Your Guests tab keeps a tick list for each pass.
+          </p>
+        </ToolAlert>
+      </section>
+
+      <section className="tool-section">
+        <p className="tool-kicker">PASS DEADLINE</p>
+        <Field
+          label="RSVP-by date for guests who need a pass"
+          hint="Shown on the page with a countdown. Set it a few days before the base's real cutoff, so you have time to send the names in."
+        >
+          <input className="input" type="date" value={draft.base.passDeadline} onChange={(e) => setBase({ passDeadline: e.target.value })} />
+        </Field>
+      </section>
+
+      <section className="tool-section">
+        <p className="tool-kicker">INSTRUCTIONS FOR GUESTS</p>
+        <Field label="Which gate, and when to leave" hint="e.g. Use the main gate and leave by 0900. Some map apps stop giving directions once you are aboard.">
+          <textarea className="input min-h-24" value={draft.base.gate} onChange={(e) => setBase({ gate: e.target.value })} maxLength={400} />
+        </Field>
+        <Field label="What to bring" hint="e.g. A driver's license or passport, plus vehicle registration and proof of insurance if driving.">
+          <textarea className="input min-h-24" value={draft.base.bring} onChange={(e) => setBase({ bring: e.target.value })} maxLength={400} />
+        </Field>
+        <Field label="Collecting your pass" hint="Step 4 on the page. e.g. I will hand out passes at the house the morning of the ceremony.">
+          <textarea className="input min-h-24" value={draft.base.pickup} onChange={(e) => setBase({ pickup: e.target.value })} maxLength={400} />
+        </Field>
+      </section>
+    </>
+  );
+}
+
+// ─── RSVP settings ────────────────────────────────────────────────────
+
+function RsvpTab({ draft, set }: { draft: InviteData; set: <K extends keyof InviteData>(key: K, value: InviteData[K]) => void }) {
+  const rsvp = draft.rsvp;
+  const setRsvp = (patch: Partial<RsvpSettings>) => set("rsvp", { ...rsvp, ...patch });
+  const setMeals = (patch: Partial<RsvpSettings["meals"]>) => setRsvp({ meals: { ...rsvp.meals, ...patch } });
+  const privateHome = draft.events.some((event) => event.addressPrivate);
+  const lastEvent = draft.events[draft.events.length - 1];
+
+  return (
+    <>
+      <section className="tool-section">
+        <p className="tool-kicker">TAKING RSVPS</p>
+        <Toggle
+          checked={rsvp.enabled}
+          onChange={(enabled) => setRsvp({ enabled })}
+          label="Take RSVPs on the page"
+          hint="Guests answer without an account. Their answers land on your Guests tab."
+        />
+        {!rsvp.enabled && privateHome && (
+          <ToolAlert variant="warn">Guests get a private home address only by answering. With RSVPs off, nobody can see it.</ToolAlert>
+        )}
+        <Field label="Please answer by" hint="Shown on the form. Answers after it are still accepted, and marked late on your Guests tab.">
+          <input className="input" type="date" value={rsvp.deadline} onChange={(e) => setRsvp({ deadline: e.target.value })} />
+        </Field>
+      </section>
+
+      <section className="tool-section">
+        <p className="tool-kicker">WHAT THE FORM ASKS</p>
+        <p className="section-description">
+          Always: name, email, an optional mobile number, and yes, maybe, or no for each event with adults and children counted. Guests coming aboard an
+          installation are also asked whether everyone holds a DoD ID.
+        </p>
+        <Toggle
+          checked={rsvp.dietary}
+          onChange={(dietary) => setRsvp({ dietary })}
+          label="Ask about allergies and dietary needs"
+          hint="Worth keeping on even with catering: an allergy is what causes real trouble."
+        />
+        <Toggle
+          checked={rsvp.message}
+          onChange={(message) => setRsvp({ message })}
+          label="Let guests leave you a message"
+          hint="Congratulations and sea stories, collected on your Guests tab, ready to copy for your speech."
+        />
+      </section>
+
+      <section className="tool-section">
+        <p className="tool-kicker">MEAL CHOICES</p>
+        <Toggle
+          checked={rsvp.meals.enabled}
+          onChange={(enabled) =>
+            setMeals({
+              enabled,
+              eventId: draft.events.some((event) => event.id === rsvp.meals.eventId) ? rsvp.meals.eventId : (lastEvent?.id ?? ""),
+              options: rsvp.meals.options.length ? rsvp.meals.options : ["", ""],
+            })
+          }
+          label="Ask guests to choose meals"
+          hint="Leave this off if you are ordering catering and do not need counts."
+        />
+        {rsvp.meals.enabled && (
+          <>
+            <Field label="Served at">
+              <select className="input" value={rsvp.meals.eventId} onChange={(e) => setMeals({ eventId: e.target.value })}>
+                {draft.events.map((event) => (
+                  <option key={event.id} value={event.id}>
+                    {event.name || "Unnamed event"}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <div className="grid gap-2">
+              <p className="text-sm font-medium">Choices</p>
+              {rsvp.meals.options.map((option, index) => (
+                <div key={index} className="flex gap-2">
+                  <input
+                    className="input"
+                    value={option}
+                    maxLength={40}
+                    aria-label={`Meal choice ${index + 1}`}
+                    placeholder={["e.g. Chicken", "e.g. Beef", "e.g. Vegetarian"][index] ?? ""}
+                    onChange={(e) => setMeals({ options: rsvp.meals.options.map((o, i) => (i === index ? e.target.value : o)) })}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-ghost shrink-0 !px-3"
+                    aria-label={`Remove meal choice ${index + 1}`}
+                    onClick={() => setMeals({ options: rsvp.meals.options.filter((_, i) => i !== index) })}
+                  >
+                    <Trash2 size={16} aria-hidden="true" />
+                  </button>
+                </div>
+              ))}
+              {rsvp.meals.options.length < MAX_MEAL_OPTIONS && (
+                <button type="button" className="btn btn-secondary w-full text-sm sm:w-auto" onClick={() => setMeals({ options: [...rsvp.meals.options, ""] })}>
+                  <Plus size={14} aria-hidden="true" />
+                  Add a choice
+                </button>
+              )}
+              <p className="text-xs text-[var(--muted)]">Guests give a count of each, so a family can split it however they like.</p>
+            </div>
+          </>
+        )}
+      </section>
     </>
   );
 }

@@ -75,6 +75,50 @@ const isoDate = z
 
 const clock = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Set a start time for each event.");
 
+// A date that may be left blank, such as an RSVP deadline.
+const optionalDate = (message: string) =>
+  z
+    .union([z.literal(""), z.string().regex(/^\d{4}-\d{2}-\d{2}$/, message)])
+    .default("")
+    .refine((v) => v === "" || (!Number.isNaN(new Date(`${v}T00:00:00Z`).getTime()) && new Date(`${v}T00:00:00Z`).toISOString().slice(0, 10) === v), message);
+
+export const MAX_MEAL_OPTIONS = 6;
+
+// What the RSVP form asks. Meal choices are off unless the host wants counts.
+export const RsvpSettingsSchema = z
+  .object({
+    enabled: z.boolean().default(true),
+    deadline: optionalDate("Pick a real RSVP date."),
+    dietary: z.boolean().default(true),
+    message: z.boolean().default(true),
+    meals: z
+      .object({
+        enabled: z.boolean().default(false),
+        // The event the meal is served at
+        eventId: z.string().max(12).default(""),
+        // Blank rows the host added but never filled are dropped on save.
+        options: z
+          .array(text(40))
+          .max(MAX_MEAL_OPTIONS, `Offer up to ${MAX_MEAL_OPTIONS} meal choices.`)
+          .transform((list) => list.filter((option) => option.length > 0))
+          .default([]),
+      })
+      .default({}),
+  })
+  .default({});
+
+// Instructions for guests who need a visitor pass. Shown only when an event is
+// aboard an installation. MilVector never asks guests for an SSN or birth date.
+export const BaseAccessSchema = z
+  .object({
+    // The date the host advertises. Set it before the base's real cutoff.
+    passDeadline: optionalDate("Pick a real date for the pass deadline."),
+    gate: text(400).default(""),
+    bring: text(400).default(""),
+    pickup: text(400).default(""),
+  })
+  .default({});
+
 export const InviteEventSchema = z.object({
   id: z.string().regex(/^[a-z0-9]{4,12}$/),
   name: text(60).refine((v) => v.length >= 2, "Give each event a name."),
@@ -108,11 +152,31 @@ export const InviteDataSchema = z
     timeZone: z.string().max(60).refine(isValidTimeZone, "Pick a time zone.").default("America/New_York"),
     events: z.array(InviteEventSchema).min(1, "Add the ceremony.").max(MAX_EVENTS, `An invitation can have up to ${MAX_EVENTS} events.`),
     contactEmail: email.default(""),
+    rsvp: RsvpSettingsSchema,
+    base: BaseAccessSchema,
   })
   .superRefine((value, ctx) => {
     const ids = value.events.map((event) => event.id);
     if (new Set(ids).size !== ids.length) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Two events share an id.", path: ["events"] });
+    const meals = value.rsvp.meals;
+    if (meals.enabled) {
+      if (!ids.includes(meals.eventId)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Pick which event serves the meal, or turn meal choices off.", path: ["rsvp", "meals", "eventId"] });
+      }
+      if (meals.options.length === 0) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Name at least one meal choice, or turn meal choices off.", path: ["rsvp", "meals", "options"] });
+      }
+      const lower = meals.options.map((option) => option.toLowerCase());
+      if (new Set(lower).size !== lower.length) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Two meal choices have the same name.", path: ["rsvp", "meals", "options"] });
+      }
+    }
   });
+
+export type RsvpSettings = z.infer<typeof RsvpSettingsSchema>;
+export type BaseAccess = z.infer<typeof BaseAccessSchema>;
+export const DEFAULT_RSVP: RsvpSettings = RsvpSettingsSchema.parse(undefined);
+export const DEFAULT_BASE: BaseAccess = BaseAccessSchema.parse(undefined);
 
 export type InviteData = z.infer<typeof InviteDataSchema>;
 export type InviteEvent = z.infer<typeof InviteEventSchema>;
@@ -158,7 +222,14 @@ export function starterInvite(defaults: { name?: string; rank?: string; branch?:
     timeZone: defaults.timeZone && isValidTimeZone(defaults.timeZone) ? defaults.timeZone : "America/New_York",
     events: [ceremony],
     contactEmail: defaults.email ?? "",
+    rsvp: DEFAULT_RSVP,
+    base: DEFAULT_BASE,
   };
+}
+
+/** Events aboard an installation, where guests without a DoD ID need a pass. */
+export function hasBaseEvent(data: Pick<InviteData, "events">): boolean {
+  return data.events.some((event) => event.onBase);
 }
 
 // Reads whatever is stored and returns a usable invitation, so an older or
@@ -186,6 +257,8 @@ export function readInviteData(raw: unknown): InviteData {
     timeZone: pick(shape.timeZone, source.timeZone, fallback.timeZone),
     events: events.slice(0, MAX_EVENTS),
     contactEmail: pick(shape.contactEmail, source.contactEmail, ""),
+    rsvp: pick(shape.rsvp, source.rsvp, DEFAULT_RSVP),
+    base: pick(shape.base, source.base, DEFAULT_BASE),
   };
 }
 
