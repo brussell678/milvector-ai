@@ -631,7 +631,7 @@ function BaseTab({ draft, set, goToEvents }: { draft: InviteData; set: <K extend
       <section className="tool-section">
         <p className="tool-kicker">GUESTS WITHOUT A DOD ID</p>
         <p className="section-description">
-          {baseEvents.map((event) => event.name || "An event").join(" and ")} {baseEvents.length === 1 ? "is" : "are"} aboard an installation. The page walks
+          The {baseEvents.map((event) => event.name || "event").join(" and the ")} {baseEvents.length === 1 ? "is" : "are"} aboard an installation. The page walks
           guests without a DoD ID through getting a pass, in this order:
         </p>
         <ol className="grid gap-2 text-sm">
@@ -643,7 +643,8 @@ function BaseTab({ draft, set, goToEvents }: { draft: InviteData; set: <K extend
         </ol>
         <ToolAlert variant="info" title="Only names, never ID numbers">
           <p className="text-sm">
-            {NO_SSN_NOTE} The form collects full legal names only, and you send those to the base. Your Guests tab keeps a tick list for each pass.
+            {NO_SSN_NOTE} The form collects each adult&apos;s full legal name and the guest&apos;s email address, and you send those to the base, which
+            emails its own link to collect the rest. Your Guests tab keeps a tick list for each pass.
           </p>
         </ToolAlert>
       </section>

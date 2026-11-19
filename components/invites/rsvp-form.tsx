@@ -293,29 +293,35 @@ export function RsvpForm({ data, slug, pageUrl, framed = false }: { data: Invite
         <fieldset className="grid gap-4 rounded-2xl border border-[var(--iv-line)] bg-[var(--iv-surface)] p-5">
           <legend className="px-1 text-xs font-bold uppercase tracking-[0.14em] text-[var(--iv-muted)]">Getting on base</legend>
           <p className="-mt-1 text-sm">
-            Does everyone in your party hold a DoD ID?
-            <span className={hint}>Retired, active duty, dependent, and civilian employee IDs all count.</span>
+            Does every adult in your party hold a DoD ID?
+            <span className={hint}>Retired, active duty, dependent, and civilian employee IDs all count. Children do not need a pass.</span>
           </p>
           <Choices
-            name="Everyone holds a DoD ID"
+            name="Every adult holds a DoD ID"
             value={dodId}
             onChange={setDodId}
             options={[
               ["yes", "Yes, we can get ourselves on base"],
-              ["no", "No, some of us need a visitor pass"],
+              ["no", "No, one or more adults need a visitor pass"],
             ]}
             disabled={framed}
           />
           {dodId === "no" && (
-            <label className="grid gap-1">
-              <span className={labelText}>Full legal names of everyone who needs a pass</span>
-              <span className={hint}>One per line, exactly as on their driver&apos;s license or passport.</span>
-              <textarea className={`${input} min-h-24`} value={passNames} onChange={(e) => setPassNames(e.target.value)} maxLength={600} disabled={framed} />
-              <span className="mt-1 text-xs text-[var(--iv-muted)]">
-                {data.base.passDeadline ? `Answer by ${formatDateLong(data.base.passDeadline)} so there is time to arrange passes. ` : ""}
-                {NO_SSN_NOTE}
-              </span>
-            </label>
+            <>
+              <p className="rounded-xl border-l-4 border-[var(--iv-accent)] bg-[var(--iv-bg)] px-4 py-3 text-sm leading-relaxed">
+                The base sends a link to {email.trim() ? <strong className="break-words">{email.trim()}</strong> : "the email address above"} where you enter
+                your information. Use an address you check, and fill in the base&apos;s form the day it arrives.
+              </p>
+              <label className="grid gap-1">
+                <span className={labelText}>Full legal names of every adult who needs a pass</span>
+                <span className={hint}>One per line, exactly as on their driver&apos;s license or passport. Children do not need a pass.</span>
+                <textarea className={`${input} min-h-24`} value={passNames} onChange={(e) => setPassNames(e.target.value)} maxLength={600} disabled={framed} />
+                <span className="mt-1 text-xs text-[var(--iv-muted)]">
+                  {data.base.passDeadline ? `Answer by ${formatDateLong(data.base.passDeadline)} so there is time to arrange passes. ` : ""}
+                  {NO_SSN_NOTE}
+                </span>
+              </label>
+            </>
           )}
         </fieldset>
       )}

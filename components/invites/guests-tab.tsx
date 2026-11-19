@@ -233,7 +233,11 @@ export function GuestsTab({ inviteId, slug, data, published }: { inviteId: strin
                 {passGuests.map((guest) => (
                   <li key={guest.id} className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
                     <p className="font-semibold">{guest.name}</p>
-                    {guest.email && <p className="break-all text-xs text-[var(--muted)]">{guest.email}</p>}
+                    {guest.email ? (
+                      <p className="break-all text-xs text-[var(--muted)]">{guest.email}</p>
+                    ) : (
+                      <p className="text-xs font-semibold text-[var(--warn)]">No email address. The base needs one to send its form to.</p>
+                    )}
                     <p className="mt-2 whitespace-pre-line text-sm">{guest.pass_names || "No names given yet"}</p>
                     <div className="mt-3 grid gap-2">
                       {PIPELINE_STEPS.map((step) => (
@@ -466,7 +470,7 @@ function AddGuest({ inviteId, data, onAdded }: { inviteId: string; data: InviteD
         })}
         {comingAboard && (
           <div className="grid gap-3">
-            <Field label="Does everyone in their party hold a DoD ID?">
+            <Field label="Does every adult in their party hold a DoD ID?">
               <select className="input" value={dodId} onChange={(e) => setDodId(e.target.value as "" | "yes" | "no")}>
                 <option value="">Not asked</option>
                 <option value="yes">Yes</option>
@@ -474,7 +478,7 @@ function AddGuest({ inviteId, data, onAdded }: { inviteId: string; data: InviteD
               </select>
             </Field>
             {dodId === "no" && (
-              <Field label="Full legal names for passes" hint="One per line, as on their ID.">
+              <Field label="Full legal names of adults needing a pass" hint="One per line, as on their ID. Children do not need a pass. Add their email above: the base sends its form there.">
                 <textarea className="input min-h-20" value={passNames} onChange={(e) => setPassNames(e.target.value)} maxLength={600} />
               </Field>
             )}

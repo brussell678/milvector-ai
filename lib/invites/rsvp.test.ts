@@ -127,7 +127,9 @@ describe("the confirmation a guest keeps", () => {
   it("walks a pass guest through the steps with the host's own pickup note", () => {
     const steps = passSteps(data).join(" ");
     expect(steps).toContain("by Friday, 25 September 2026");
-    expect(steps).toContain("Jordan sends the names to the base");
+    expect(steps).toContain("Jordan sends the names and that email address to the base");
+    expect(steps).toContain("with an email address you check");
+    expect(steps).toContain("Children do not need a pass");
     expect(steps).toContain("Collect it from Jordan");
   });
 });

@@ -187,9 +187,9 @@ export function passSteps(data: InviteData): string[] {
   const deadline = data.base.passDeadline ? ` by ${formatDateLong(data.base.passDeadline)}` : "";
   const host = data.retiree.name.split(" ")[0] || "The host";
   return [
-    `1. RSVP${deadline}, listing everyone who needs a pass by their full legal name, as it appears on their ID.`,
-    `2. ${host} sends the names to the base.`,
-    "3. Watch your email. The base may send you a form to fill in. Do it the day it arrives.",
+    `1. RSVP${deadline} with an email address you check. The base sends a link to that address where you enter your information. List every adult who needs a pass by full legal name, as it appears on their ID. Children do not need a pass.`,
+    `2. ${host} sends the names and that email address to the base.`,
+    "3. Watch that inbox. When the base's link arrives, open it and fill it in the same day.",
     `4. ${data.base.pickup || "Collect your pass as the host directs before you head to the gate."}`,
   ];
 }

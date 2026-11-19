@@ -21,8 +21,8 @@ export function BaseAccess({ data, today, heading }: { data: InviteData; today: 
     <section id="access" className="scroll-mt-4">
       {heading}
       <p className="mt-3 text-[var(--iv-muted)]">
-        The {baseEvents.join(" and the ")} {baseEvents.length === 1 ? "is" : "are"} aboard a military installation. If you do not hold a DoD ID, you need a
-        visitor pass to get through the gate. Retired, active duty, dependent, and civilian employee IDs all count.
+        The {baseEvents.join(" and the ")} {baseEvents.length === 1 ? "is" : "are"} aboard a military installation. Adults without a DoD ID need a visitor
+        pass to get through the gate. Retired, active duty, dependent, and civilian employee IDs all count. Children do not need a pass.
       </p>
 
       {deadline && left !== null && (
