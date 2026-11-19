@@ -760,9 +760,14 @@ const QR_COLORS = [
 
 function ShareTab({ saved, dirty, onPublish, saving }: { saved: SavedInvite; dirty: boolean; onPublish: () => void; saving: boolean }) {
   const url = pageUrlFor(saved.slug);
-  const accentQr = inviteColors(readTemplate(saved.invite.template), saved.invite.accent).qr;
-  const [qrChoice, setQrChoice] = useState<string>("navy");
-  const qrHex = qrChoice === "accent" ? accentQr : (QR_COLORS.find((c) => c.id === qrChoice)?.hex ?? "#0a1522");
+  // The accent is offered only when it is dark enough to scan. A light accent
+  // (brass, gold) would print as near black anyway, so offering it misleads.
+  const colors = inviteColors(readTemplate(saved.invite.template), saved.invite.accent);
+  const qrOptions = [...QR_COLORS, ...(colors.qr === colors.accent ? [{ id: "accent", label: "Your accent color", hex: colors.accent }] : [])];
+  const [picked, setQrChoice] = useState<string>("navy");
+  // Falls back to navy if the accent stops qualifying after a color change.
+  const qrChoice = qrOptions.some((option) => option.id === picked) ? picked : "navy";
+  const qrHex = qrOptions.find((option) => option.id === qrChoice)?.hex ?? QR_COLORS[0].hex;
   const [qrPng, setQrPng] = useState("");
 
   useEffect(() => {
@@ -831,7 +836,7 @@ function ShareTab({ saved, dirty, onPublish, saving }: { saved: SavedInvite; dir
           </div>
           <div className="flex min-w-0 flex-col gap-3">
             <div className="flex flex-wrap gap-2" role="group" aria-label="QR code color">
-              {[...QR_COLORS, { id: "accent", label: "Your accent", hex: accentQr }].map((option) => (
+              {qrOptions.map((option) => (
                 <button
                   key={option.id}
                   type="button"
@@ -839,7 +844,6 @@ function ShareTab({ saved, dirty, onPublish, saving }: { saved: SavedInvite; dir
                   aria-pressed={qrChoice === option.id}
                   className={`btn text-sm ${qrChoice === option.id ? "btn-primary" : "btn-secondary"}`}
                 >
-                  <span className="h-3 w-3 rounded-full border border-white/60" style={{ background: option.hex }} aria-hidden="true" />
                   {option.label}
                 </button>
               ))}
