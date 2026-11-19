@@ -138,6 +138,13 @@ export const toolGroups: ToolGroupDef[] = [
         desc: "Compare the Survivor Benefit Plan with life insurance using your real numbers, and see which approach fits your family before you sign.",
         requirements: [{ text: "Your estimated monthly retired pay, your age, and your spouse's age." }, { text: "A term life quote, if you have one (optional)." }],
       },
+      {
+        href: "/app/tools/retirement-invitation",
+        title: "Retirement Invitation Builder (Preview)",
+        desc: "One page for your retirement ceremony and the celebration after it. Share it with a link or one QR code, and guests get the times, places, dress, and directions on their phone.",
+        requirements: [{ text: "Your ceremony date, time, and place, plus any reception or party details." }],
+        isPreview: true,
+      },
     ],
   },
 ];

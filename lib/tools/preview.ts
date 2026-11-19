@@ -1,4 +1,5 @@
 import { cardBuilderEnabled } from "@/lib/cards/access";
+import { inviteBuilderEnabled } from "@/lib/invites/access";
 import { resumeStudioEnabled } from "@/lib/resume/studio-access";
 
 // Preview tools are hidden from the Tools hub until they are opened to
@@ -6,6 +7,7 @@ import { resumeStudioEnabled } from "@/lib/resume/studio-access";
 const PREVIEW_GATES: Record<string, (email?: string | null) => boolean> = {
   "/app/tools/resume-studio": resumeStudioEnabled,
   "/app/tools/business-card": cardBuilderEnabled,
+  "/app/tools/retirement-invitation": inviteBuilderEnabled,
 };
 
 export function previewEnabled(href: string, email?: string | null): boolean {

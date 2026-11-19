@@ -286,8 +286,8 @@ that is how pages break on phones, and it is a website builder, not a tool.
 
 | Phase | Status |
 |---|---|
-| Plan | Drafted 2026-11-19, awaiting Brandon's review |
-| A | Not started |
+| Plan | Approved 2026-11-19 |
+| A | **Built 2026-11-19, awaiting Brandon's gate.** Needs migration 0031 run in the Supabase SQL editor first. Verified: 29 database access checks (in-memory Postgres), 25 unit tests, and a 39-check browser walkthrough against a stand-in database (create, events, private address, cover photo, publish, all three templates as a guest at 390 and 320 wide, calendar file, desktop editor). Not yet seen against the real database or on a real phone |
 | B | Not started |
 | C | Not started |
 | D | Not started |
