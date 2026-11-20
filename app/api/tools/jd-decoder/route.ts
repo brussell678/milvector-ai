@@ -7,6 +7,7 @@ import { generateJson } from "@/lib/llm/client";
 import { promptJdDecoder } from "@/lib/llm/prompts";
 import { redactPII } from "@/lib/redact";
 import { getEnv } from "@/lib/env";
+import { loadChosenMaster, newestResumeText } from "@/lib/resume-source";
 
 type PersonalizedFit = {
   assessed_against_resume: boolean;
@@ -71,33 +72,14 @@ function normalizeOutput(data: Partial<JdDecoderOutput>, hasResume: boolean): Jd
   };
 }
 
-// Best-effort: load the user's most recent master resume so fit can be personalized.
-// Returns "" when the user has no master resume yet (JD analysis still works).
-async function loadMasterResumeText(
-  supabase: Awaited<ReturnType<typeof supabaseServer>>,
-  userId: string
-): Promise<string> {
-  const { data: artifact } = await supabase
-    .from("resume_artifacts")
-    .select("content")
-    .eq("user_id", userId)
-    .in("artifact_type", ["master_resume", "master_bullets"])
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (artifact?.content && artifact.content.trim().length >= 100) return artifact.content;
-
-  const { data: doc } = await supabase
-    .from("documents")
-    .select("extracted_text")
-    .eq("user_id", userId)
-    .eq("doc_type", "MASTER_RESUME")
-    .eq("text_extracted", true)
-    .not("extracted_text", "is", null)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  return doc?.extracted_text ?? "";
+// The member's chosen master resume, so the fit read is about them. Returns
+// "" when none is chosen (the posting analysis still works). Before migration
+// 0037 there is no saved choice, so the newest master resume is used, as before.
+async function loadMasterResumeText(supabase: Awaited<ReturnType<typeof supabaseServer>>, userId: string): Promise<string> {
+  const chosen = await loadChosenMaster(supabase, userId);
+  if (chosen.ok) return chosen.text;
+  if (chosen.reason === "unsaved") return newestResumeText(supabase, userId, [["master_resume", "master_bullets"]]);
+  return "";
 }
 
 export async function POST(req: Request) {

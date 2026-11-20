@@ -3,6 +3,7 @@
 import { DragEvent, useEffect, useRef, useState } from "react";
 import { FilesSegment } from "@/components/layout/files-segment";
 import { UploadWarning } from "@/components/upload-warning";
+import { optionForDocument, type MasterOption } from "@/lib/master-resume";
 
 type DocumentRow = {
   id: string;
@@ -73,18 +74,27 @@ export default function DocumentsPage() {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The member's chosen master resume, so My Files can mark it and offer to
+  // choose a refined upload. canChooseMaster is false before migration 0037.
+  const [master, setMaster] = useState<{ chosen: string | null; options: MasterOption[]; canChooseMaster: boolean }>({ chosen: null, options: [], canChooseMaster: false });
+  const [masterBusy, setMasterBusy] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   async function loadDocuments() {
     setLoadingList(true);
     try {
-      const res = await fetch("/api/documents", { cache: "no-store" });
+      const [res, masterRes] = await Promise.all([
+        fetch("/api/documents", { cache: "no-store" }),
+        fetch("/api/master-resume", { cache: "no-store" }).catch(() => null),
+      ]);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(data.error ?? "Couldn't load your documents. Refresh the page to try again.");
         return;
       }
       setDocuments(data.documents ?? []);
+      const masterData = masterRes?.ok ? await masterRes.json().catch(() => null) : null;
+      if (masterData) setMaster({ chosen: masterData.chosen ?? null, options: masterData.options ?? [], canChooseMaster: masterData.canSave !== false });
     } catch {
       setError("Couldn't load your documents. Check your connection and refresh.");
     } finally {
@@ -233,6 +243,23 @@ export default function DocumentsPage() {
       setBusyId(null);
       setOpenMenuId(null);
     }
+  }
+
+  async function chooseMaster(option: MasterOption) {
+    setMasterBusy(option.ref);
+    setError(null);
+    const res = await fetch("/api/master-resume", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ref: option.ref }),
+    }).catch(() => null);
+    const json = res ? await res.json().catch(() => ({})) : {};
+    setMasterBusy(null);
+    if (!res?.ok) {
+      setError(json.error ?? "That did not save. Try again.");
+      return;
+    }
+    setMaster((prev) => ({ ...prev, chosen: option.ref }));
   }
 
   function statusChip(doc: DocumentRow) {
@@ -463,6 +490,8 @@ export default function DocumentsPage() {
               const isProcessing = processingIds.has(doc.id);
               const menuOpen = openMenuId === doc.id;
               const isRenaming = renamingId === doc.id;
+              const masterOption = doc.doc_type === "MASTER_RESUME" ? optionForDocument(master.options, doc) : null;
+              const isMaster = !!masterOption && masterOption.ref === master.chosen;
 
               return (
                 <article key={doc.id} className="rounded-lg border border-[var(--line)] bg-[var(--panel)] p-4">
@@ -473,6 +502,11 @@ export default function DocumentsPage() {
                           {info.label}
                         </span>
                         {statusChip(doc)}
+                        {isMaster && (
+                          <span className="tool-badge tool-badge-success" style={{ fontSize: "0.65rem" }}>
+                            Your master resume
+                          </span>
+                        )}
                       </div>
                       {isRenaming ? (
                         <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -505,6 +539,16 @@ export default function DocumentsPage() {
                           onClick={() => void processDocument(doc.id).then(() => loadDocuments())}
                         >
                           Try Again
+                        </button>
+                      )}
+                      {masterOption && !isMaster && master.canChooseMaster && masterOption.ready && (
+                        <button
+                          className="btn btn-primary !min-h-9 !py-1 text-xs"
+                          type="button"
+                          disabled={!!masterBusy}
+                          onClick={() => void chooseMaster(masterOption)}
+                        >
+                          {masterBusy === masterOption.ref ? "Saving…" : "Make this my master"}
                         </button>
                       )}
                       <a className="btn btn-secondary !min-h-9 !py-1 text-xs" href={`/api/documents/${doc.id}/download`}>

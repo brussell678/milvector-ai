@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { LoadingBlock } from "@/components/tools/loading-block";
 import { StageBar } from "@/components/tools/stage-bar";
 import { ToolAlert } from "@/components/tools/tool-alert";
+import { MasterResumePicker } from "@/components/tools/master-resume-picker";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -118,7 +119,9 @@ export default function InterviewStrategistPage() {
   const [jobTitle, setJobTitle] = useState("");
   const [company, setCompany] = useState("");
   const [jobDescriptionText, setJobDescriptionText] = useState("");
-  const [resumeChoice, setResumeChoice] = useState("auto");
+  // "master" uses the member's chosen master resume; a saved resume, such as
+  // the one targeted to this job, or pasted text can be used instead.
+  const [resumeChoice, setResumeChoice] = useState("master");
   const [pastedResumeText, setPastedResumeText] = useState("");
   const [attirePreference, setAttirePreference] = useState("all");
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
@@ -352,7 +355,7 @@ export default function InterviewStrategistPage() {
               <label className="block space-y-1">
                 <span className="text-sm font-medium">Resume you are applying with</span>
                 <select className="input" value={resumeChoice} onChange={(e) => setResumeChoice(e.target.value)}>
-                  <option value="auto">My most recent saved resume</option>
+                  <option value="master">My master resume</option>
                   {artifacts.map((a) => (
                     <option key={a.id} value={`artifact:${a.id}`}>
                       {a.title} ({new Date(a.created_at).toLocaleDateString()})
@@ -361,6 +364,7 @@ export default function InterviewStrategistPage() {
                   <option value="paste">Paste a resume</option>
                 </select>
               </label>
+              {resumeChoice === "master" && <MasterResumePicker purpose="The interview prep is built from this resume. Pick a targeted resume above instead if you made one for this job." />}
               {resumeChoice === "paste" && (
                 <textarea
                   className="input min-h-32"

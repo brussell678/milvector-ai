@@ -6,30 +6,10 @@ import { LoadingBlock } from "@/components/tools/loading-block";
 import { Term } from "@/components/ui/term";
 import { ToolAlert } from "@/components/tools/tool-alert";
 import { ActionBar } from "@/components/tools/action-bar";
+import { MasterResumePicker } from "@/components/tools/master-resume-picker";
+import type { MasterOption } from "@/lib/master-resume";
 
 // ─── Types ────────────────────────────────────────────────────────────
-
-type Artifact = {
-  id: string;
-  title: string;
-  artifact_type: string;
-  created_at: string;
-};
-
-type MasterResumeDocument = {
-  id: string;
-  doc_type: "MASTER_RESUME";
-  filename: string;
-  created_at: string;
-  text_extracted: boolean;
-};
-
-type MasterResumeOption = {
-  value: string;
-  label: string;
-  sourceType: "artifact" | "document";
-  id: string;
-};
 
 type Stage1Output = {
   workflowStage: "title_research";
@@ -149,8 +129,8 @@ const DECISIONS = [
 function ResumeTargeterContent() {
   const searchParams = useSearchParams();
 
-  const [masterResumeSelection, setMasterResumeSelection] = useState("");
-  const [masterResumeOptions, setMasterResumeOptions] = useState<MasterResumeOption[]>([]);
+  // The member's chosen master resume, from the shared picker.
+  const [master, setMaster] = useState<MasterOption | null>(null);
   const [pastedResumeText, setPastedResumeText] = useState("");
   const [jobTitle, setJobTitle] = useState("");
   const [company, setCompany] = useState("");
@@ -184,59 +164,8 @@ function ResumeTargeterContent() {
     }
   }, [searchParams]);
 
-  // ── Source loading ─────────────────────────────────────────────────
-  useEffect(() => {
-    async function loadSources() {
-      try {
-        const [artifactRes, docsRes] = await Promise.all([
-          fetch("/api/resume-artifacts?type=master_resume"),
-          fetch("/api/documents"),
-        ]);
-        const artifactData = await artifactRes.json().catch(() => ({}));
-        const docsData = await docsRes.json().catch(() => ({}));
-        const nextOptions: MasterResumeOption[] = [];
-
-        if (artifactRes.ok) {
-          const rows = (artifactData.artifacts ?? []) as Artifact[];
-          nextOptions.push(
-            ...rows.map((artifact) => ({
-              value: `artifact:${artifact.id}`,
-              id: artifact.id,
-              sourceType: "artifact" as const,
-              label: `${artifact.title} (${new Date(artifact.created_at).toLocaleDateString()}) — Saved master resume`,
-            }))
-          );
-        }
-        if (docsRes.ok) {
-          const docs = (docsData.documents ?? []) as MasterResumeDocument[];
-          const masterDocs = docs.filter((d) => d.doc_type === "MASTER_RESUME");
-          nextOptions.push(
-            ...masterDocs.map((doc) => ({
-              value: `document:${doc.id}`,
-              id: doc.id,
-              sourceType: "document" as const,
-              label: `${doc.filename} (${new Date(doc.created_at).toLocaleDateString()})${doc.text_extracted ? "" : " — not ready yet"} — Uploaded master resume`,
-            }))
-          );
-        }
-        setMasterResumeOptions(nextOptions);
-        if (nextOptions.length > 0) {
-          setMasterResumeSelection((current) => current || nextOptions[0].value);
-        }
-      } catch {
-        // silent — manual paste path still works
-      }
-    }
-    void loadSources();
-  }, []);
-
   // ── Derived ────────────────────────────────────────────────────────
   const recommendedDecision = stage2?.recommended_decision ?? null;
-
-  const selectedMasterResume = useMemo(
-    () => masterResumeOptions.find((o) => o.value === masterResumeSelection) ?? null,
-    [masterResumeOptions, masterResumeSelection]
-  );
 
   const stageBarStages = useMemo(
     () =>
@@ -261,10 +190,9 @@ function ResumeTargeterContent() {
   // ── Handlers ──────────────────────────────────────────────────────
   function buildSourcePayload() {
     return {
-      masterResumeArtifactId:
-        selectedMasterResume?.sourceType === "artifact" ? selectedMasterResume.id : undefined,
-      masterResumeDocumentId:
-        selectedMasterResume?.sourceType === "document" ? selectedMasterResume.id : undefined,
+      // Pasted text, when given, is used for this run instead of the master.
+      masterResumeArtifactId: !pastedResumeText && master?.kind === "artifact" ? master.id : undefined,
+      masterResumeDocumentId: !pastedResumeText && master?.kind === "document" ? master.id : undefined,
       pastedResumeText: pastedResumeText || undefined,
     };
   }
@@ -549,34 +477,20 @@ function ResumeTargeterContent() {
               </p>
             </div>
 
-            <label className="block space-y-1">
-              <span className="text-sm font-medium">Master Resume</span>
-              <select
-                className="input"
-                value={masterResumeSelection}
-                onChange={(e) => setMasterResumeSelection(e.target.value)}
-              >
-                <option value="">Select a master resume</option>
-                {masterResumeOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <MasterResumePicker onSelect={setMaster} purpose="The posting is compared with this resume, and the targeted resume is written from it." />
 
             <label className="block space-y-1">
               <span className="text-sm font-medium">
-                Pasted Resume{" "}
+                Or paste a resume for this run only{" "}
                 <span className="font-normal text-[var(--muted)]">
-                  (optional if source selected)
+                  (optional; used instead of your master)
                 </span>
               </span>
               <textarea
                 className="input min-h-28"
                 value={pastedResumeText}
                 onChange={(e) => setPastedResumeText(e.target.value)}
-                placeholder="Paste your master resume text here if not using a saved source…"
+                placeholder="Paste resume text to use instead of your master, for this run only…"
               />
             </label>
 

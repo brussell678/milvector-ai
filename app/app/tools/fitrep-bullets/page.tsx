@@ -58,6 +58,8 @@ function FitrepBulletsContent() {
   const [jstText, setJstText] = useState("");
   const [fitrepsText, setFitrepsText] = useState("");
   const [result, setResult] = useState<BulletsOutput | MasterResumeOutput | null>(null);
+  // Choosing this draft as the member's master resume, for now.
+  const [draftChoice, setDraftChoice] = useState<{ busy: boolean; text: string; ok: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [copyState, setCopyState] = useState<string | null>(null);
@@ -167,12 +169,13 @@ function FitrepBulletsContent() {
         return;
       }
       setResult(data as BulletsOutput | MasterResumeOutput);
+      setDraftChoice(null);
       if (mode === "master_resume") {
         const warning = typeof data.autosaveWarning === "string" ? data.autosaveWarning : null;
         setNotice(
           warning
             ? `Master resume generated and saved to Documents. ${warning}`
-            : "Master resume generated and saved to Documents. This is a strong first draft — expect to polish it. When you're happy with your final version, upload it in My Files as a Master Resume and the tools will use that one."
+            : "Master resume generated and saved to My Files. It is a strong first draft; expect to polish it. Refine it in Word, upload your final version, and choose it as your master resume."
         );
       } else {
         setNotice("Master bullets generated and saved to your account.");
@@ -511,6 +514,50 @@ function FitrepBulletsContent() {
                   Export Text
                 </a>
               </ActionBar>
+
+              <div className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 text-sm">
+                <p className="font-semibold">Make it your master resume</p>
+                <p className="mt-1 text-[var(--muted)]">Every resume tool works from the master resume you choose. Most people take three steps:</p>
+                <ol className="mt-2 list-decimal space-y-1 pl-5">
+                  <li>Export Word and refine it in your own words, with your own emphasis.</li>
+                  <li>
+                    Upload the refined file in{" "}
+                    <a className="font-semibold underline" href="/app/documents">
+                      My Files
+                    </a>{" "}
+                    as a Master Resume.
+                  </li>
+                  <li>Choose it as your master: in My Files, or in any resume tool.</li>
+                </ol>
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    className="btn btn-secondary text-sm"
+                    disabled={draftChoice?.busy || draftChoice?.ok}
+                    onClick={async () => {
+                      setDraftChoice({ busy: true, text: "", ok: false });
+                      const res = await fetch("/api/master-resume", {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ ref: `artifact:${result.artifactId}` }),
+                      }).catch(() => null);
+                      const json = res ? await res.json().catch(() => ({})) : {};
+                      setDraftChoice(
+                        res?.ok
+                          ? { busy: false, ok: true, text: "This draft is your master resume until you choose another." }
+                          : { busy: false, ok: false, text: json.error ?? "That did not save. Try again." }
+                      );
+                    }}
+                  >
+                    {draftChoice?.ok ? "Chosen as your master" : draftChoice?.busy ? "Saving..." : "Use this draft as my master for now"}
+                  </button>
+                  {draftChoice?.text && (
+                    <span className={`text-sm ${draftChoice.ok ? "text-[var(--accent)]" : ""}`} role="status">
+                      {draftChoice.text}
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 

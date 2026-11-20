@@ -6,12 +6,11 @@ import { LoadingBlock } from "@/components/tools/loading-block";
 import { ToolAlert } from "@/components/tools/tool-alert";
 import { ActionBar } from "@/components/tools/action-bar";
 import { Term } from "@/components/ui/term";
+import { MasterResumePicker } from "@/components/tools/master-resume-picker";
+import type { MasterOption } from "@/lib/master-resume";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
-type Artifact = { id: string; title: string; created_at: string };
-type MasterResumeDocument = { id: string; doc_type: "MASTER_RESUME"; filename: string; created_at: string; text_extracted: boolean };
-type MasterResumeOption = { value: string; label: string; sourceType: "artifact" | "document"; id: string };
 type ResumeAnalysisOutput = { strengths: string[]; functional_areas: string[]; leadership_scope: string[]; role_families: string[]; skills: string[]; civilian_translation_notes: string[]; positioning_summary: string };
 type CareerSuggestionsOutput = { suggested_roles: Array<{ title: string; why_fit: string; target_industries: string[]; seniority: string }>; suggested_industries: string[]; recommended_seniority: string; positioning_advice: string[]; location_strategy: string };
 type ProfileExperience = { title: string; bullets: string[] };
@@ -94,8 +93,8 @@ function ScoreRing({ score, size = 88 }: { score: number; size?: number }) {
 
 export default function LinkedinBuilderPage() {
   // ── State ──────────────────────────────────────────────────────────
-  const [masterResumeSelection, setMasterResumeSelection] = useState("");
-  const [masterResumeOptions, setMasterResumeOptions] = useState<MasterResumeOption[]>([]);
+  // The member's chosen master resume, from the shared picker.
+  const [master, setMaster] = useState<MasterOption | null>(null);
   const [savedProfiles, setSavedProfiles] = useState<SavedLinkedinProfile[]>([]);
   const [currentProfileId, setCurrentProfileId] = useState("");
   const [documentId, setDocumentId] = useState<string | null>(null);
@@ -127,35 +126,8 @@ export default function LinkedinBuilderPage() {
   // ── Initial data load ──────────────────────────────────────────────
   useEffect(() => {
     async function loadInitial() {
-      const [artifactRes, docsRes, savedRes] = await Promise.all([
-        fetch("/api/resume-artifacts?type=master_resume"),
-        fetch("/api/documents"),
-        fetch("/api/tools/linkedin-builder"),
-      ]);
-      const artifactData = await artifactRes.json().catch(() => ({}));
-      const docsData = await docsRes.json().catch(() => ({}));
+      const savedRes = await fetch("/api/tools/linkedin-builder");
       const savedData = await savedRes.json().catch(() => ({}));
-      const nextOptions: MasterResumeOption[] = [];
-      if (artifactRes.ok) {
-        nextOptions.push(...((artifactData.artifacts ?? []) as Artifact[]).map((a) => ({
-          value: `artifact:${a.id}`,
-          id: a.id,
-          sourceType: "artifact" as const,
-          label: `${a.title} (${new Date(a.created_at).toLocaleDateString()}) — Saved master resume`,
-        })));
-      }
-      if (docsRes.ok) {
-        nextOptions.push(...((docsData.documents ?? []) as MasterResumeDocument[])
-          .filter((d) => d.doc_type === "MASTER_RESUME")
-          .map((d) => ({
-            value: `document:${d.id}`,
-            id: d.id,
-            sourceType: "document" as const,
-            label: `${d.filename} (${new Date(d.created_at).toLocaleDateString()})${d.text_extracted ? "" : " — not ready yet"} — Uploaded`,
-          })));
-      }
-      setMasterResumeOptions(nextOptions);
-      if (nextOptions[0]) setMasterResumeSelection((c) => c || nextOptions[0].value);
       if (savedRes.ok) setSavedProfiles((savedData.profiles ?? []) as SavedLinkedinProfile[]);
     }
     void loadInitial();
@@ -194,11 +166,6 @@ export default function LinkedinBuilderPage() {
   }, [profileOutput, currentProfileId]);
 
   // ── Derived ────────────────────────────────────────────────────────
-  const selectedMasterResume = useMemo(
-    () => masterResumeOptions.find((o) => o.value === masterResumeSelection) ?? null,
-    [masterResumeOptions, masterResumeSelection]
-  );
-
   const stageBarStages = useMemo(
     () =>
       [
@@ -214,8 +181,8 @@ export default function LinkedinBuilderPage() {
   // ── Utilities ──────────────────────────────────────────────────────
   function buildSourcePayload() {
     return {
-      masterResumeArtifactId: selectedMasterResume?.sourceType === "artifact" ? selectedMasterResume.id : undefined,
-      masterResumeDocumentId: selectedMasterResume?.sourceType === "document" ? selectedMasterResume.id : undefined,
+      masterResumeArtifactId: master?.kind === "artifact" ? master.id : undefined,
+      masterResumeDocumentId: master?.kind === "document" ? master.id : undefined,
       pastedResumeText: pastedResumeText || resumeSourceText || undefined,
     };
   }
@@ -588,25 +555,17 @@ export default function LinkedinBuilderPage() {
             </div>
 
             <form className="flex flex-col gap-3" onSubmit={runAnalysisAndCareer}>
-              <label className="block space-y-1">
-                <span className="text-sm font-medium">Master Resume</span>
-                <select className="input" value={masterResumeSelection} onChange={(e) => setMasterResumeSelection(e.target.value)}>
-                  <option value="">Select a master resume</option>
-                  {masterResumeOptions.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </label>
+              <MasterResumePicker onSelect={setMaster} purpose="Your LinkedIn profile is written from this resume." />
 
               <label className="block space-y-1">
                 <span className="text-sm font-medium">
-                  Pasted Resume <span className="font-normal text-[var(--muted)]">(optional if source selected)</span>
+                  Or paste a resume for this run only <span className="font-normal text-[var(--muted)]">(optional; used instead of your master)</span>
                 </span>
                 <textarea
                   className="input min-h-28"
                   value={pastedResumeText}
                   onChange={(e) => setPastedResumeText(e.target.value)}
-                  placeholder="Paste resume text if not using a saved source…"
+                  placeholder="Paste resume text to use instead of your master, for this run only…"
                 />
               </label>
 

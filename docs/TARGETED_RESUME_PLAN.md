@@ -111,7 +111,7 @@ Build the engine and run it before building the full screens.
 | Phase | Status |
 |---|---|
 | Plan | Approved 2026-11-20 with two adjustments: the member chooses their master (no MilVector rule), and Phase 2 is judged against the Application Package Studio's inputs and finished resumes |
-| 1 | In progress |
+| 1 | **Built 2026-11-20, awaiting Brandon's gate.** Needs migration 0037 run in the Supabase SQL editor; until then every tool works as it did and the picker says a choice applies on that page only. The member's choice is saved on the profile; one picker (components/tools/master-resume-picker.tsx) sits in the Targeted Resume Builder, JD Decoder, Interview Strategist (when "My master resume" is selected; a targeted resume can still be picked for that job), and LinkedIn Profile Builder. My Files marks "Your master resume" and offers "Make this my master" on ready master resume files. The Master Resume Builder's result lists the refine loop and offers "Use this draft as my master for now". No silent fallback: with no choice, tools ask; a deleted choice is called out. Verified: 266 unit tests (8 new), a 25-check walkthrough against the stand-in database plus a stand-in for OpenAI that records exactly which resume each tool sent, a 5-check run of the before-0037 behavior, 390 and 320 widths, production build clean |
 | 2 | Not started |
 | 3 | Not started |
 | 4 | Not started |

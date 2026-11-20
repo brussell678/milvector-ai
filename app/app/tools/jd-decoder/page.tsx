@@ -6,6 +6,7 @@ import { LoadingBlock } from "@/components/tools/loading-block";
 import { ToolAlert } from "@/components/tools/tool-alert";
 import { ActionBar } from "@/components/tools/action-bar";
 import { Term } from "@/components/ui/term";
+import { MasterResumePicker } from "@/components/tools/master-resume-picker";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -212,6 +213,8 @@ export default function JobDescriptionDecoderPage() {
                 </p>
               </div>
 
+              <MasterResumePicker purpose="Your fit read compares the posting with this resume. Without one, you still get the posting analysis." />
+
               <label className="block space-y-1">
                 <span className="text-sm font-medium">Full Job Description</span>
                 <textarea
@@ -301,12 +304,12 @@ export default function JobDescriptionDecoderPage() {
               {!result.personalized_fit.assessed_against_resume ? (
                 <ToolAlert variant="info" title="Fit isn't personalized yet">
                   <p className="text-sm">
-                    {result.personalized_fit.fit_summary ||
-                      "This analysis wasn't matched against your background because you don't have a master resume saved yet."}{" "}
+                    {result.personalized_fit.fit_summary || "This analysis wasn't matched against your background because no master resume is chosen."}{" "}
+                    Choose your master resume above, or{" "}
                     <Link href="/app/tools/fitrep-bullets" className="font-semibold underline">
-                      Build your master resume
-                    </Link>{" "}
-                    and run this again for a personalized fit assessment.
+                      build one from your records
+                    </Link>
+                    , then run this again for a personalized fit assessment.
                   </p>
                 </ToolAlert>
               ) : (
