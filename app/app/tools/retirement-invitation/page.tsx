@@ -21,14 +21,14 @@ export default async function RetirementInvitationPage() {
     <main className="page-shell">
       {returning ? (
         <header className="px-1">
-          <p className="section-kicker">RETIREMENT INVITATION BUILDER · PREVIEW</p>
+          <p className="section-kicker">RETIREMENT INVITATION BUILDER</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight">Your retirement invitation</h1>
         </header>
       ) : (
         <section className="page-hero-dark">
           <div className="page-hero-grid">
             <div className="relative z-10">
-              <p className="page-kicker-pill">RETIREMENT INVITATION BUILDER · PREVIEW</p>
+              <p className="page-kicker-pill">RETIREMENT INVITATION BUILDER</p>
               <h1 className="page-title">
                 One page for your retirement, <span className="gradient-text">shared with a link or a scan.</span>
               </h1>

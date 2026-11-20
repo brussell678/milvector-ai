@@ -22,6 +22,12 @@ that reporter), use the admin composer at /app/admin/updates instead — it can
 link the case. This file is for the general changelog.
 -->
 
+## Digital Business Card {new}
+Build a business card you never run out of. Share it with a link, a QR code, or a tap, keep it in Apple Wallet or Google Wallet, and let the people you meet send their details straight back to you. Find it under Tools.
+
+## Retirement Invitation Builder {new}
+Build one page for your retirement ceremony and the celebration after it, free. Guests RSVP on their phone, get base pass steps and directions, and the same link and QR code turn into the program on the day and a thank-you page afterward. Find it under Tools, or from the ceremony tasks on your Timeline.
+
 ## Retirement Pay Calculator {new}
 See your full monthly income after retirement in one place: retired pay under High-3 or BRS, VA disability compensation with dependents, what CRDP or CRSC adds back, your SBP premium, and an estimate of taxes. It is free, needs no account, and nothing you enter is saved.
 

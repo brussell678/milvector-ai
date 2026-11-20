@@ -15,7 +15,7 @@ export default async function BusinessCardPage() {
       <section className="page-hero-dark">
         <div className="page-hero-grid">
           <div className="relative z-10">
-            <p className="page-kicker-pill">DIGITAL BUSINESS CARD · PREVIEW</p>
+            <p className="page-kicker-pill">DIGITAL BUSINESS CARD</p>
             <h1 className="page-title">
               One card you never run out of, <span className="gradient-text">shared with a scan or a tap.</span>
             </h1>

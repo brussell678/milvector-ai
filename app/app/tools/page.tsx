@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
-import { previewEnabled } from "@/lib/tools/preview";
+import { previewEnabled, toolLinkVisible } from "@/lib/tools/preview";
 import { toolGroups, toolLabels, type ChecksState, type ToolCard } from "@/lib/tools/registry";
 
 // ─── Types ────────────────────────────────────────────────────────────
@@ -398,7 +398,7 @@ export default async function ToolsPage() {
         <ToolGroup
           key={group.kicker}
           {...group}
-          tools={group.tools.filter((tool) => !tool.isPreview || previewEnabled(tool.href, user.email))}
+          tools={group.tools.filter((tool) => (tool.isPreview ? previewEnabled(tool.href, user.email) : toolLinkVisible(tool.href, user.email)))}
           checks={checks}
         />
       ))}

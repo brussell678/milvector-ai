@@ -86,23 +86,28 @@ describe("ceremony tasks link to the Retirement Invitation Builder", () => {
   });
 });
 
-describe("toolLinkVisible: preview tools follow their own switch", () => {
+describe("toolLinkVisible: switched tools follow their own switch", () => {
   const before = process.env.RETIREMENT_INVITE_PUBLIC;
   afterEach(() => {
     if (before === undefined) delete process.env.RETIREMENT_INVITE_PUBLIC;
     else process.env.RETIREMENT_INVITE_PUBLIC = before;
   });
 
-  it("hides the builder, deep links included, from members while it is a preview", () => {
+  it("shows the launched builder, deep links included, to every member", () => {
     delete process.env.RETIREMENT_INVITE_PUBLIC;
+    expect(toolLinkVisible("/app/tools/retirement-invitation", "member@example.com")).toBe(true);
+    expect(toolLinkVisible("/app/tools/retirement-invitation?tab=guests", "member@example.com")).toBe(true);
+  });
+
+  it("hides it from members, but not the admin, when its off switch is set", () => {
+    process.env.RETIREMENT_INVITE_PUBLIC = "false";
     expect(toolLinkVisible("/app/tools/retirement-invitation", "member@example.com")).toBe(false);
     expect(toolLinkVisible("/app/tools/retirement-invitation?tab=program", "member@example.com")).toBe(false);
     expect(toolLinkVisible("/app/tools/retirement-invitation?tab=program", ADMIN_EMAIL)).toBe(true);
   });
 
-  it("shows it to everyone once opened", () => {
-    process.env.RETIREMENT_INVITE_PUBLIC = "true";
-    expect(toolLinkVisible("/app/tools/retirement-invitation?tab=guests", "member@example.com")).toBe(true);
+  it("keeps a preview tool hidden from members", () => {
+    expect(toolLinkVisible("/app/tools/resume-studio", "member@example.com")).toBe(process.env.RESUME_STUDIO_PUBLIC === "true");
   });
 
   it("never hides a tool that is not a preview", () => {

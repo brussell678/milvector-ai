@@ -2,11 +2,12 @@ import { isAdminEmail } from "@/lib/auth";
 import { siteUrl } from "@/lib/seo";
 import type { EventSource } from "@/lib/cards/schema";
 
-// The Digital Business Card builder creates public pages on this domain, so it
-// runs as an admin-only preview until it has been walked end to end.
-// Set CARD_BUILDER_PUBLIC=true to open it to every signed-in member.
+// The Digital Business Card builder is open to every signed-in member
+// (launched 2026-11-20). It creates public pages on this domain, so it keeps
+// an off switch: set CARD_BUILDER_PUBLIC=false and redeploy to close it to
+// everyone but the admin.
 export function cardBuilderEnabled(email?: string | null) {
-  return process.env.CARD_BUILDER_PUBLIC === "true" || isAdminEmail(email);
+  return process.env.CARD_BUILDER_PUBLIC !== "false" || isAdminEmail(email);
 }
 
 // The public address of a card. The source tag lets the owner see whether a

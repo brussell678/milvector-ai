@@ -24,6 +24,9 @@ export type ToolCard = {
   isExternal?: boolean;
   // A calculator that runs in the browser: no AI run, nothing logged
   isCalculator?: boolean;
+  // Builds a page the member publishes (a card, an invitation): no AI run,
+  // nothing logged
+  isBuilder?: boolean;
   // Shown only to members with preview access (see lib/tools/preview.ts)
   isPreview?: boolean;
 };
@@ -75,10 +78,10 @@ export const toolGroups: ToolGroupDef[] = [
       },
       {
         href: "/app/tools/business-card",
-        title: "Digital Business Card (Preview)",
+        title: "Digital Business Card",
         desc: "A card you share with a tap, a link, or a QR code. Add it to Apple or Google Wallet, let people send their details back, and see how often it is viewed.",
         requirements: [{ text: "The contact details you want a recruiter or new connection to have." }],
-        isPreview: true,
+        isBuilder: true,
       },
     ],
   },
@@ -140,10 +143,10 @@ export const toolGroups: ToolGroupDef[] = [
       },
       {
         href: "/app/tools/retirement-invitation",
-        title: "Retirement Invitation Builder (Preview)",
+        title: "Retirement Invitation Builder",
         desc: "One page for your retirement ceremony and the celebration after it. Share it with a link or one QR code, and guests get the times, places, dress, and directions on their phone.",
         requirements: [{ text: "Your ceremony date, time, and place, plus any reception or party details." }],
-        isPreview: true,
+        isBuilder: true,
       },
     ],
   },

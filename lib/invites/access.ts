@@ -1,11 +1,12 @@
 import { isAdminEmail } from "@/lib/auth";
 import { siteUrl } from "@/lib/seo";
 
-// The Retirement Invitation Builder creates public pages on this domain, so it
-// runs as an admin-only preview until it has been walked end to end.
-// Set RETIREMENT_INVITE_PUBLIC=true to open it to every signed-in member.
+// The Retirement Invitation Builder is open to every signed-in member
+// (launched 2026-11-20). It creates public pages on this domain, so it keeps
+// an off switch: set RETIREMENT_INVITE_PUBLIC=false and redeploy to close it
+// to everyone but the admin.
 export function inviteBuilderEnabled(email?: string | null) {
-  return process.env.RETIREMENT_INVITE_PUBLIC === "true" || isAdminEmail(email);
+  return process.env.RETIREMENT_INVITE_PUBLIC !== "false" || isAdminEmail(email);
 }
 
 // A member has one retirement, so one invitation.
