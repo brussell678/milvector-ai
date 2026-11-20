@@ -78,6 +78,19 @@ export async function loadChosenMaster(supabase: SupabaseClient, userId: string)
   return { ok: true, text, option: choice.option };
 }
 
+/**
+ * One of the member's masters by its ref, as the picker sends it. Lets a
+ * tool use the picker's choice even before migration 0037 can save it.
+ */
+export async function loadMasterByRef(supabase: SupabaseClient, userId: string, ref: string): Promise<ChosenMaster> {
+  const option = (await listMasterOptions(supabase, userId)).find((item) => item.ref === ref);
+  if (!option) return { ok: false, reason: "missing" };
+  if (!option.ready) return { ok: false, reason: "not_ready" };
+  const text = await masterText(supabase, userId, option);
+  if (text.trim().length < 100) return { ok: false, reason: "not_ready" };
+  return { ok: true, text, option };
+}
+
 export const MASTER_PROBLEM: Record<Exclude<ChosenMaster, { ok: true }>["reason"], string> = {
   unsaved: "Choose a resume to work from.",
   none: "Choose your master resume first. Every resume tool works from the one you pick.",

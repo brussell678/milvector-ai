@@ -11,3 +11,11 @@ export function resumeStudioEnabled(email?: string | null) {
 export const RECORD_DOC_TYPES = ["FITREP", "EVAL", "AWARD", "JST", "VMET", "MASTER_RESUME"];
 export const BATCH_CHAR_BUDGET = 45000;
 export const DOC_CHAR_CAP = 45000;
+
+// The rebuilt Targeted Resume Builder (docs/TARGETED_RESUME_PLAN.md), working
+// from the member's own master. Admins see it at the Targeted Resume
+// Builder's address; members keep the classic flow until it is opened.
+// Set TARGETED_RESUME_V2_PUBLIC=true to open it to every signed-in member.
+export function targetedResumeV2Enabled(email?: string | null) {
+  return process.env.TARGETED_RESUME_V2_PUBLIC === "true" || isAdminEmail(email);
+}

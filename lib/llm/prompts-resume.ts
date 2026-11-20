@@ -164,7 +164,7 @@ Rules:
 - Figures: use them, they are what makes a bullet credible. Copy each one exactly from the cited evidence. Never round, convert, combine, or estimate.
 - Never attach a tool, system, software, regulation, or standard to a bullet unless the cited evidence names it. Appending a posting keyword ("using a CMMS", "DOT compliance", "in SAP") to a true accomplishment makes it false. If the posting wants something the record lacks, put it in gaps.
 - Order bullets within each role strongest-for-this-posting first. If the resume runs long, bullets are cut from the end.
-${fromMaster ? "- The record is the member's own refined master, already in their words. Use it fully: 5 to 7 bullets for the most relevant roles, 3 to 4 for the next most relevant, 2 for older ones. Keep each bullet close to the master's wording, tightened toward the posting's vocabulary. Target two full pages; under about 1.8 pages is too short. If it runs long, software trims bullets from the oldest roles." : "- 4 to 6 bullets for the most relevant roles, 2 to 3 for older or less relevant ones. Aim to fill two pages for a career of ten years or more."}
+${fromMaster ? "- The record is the member's own refined master, already in their words. Use it fully: 5 to 7 bullets for the most relevant roles, 3 to 4 for the next most relevant, 2 for older ones. Roles with no dates are project sections: include at most 2, only when they matter for this posting, and never in place of a job. Keep each bullet close to the master's wording, tightened toward the posting's vocabulary. Target two full pages; under about 1.8 pages is too short. If it runs long, software trims bullets from the oldest roles." : "- 4 to 6 bullets for the most relevant roles, 2 to 3 for older or less relevant ones. Aim to fill two pages for a career of ten years or more."}
 ${fromMaster ? "- title: leave it empty. The title, organization, and dates come from the master resume as the member wrote them." : "- title: a civilian job title for that role that is honest about its level. The organization and dates are filled in from the record; do not write them."}
 - summary: 3 to 4 lines positioning the candidate for THIS posting, from the record only. A figure may appear only if it appears in the record. Do not state a clearance, degree, or certification unless it is in CREDENTIALS.
 - skills: 10 to 16 keywords the posting asks for that the record genuinely demonstrates. Never list a certification, license, clearance, tool, system, or regulation the record does not show. Skills entries naming something absent from the record are deleted.
@@ -261,5 +261,41 @@ ${args.removed.join("\n")}
 
 MASTER TEXT (summary, competencies, and highlights):
 ${args.support}
+`.trim();
+}
+
+/**
+ * A targeted resume built from a master came out short. One request to add
+ * bullets from master lines it did not use; the same checks run again after.
+ */
+export function promptFillFromMaster(args: { jobTitle: string; company?: string | null; jobDescriptionText: string; draftText: string; unusedText: string; pages: number; missingRoles?: string }) {
+  return `
+A targeted resume written from a candidate's own master resume needs more from that master: it is about ${args.pages.toFixed(1)} pages, where the target is two full pages${args.missingRoles ? ", and it skips jobs, which reads as an unexplained gap" : ""}. Add bullets from the UNUSED MASTER LINES below.
+
+Every added bullet is checked by software. It is deleted if it cites no id, cites an id that is not listed, cites lines from more than one role, contains a figure its cited lines do not contain, or names a tool, system, credential, or regulation its cited lines do not name.
+
+Rules:
+${args.missingRoles ? `- Give each job listed under TIMELINE GAPS 1 to 2 bullets, so the resume has no unexplained gap.\n` : ""}- Add 4 to 8 bullets in total, most to the roles that matter for this posting and have the fewest bullets now. No role may end up with more than 8 bullets in total.
+- Write each bullet close to the master's wording, tightened toward the posting's vocabulary. One achievement per bullet.
+- Cite in "evidence" the line ids (ACC-...) it was written from, all from the same role.
+- Copy figures exactly. Never round, combine, or estimate.
+- Do not repeat anything already in the draft.
+- Plain civilian English. No em dashes. No filler.
+
+Return strict JSON:
+{ "additions": [ { "role_id": "ROLE-02", "bullets": [ { "text": "", "evidence": ["ACC-02-05"] } ] } ] }
+
+Job title: ${args.jobTitle}
+Company: ${args.company ?? ""}
+
+JOB POSTING:
+${args.jobDescriptionText}
+
+THE DRAFT SO FAR:
+${args.draftText}
+
+UNUSED MASTER LINES (role, then ids first):
+${args.unusedText}
+${args.missingRoles ? `\nTIMELINE GAPS (jobs the draft skips):\n${args.missingRoles}` : ""}
 `.trim();
 }

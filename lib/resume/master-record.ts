@@ -52,6 +52,8 @@ export type MasterRecordResult = {
   // The master's summary, competencies, and lines that belong to no one role.
   // They can support the targeted summary and skills, never a role's bullet.
   support: string;
+  // The same lines one by one, so a figure can be traced to its line.
+  supportLines: string[];
   // Lines the model returned that are not in the master, so were not used.
   dropped: string[];
 };
@@ -153,5 +155,6 @@ export function recordFromMaster(args: { raw: Record<string, unknown>; masterTex
     openQuestions,
     stats: { documentsRead: 1, documentsAvailable: 1, accomplishments, heldForReview: 0 },
   };
-  return { record, support: [...summary, ...competencies, ...unassigned].join(" "), dropped };
+  const supportLines = [...summary, ...competencies, ...unassigned];
+  return { record, support: supportLines.join(" "), supportLines, dropped };
 }

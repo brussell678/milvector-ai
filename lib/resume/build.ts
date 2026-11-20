@@ -338,6 +338,8 @@ export function gateTargetedResume(args: {
   // the targeted summary and skills, though never a role's bullets.
   titlesFromRecord?: boolean;
   extraSupport?: string;
+  // No role gets more than this many bullets; the lowest-priority go first.
+  maxBulletsPerRole?: number;
 }): GateResult {
   const { record } = args;
   const findings: Finding[] = [];
@@ -406,6 +408,7 @@ export function gateTargetedResume(args: {
       bullets.push({ text: body, evidence: valid });
     }
     if (bullets.length === 0) continue;
+    if (args.maxBulletsPerRole && bullets.length > args.maxBulletsPerRole) bullets.length = args.maxBulletsPerRole;
     experience.push({
       roleId: role.id,
       title: args.titlesFromRecord ? role.title : cleanPunctuation(text(entry.title)) || role.title,
@@ -516,19 +519,26 @@ export function gateTargetedResume(args: {
     emphasized: list(args.raw.what_was_emphasized),
   };
 
-  // Length: trim from the end of the oldest roles until it fits two pages.
+  // Length: trim until it fits two pages, keeping the jobs deep. In order:
+  // a role's bullets beyond five, then undated projects (last first), then a
+  // job's bullets beyond three, then any bullets beyond two, then the oldest
+  // role. Bullets always come off the oldest qualifying role first.
   const contactLines = args.contactLines ?? 2;
   let trimmed = 0;
   let pages = estimatePages(layoutOf(draft, contactLines));
+  const isProject = (role: TargetedRole) => !role.dates.trim();
+  const oldestWith = (test: (role: TargetedRole) => boolean) => [...draft.experience].reverse().find(test);
   while (pages > FIT_TARGET_PAGES) {
-    const candidates = draft.experience.map((role, index) => ({ role, index })).filter(({ role }) => role.bullets.length > 2);
-    if (candidates.length > 0) {
-      candidates[candidates.length - 1].role.bullets.pop();
-    } else if (draft.experience.length > 3) {
-      draft.experience.pop();
-    } else {
-      break;
-    }
+    const deep = oldestWith((role) => role.bullets.length > 5);
+    const project = oldestWith(isProject);
+    const overThree = oldestWith((role) => !isProject(role) && role.bullets.length > 3);
+    const overTwo = oldestWith((role) => role.bullets.length > 2);
+    if (deep) deep.bullets.pop();
+    else if (project) draft.experience.splice(draft.experience.indexOf(project), 1);
+    else if (overThree) overThree.bullets.pop();
+    else if (overTwo) overTwo.bullets.pop();
+    else if (draft.experience.length > 3) draft.experience.pop();
+    else break;
     trimmed += 1;
     pages = estimatePages(layoutOf(draft, contactLines));
   }

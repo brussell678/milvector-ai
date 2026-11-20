@@ -20,6 +20,9 @@ export type StructuredTargetedResume = {
   executive_summary: string;
   core_skills: string[];
   experience: StructuredExperience[];
+  // Sections of a master resume without dates (projects, selected work),
+  // printed under their own heading instead of as jobs with no dates.
+  selected_projects?: StructuredExperience[];
   off_duty_education: string[];
   civilian_certifications: string[];
   additional_training: string[];
@@ -253,6 +256,20 @@ export function buildTargetedResumeText(args: {
     }
   }
 
+  const projectRows = (resume.selected_projects ?? []).filter((row) => clean(row.role_title) && hasItems(row.bullets));
+  if (projectRows.length > 0) {
+    lines.push("SELECTED PROJECTS");
+    for (const row of projectRows) {
+      lines.push(clean(row.role_title));
+      const orgLine = buildOrgLine(row);
+      if (orgLine) lines.push(orgLine);
+      for (const bullet of uniqueItems((row.bullets ?? []).map((item) => item.trim()).filter(Boolean))) {
+        lines.push(`- ${bullet}`);
+      }
+      lines.push("");
+    }
+  }
+
   const sections = [
     ["Education", resume.off_duty_education ?? []],
     ["Certifications", resume.civilian_certifications ?? []],
@@ -364,6 +381,21 @@ export async function renderTargetedResumeDocx(args: {
     paragraphs.push(sectionRule());
     paragraphs.push(sectionHeading("PROFESSIONAL EXPERIENCE"));
     for (const row of experienceRows) {
+      for (const paragraph of experienceHeadingParagraph(row)) {
+        paragraphs.push(paragraph);
+      }
+      for (const bullet of uniqueItems((row.bullets ?? []).map((item) => item.trim()).filter(Boolean))) {
+        paragraphs.push(bulletParagraph(bullet));
+      }
+      paragraphs.push(blankParagraph());
+    }
+  }
+
+  const projectRows = (args.resume.selected_projects ?? []).filter((row) => clean(row.role_title) && hasItems(row.bullets));
+  if (projectRows.length > 0) {
+    paragraphs.push(sectionRule());
+    paragraphs.push(sectionHeading("SELECTED PROJECTS"));
+    for (const row of projectRows) {
       for (const paragraph of experienceHeadingParagraph(row)) {
         paragraphs.push(paragraph);
       }

@@ -1266,8 +1266,13 @@ details[open] .details-chevron {
 
 .tool-badge-error {
   background: color-mix(in oklab, var(--panel) 80%, #8b2000 20%);
-  color: #ff8f73;
+  /* Dark red on the light theme's pale red; the salmon reads only on dark. */
+  color: #a3271a;
   border: 1px solid color-mix(in oklab, #c13e2a 35%, var(--line) 65%);
+}
+
+:root[data-theme="dark"] .tool-badge-error {
+  color: #ff8f73;
 }
 
 /* Example output preview inside empty states */
