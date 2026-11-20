@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { captionProblem } from "@/lib/invites/opsec";
 import { ownedInvite } from "@/lib/invites/owner";
 
 type Params = { params: Promise<{ id: string; photoId: string }> };
@@ -15,6 +16,8 @@ export async function PATCH(req: Request, { params }: Params) {
     .replace(/[\u0000-\u001f\u007f]/g, "")
     .trim();
   if (caption.length > 120) return NextResponse.json({ error: "Keep captions under 120 characters." }, { status: 400 });
+  const problem = captionProblem(caption);
+  if (problem) return NextResponse.json({ error: problem }, { status: 400 });
   const { data, error } = await supabase
     .from("retirement_invite_photos")
     .update({ caption })

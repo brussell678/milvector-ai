@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isMissingSchema } from "@/lib/cards/store";
-import { PHASE_C_NOT_READY as NOT_READY, ownedInvite } from "@/lib/invites/owner";
+import { PHASE_C_NOT_READY as NOT_READY, UUID_RE, ownedInvite } from "@/lib/invites/owner";
 import { GUEST_COLUMNS, HostGuestSchema, attendingBaseEvent } from "@/lib/invites/rsvp";
 import { readInviteData } from "@/lib/invites/schema";
 
@@ -29,6 +29,22 @@ export async function GET(_req: Request, { params }: Params) {
     return NextResponse.json({ error: isMissingSchema(error) ? NOT_READY : error.message }, { status: isMissingSchema(error) ? 503 : 500 });
   }
   return NextResponse.json({ guests: data ?? [], messages: messages ?? [] }, { headers: { "Cache-Control": "no-store" } });
+}
+
+// The host removes several replies at once: { ids: [guest ids] }. For
+// clearing out junk answers without tapping each one.
+export async function DELETE(req: Request, { params }: Params) {
+  const { id } = await params;
+  const auth = await ownedInvite(id);
+  if ("error" in auth) return auth.error;
+  const { supabase } = auth;
+
+  const body = (await req.json().catch(() => null)) as { ids?: unknown } | null;
+  const ids = Array.isArray(body?.ids) ? body.ids.map(String).filter((value) => UUID_RE.test(value)).slice(0, 500) : [];
+  if (ids.length === 0) return NextResponse.json({ error: "Nobody to remove." }, { status: 400 });
+  const { data, error } = await supabase.from("retirement_invite_guests").delete().eq("invite_id", id).in("id", ids).select("id");
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ removed: (data ?? []).map((row: { id: string }) => row.id) });
 }
 
 // The host adds someone by hand: a relative who will never use the form.

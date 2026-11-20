@@ -36,7 +36,7 @@ import {
   type Sections,
 } from "@/lib/invites/schema";
 import { ACCENT_PRESETS, TEMPLATES, TEMPLATE_IDS, inviteColors, readTemplate } from "@/lib/invites/templates";
-import { ceremonyOf, eventIsComplete, formatDateLong, formatTime, publicLocation, sortEvents } from "@/lib/invites/time";
+import { shareText } from "@/lib/invites/share-text";
 import { resolveView, youtubeId } from "@/lib/invites/view";
 import { siteUrl } from "@/lib/seo";
 
@@ -56,6 +56,29 @@ type Message = { kind: "ok" | "error"; text: string } | null;
 type BuilderPhoto = { id: string; position: number; caption: string; updatedAt: string };
 
 const pageUrlFor = (slug: string) => `${siteUrl}/r/${slug}`;
+
+// Unsaved work is copied to this browser as the host types, so a back
+// gesture, a closed tab, or a phone that drops the page loses nothing. The
+// copy is offered back only against the same saved version it was made from.
+type LocalBackup = { draft: InviteData; slug: string; base: string; at: string };
+const backupKey = (id: string) => `mv-invite-draft:${id}`;
+function readBackup(id: string): LocalBackup | null {
+  try {
+    const raw = window.localStorage.getItem(backupKey(id));
+    const value = raw ? (JSON.parse(raw) as LocalBackup) : null;
+    return value && typeof value.base === "string" && value.draft && typeof value.slug === "string" ? value : null;
+  } catch {
+    return null;
+  }
+}
+function writeBackup(id: string, value: LocalBackup | null) {
+  try {
+    if (value) window.localStorage.setItem(backupKey(id), JSON.stringify(value));
+    else window.localStorage.removeItem(backupKey(id));
+  } catch {
+    // Private browsing or storage turned off: the leave warning still applies.
+  }
+}
 
 // Shrinks a photo to at most 1600px on its long edge and re-encodes it as a
 // JPEG in the browser. Re-encoding also drops the location data phones store
@@ -103,6 +126,10 @@ export function RetirementInvitationBuilder() {
   const [tab, setTab] = useState<Tab>("basics");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<Message>(null);
+  // The result of a save made from the save bar, shown in the bar itself: on a
+  // phone the message area above the tabs is a long way off screen.
+  const [barNote, setBarNote] = useState<Message>(null);
+  const [restore, setRestore] = useState<LocalBackup | null>(null);
   const [photos, setPhotos] = useState<BuilderPhoto[]>([]);
   const [photosReady, setPhotosReady] = useState(true);
   // Which view the preview shows. "auto" follows the calendar like guests see.
@@ -126,6 +153,12 @@ export function RetirementInvitationBuilder() {
           setSaved(json.invite);
           setDraft(json.invite.invite);
           setSlugDraft(json.invite.slug);
+          const backup = readBackup(json.invite.id);
+          if (backup && backup.base === json.invite.updatedAt && (JSON.stringify(backup.draft) !== JSON.stringify(json.invite.invite) || backup.slug !== json.invite.slug)) {
+            setRestore(backup);
+          } else if (backup) {
+            writeBackup(json.invite.id, null);
+          }
           // Timeline tasks link straight to a tab, e.g. ?tab=program.
           const asked = new URLSearchParams(window.location.search).get("tab");
           if (asked && (TAB_IDS as readonly string[]).includes(asked)) setTab(asked as Tab);
@@ -138,13 +171,48 @@ export function RetirementInvitationBuilder() {
     };
   }, []);
 
-  // Warn before leaving with unsaved changes.
+  // Warn before leaving with unsaved changes: closing or reloading the tab
+  // (the browser asks), and links inside MilVector, which change the page
+  // without the browser knowing. Captured before the link's own handler runs.
   useEffect(() => {
     if (!dirty) return;
     const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    const guard = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const link = (event.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
+      if (!link || link.target === "_blank" || link.hasAttribute("download")) return;
+      const url = new URL(link.href, window.location.href);
+      if (url.origin !== window.location.origin || url.pathname === window.location.pathname) return;
+      if (!window.confirm("You have unsaved changes. Leave without saving them?")) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
     window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
+    document.addEventListener("click", guard, true);
+    return () => {
+      window.removeEventListener("beforeunload", warn);
+      document.removeEventListener("click", guard, true);
+    };
   }, [dirty]);
+
+  // Keep the local copy of unsaved work current. Left alone while an older
+  // copy is being offered back, so it is never overwritten before the host
+  // decides.
+  useEffect(() => {
+    if (!saved || !draft || restore) return;
+    const timer = window.setTimeout(() => {
+      writeBackup(saved.id, dirty ? { draft, slug: slugDraft, base: saved.updatedAt, at: new Date().toISOString() } : null);
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [saved, draft, slugDraft, dirty, restore]);
+
+  // A "Saved." in the bar fades after a few seconds; an error stays.
+  useEffect(() => {
+    if (barNote?.kind !== "ok") return;
+    const timer = window.setTimeout(() => setBarNote(null), 4000);
+    return () => window.clearTimeout(timer);
+  }, [barNote]);
 
   const warnings = useMemo(() => (draft ? opsecWarnings(draft) : []), [draft]);
 
@@ -154,26 +222,41 @@ export function RetirementInvitationBuilder() {
     setSlugDraft(next.slug);
   }
 
-  async function patch(body: Record<string, unknown>, okText: string): Promise<boolean> {
+  async function patch(body: Record<string, unknown>, okText: string, where: "top" | "bar" = "top"): Promise<boolean> {
     if (!saved) return false;
+    const say = where === "bar" ? setBarNote : setMessage;
     setSaving(true);
     setMessage(null);
+    setBarNote(null);
     const res = await fetch(`/api/invites/${saved.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
     const json = res ? await res.json().catch(() => ({})) : {};
     setSaving(false);
     if (!res?.ok || !json.invite) {
-      setMessage({ kind: "error", text: json.error ?? "That did not save. Check your connection and try again. Your changes are still here." });
+      say({ kind: "error", text: json.error ?? "That did not save. Check your connection and try again. Your changes are still here." });
       return false;
     }
     // A cover or publish change must not throw away unsaved typing.
     if (body.invite !== undefined || body.slug !== undefined) adopt(json.invite);
     else setSaved(json.invite);
-    setMessage({ kind: "ok", text: json.profileUpdated ? `${okText} Your profile's ceremony date was updated to match.` : okText });
+    say({ kind: "ok", text: json.profileUpdated ? `${okText} Your profile's ceremony date was updated to match.` : okText });
     return true;
   }
 
   const changes = () => ({ invite: draft, ...(saved && slugDraft !== saved.slug ? { slug: slugDraft } : {}) });
-  const save = () => patch(changes(), "Saved.");
+  const save = () => patch(changes(), "Saved.", "bar");
+
+  function putBack() {
+    if (!saved || !restore) return;
+    // Laid over the saved version, so anything added to the builder since the
+    // copy was made keeps its default.
+    setDraft({ ...saved.invite, ...restore.draft });
+    setSlugDraft(restore.slug);
+    setRestore(null);
+  }
+  function dropBackup() {
+    if (saved) writeBackup(saved.id, null);
+    setRestore(null);
+  }
 
   async function togglePublish() {
     if (!saved) return;
@@ -296,9 +379,26 @@ export function RetirementInvitationBuilder() {
 
       <div aria-live="polite">{message && <ToolAlert variant={message.kind === "ok" ? "info" : "error"}>{message.text}</ToolAlert>}</div>
 
+      {restore && (
+        <ToolAlert variant="warn" title="Changes you did not save">
+          <p className="text-sm">
+            You made changes on this device on {new Date(restore.at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })} and left before saving
+            them. Put them back to keep working on them.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button type="button" className="btn btn-primary text-sm" onClick={putBack}>
+              Put them back
+            </button>
+            <button type="button" className="btn btn-secondary text-sm" onClick={dropBackup}>
+              Discard them
+            </button>
+          </div>
+        </ToolAlert>
+      )}
+
       <div className={`grid gap-4 lg:items-start ${wide ? "" : "lg:grid-cols-[minmax(0,1fr)_400px]"}`}>
         <div className="flex min-w-0 flex-col gap-4">
-          {warnings.length > 0 && (tab === "basics" || tab === "events") && (
+          {warnings.length > 0 && tab !== "guests" && (
             <ToolAlert variant="warn" title="Before you publish">
               <ul className="list-disc space-y-1 pl-5 text-sm">
                 {warnings.map((warning) => (
@@ -358,16 +458,32 @@ export function RetirementInvitationBuilder() {
           the bottom of the screen while the form scrolls and comes to rest
           above the site footer, and the phone menu still opens over it. A
           fixed bar here is covered by the footer, which shares its layer. */}
-      {dirty && (
+      {(dirty || barNote) && (
         <div
           className="sticky bottom-0 z-20 -mx-1 rounded-xl border border-[var(--line)] bg-[var(--panel)] px-4 py-3 shadow-[var(--shadow-lg)]"
           style={{ marginBottom: "env(safe-area-inset-bottom)" }}
         >
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold">You have unsaved changes</p>
-            <button type="button" className="btn btn-primary text-sm" onClick={save} disabled={saving}>
-              {saving ? "Saving..." : "Save changes"}
-            </button>
+            <div className="min-w-0 text-sm" role={barNote?.kind === "error" ? "alert" : "status"}>
+              {barNote?.kind === "error" ? (
+                <>
+                  <p className="font-semibold text-[var(--warn)]">Not saved</p>
+                  <p>{barNote.text}</p>
+                </>
+              ) : barNote?.kind === "ok" && !dirty ? (
+                <p className="flex items-center gap-2 font-semibold">
+                  <Check size={16} className="shrink-0 text-[var(--accent)]" aria-hidden="true" />
+                  {barNote.text}
+                </p>
+              ) : (
+                <p className="font-semibold">You have unsaved changes</p>
+              )}
+            </div>
+            {dirty && (
+              <button type="button" className="btn btn-primary shrink-0 text-sm" onClick={save} disabled={saving}>
+                {saving ? "Saving..." : barNote?.kind === "error" ? "Try again" : "Save changes"}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -1812,7 +1928,7 @@ function ViewSettings({ draft, set, slug }: { draft: InviteData; set: <K extends
       <p className="section-description">
         The same link and QR code serve three versions of the page. Before the ceremony it is an invitation with the RSVP form. On the day the program leads,
         so a code printed on the program card opens it. Afterward it becomes a thank-you, with a place for guests to leave messages. It switches on its own at
-        midnight where the ceremony is held, in the time zone set under Basics.
+        midnight where the ceremony is held, in the time zone set on the Events tab.
       </p>
       <fieldset className="grid gap-2">
         <legend className="sr-only">Which version guests see</legend>
@@ -1845,28 +1961,3 @@ function ViewSettings({ draft, set, slug }: { draft: InviteData; set: <K extends
 }
 
 const VIEW_LABELS: Record<InviteViewName, string> = { invite: "Before", eventday: "On the day", memories: "After" };
-
-// Plain wording a host can paste anywhere. Built from the saved invitation,
-// which is what guests will see when they open the link.
-function shareText(data: InviteData, url: string): { subject: string; email: string; sms: string } {
-  const who = [data.retiree.rank, data.retiree.name].filter(Boolean).join(" ") || "the retiree";
-  const events = sortEvents(data.events.filter(eventIsComplete));
-  const ceremony = ceremonyOf(data);
-  const when = ceremony && eventIsComplete(ceremony) ? formatDateLong(ceremony.date) : "";
-  const lines = events.map((event) => {
-    const where = publicLocation(event);
-    return `${event.name}: ${formatDateLong(event.date)}, ${formatTime(event.start, data.timeFormat)}${where ? `, ${where}` : ""}`;
-  });
-  return {
-    subject: `You're invited: ${who}'s retirement${when ? `, ${when.split(", ").slice(1).join(", ")}` : ""}`,
-    email: [
-      `You're invited to the retirement of ${who}.`,
-      lines.join("\n"),
-      `Times, places, what to wear, and calendar links are all on the invitation page:\n${url}`,
-      "If you know someone who should be there, please pass the link along.",
-    ]
-      .filter(Boolean)
-      .join("\n\n"),
-    sms: `You're invited to ${who}'s retirement${when ? ` on ${when}` : ""}. Details: ${url}`,
-  };
-}

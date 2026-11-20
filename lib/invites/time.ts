@@ -116,11 +116,22 @@ function dressLine(event: InviteEvent): string {
   return parts.length ? `Dress. ${parts.join(". ")}.` : "";
 }
 
-function calendarDetails(data: InviteData, event: InviteEvent, pageUrl: string): string {
+// Where the calendar entry says the event is. A guest who answered can be
+// given the private street address; everyone else gets the town.
+function calendarLocation(event: InviteEvent, privateAddress?: string): string {
+  if (event.addressPrivate && privateAddress) return [event.place, privateAddress].filter(Boolean).join(", ");
+  return publicLocation(event);
+}
+
+function calendarDetails(data: InviteData, event: InviteEvent, pageUrl: string, privateAddress?: string): string {
   return [
     `${event.name} for ${retireeLine(data)}.`,
     dressLine(event),
-    event.addressPrivate ? "The street address is a private home. It is shared with guests who RSVP." : "",
+    event.addressPrivate
+      ? privateAddress
+        ? "A private home. Please do not share the address publicly."
+        : "The street address is a private home. It is shared with guests who RSVP."
+      : "",
     event.notes,
     `Details: ${pageUrl}`,
   ]
@@ -154,9 +165,13 @@ function foldLine(line: string): string {
   return out.join("\r\n ");
 }
 
-/** A calendar file for one event. Never contains a private address. */
-export function buildIcs(args: { data: InviteData; event: InviteEvent; slug: string; pageUrl: string; now?: Date }): string {
+/**
+ * A calendar file for one event. Carries a private street address only when
+ * one is passed in, which the calendar route does for a guest's own link.
+ */
+export function buildIcs(args: { data: InviteData; event: InviteEvent; slug: string; pageUrl: string; now?: Date; privateAddress?: string }): string {
   const { data, event } = args;
+  const location = calendarLocation(event, args.privateAddress);
   const { start, end } = eventWindow(event, data.timeZone);
   const lines = [
     "BEGIN:VCALENDAR",
@@ -170,8 +185,8 @@ export function buildIcs(args: { data: InviteData; event: InviteEvent; slug: str
     `DTSTART:${stamp(start)}`,
     `DTEND:${stamp(end)}`,
     `SUMMARY:${escapeIcs(`${retireeLine(data)}: ${event.name}`)}`,
-    publicLocation(event) ? `LOCATION:${escapeIcs(publicLocation(event))}` : "",
-    `DESCRIPTION:${escapeIcs(calendarDetails(data, event, args.pageUrl))}`,
+    location ? `LOCATION:${escapeIcs(location)}` : "",
+    `DESCRIPTION:${escapeIcs(calendarDetails(data, event, args.pageUrl, args.privateAddress))}`,
     `URL:${args.pageUrl}`,
     "END:VEVENT",
     "END:VCALENDAR",
@@ -180,15 +195,15 @@ export function buildIcs(args: { data: InviteData; event: InviteEvent; slug: str
 }
 
 /** Android phones do not reliably open calendar files, so offer Google Calendar too. */
-export function googleCalendarUrl(args: { data: InviteData; event: InviteEvent; pageUrl: string }): string {
+export function googleCalendarUrl(args: { data: InviteData; event: InviteEvent; pageUrl: string; privateAddress?: string }): string {
   const { start, end } = eventWindow(args.event, args.data.timeZone);
   const params = new URLSearchParams({
     action: "TEMPLATE",
     text: `${retireeLine(args.data)}: ${args.event.name}`,
     dates: `${stamp(start)}/${stamp(end)}`,
-    details: calendarDetails(args.data, args.event, args.pageUrl),
+    details: calendarDetails(args.data, args.event, args.pageUrl, args.privateAddress),
   });
-  const location = publicLocation(args.event);
+  const location = calendarLocation(args.event, args.privateAddress);
   if (location) params.set("location", location);
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }

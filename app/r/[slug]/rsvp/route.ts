@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isMissingSchema } from "@/lib/cards/store";
 import { RsvpSubmitSchema } from "@/lib/invites/rsvp";
+import { submitFromSite } from "@/lib/invites/submit";
 import { supabaseServer } from "@/lib/supabase/server";
 
 type Params = { params: Promise<{ slug: string }> };
@@ -9,12 +10,14 @@ const REASONS: Record<string, { status: number; error: string }> = {
   not_found: { status: 404, error: "This invitation is not taking answers right now." },
   closed: { status: 409, error: "RSVPs are closed for this invitation. Contact the host with any questions." },
   busy: { status: 429, error: "This invitation has had a lot of answers today. Please try again tomorrow, or contact the host." },
+  slow: { status: 429, error: "A lot of answers have come from this connection today. Please try again tomorrow, or contact the host." },
   full: { status: 409, error: "This invitation has reached its guest limit. Contact the host." },
   invalid: { status: 400, error: "Check your name, email, and answers, then try again." },
 };
 
 // A guest answers. No account: the database function checks the page is
 // live, cleans the answer, and returns the private addresses it releases.
+// It goes through the site's own key, which counts each sender.
 export async function POST(req: Request, { params }: Params) {
   const { slug } = await params;
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
@@ -30,8 +33,7 @@ export async function POST(req: Request, { params }: Params) {
   }
   const rsvp = parsed.data;
 
-  const supabase = await supabaseServer();
-  const { data, error } = await supabase.rpc("submit_invite_rsvp", {
+  const { data, error } = await submitFromSite(req, slug, "rsvp", {
     p_slug: slug,
     p_token: rsvp.token ?? null,
     p_name: rsvp.name,
@@ -45,10 +47,8 @@ export async function POST(req: Request, { params }: Params) {
     p_message: rsvp.message,
   });
   if (error) {
-    return NextResponse.json(
-      { error: isMissingSchema(error) ? "RSVPs are not set up on this site yet." : "That did not go through. Please try again in a moment." },
-      { status: isMissingSchema(error) ? 503 : 500 },
-    );
+    const notReady = isMissingSchema(error) || error.code === "42501";
+    return NextResponse.json({ error: notReady ? "RSVPs are not set up on this site yet." : "That did not go through. Please try again in a moment." }, { status: notReady ? 503 : 500 });
   }
   const result = (data ?? {}) as { ok?: boolean; reason?: string; token?: string; addresses?: Record<string, string>; late?: boolean };
   if (!result.ok) {

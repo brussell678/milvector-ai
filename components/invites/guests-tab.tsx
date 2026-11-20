@@ -53,6 +53,9 @@ export function GuestsTab({ inviteId, slug, data, published, pageUrl }: { invite
   // renders in the browser, after the builder has loaded.
   const [seenAt] = useState<string | null>(() => (typeof window === "undefined" ? null : readSeen(inviteId)));
   const [filter, setFilter] = useState("");
+  // Removing several at once, for clearing out junk answers.
+  const [picking, setPicking] = useState(false);
+  const [picked, setPicked] = useState<Set<string>>(() => new Set());
 
   // State is only set after the request returns, so the first load can run
   // from an effect. Refresh marks itself busy first.
@@ -129,6 +132,39 @@ export function GuestsTab({ inviteId, slug, data, published, pageUrl }: { invite
       return;
     }
     setGuests(list.filter((g) => g.id !== guest.id));
+  }
+
+  function pick(guest: GuestRecord, on: boolean) {
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(guest.id);
+      else next.delete(guest.id);
+      return next;
+    });
+  }
+
+  function stopPicking() {
+    setPicking(false);
+    setPicked(new Set());
+  }
+
+  async function removePicked() {
+    const ids = list.filter((guest) => picked.has(guest.id)).map((guest) => guest.id);
+    if (ids.length === 0) return;
+    if (!window.confirm(`Remove ${ids.length} ${ids.length === 1 ? "reply" : "replies"} from the list? This cannot be undone.`)) return;
+    const res = await fetch(`/api/invites/${inviteId}/guests`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
+    }).catch(() => null);
+    const json = res ? await res.json().catch(() => ({})) : {};
+    if (!res?.ok || !Array.isArray(json.removed)) {
+      setError(json.error ?? "Those replies could not be removed. Try again.");
+      return;
+    }
+    const gone = new Set<string>(json.removed);
+    setGuests(list.filter((guest) => !gone.has(guest.id)));
+    stopPicking();
   }
 
   async function removeMessage(message: DayMessage) {
@@ -346,9 +382,43 @@ export function GuestsTab({ inviteId, slug, data, published, pageUrl }: { invite
         ) : (
           <>
             <input className="input" type="search" placeholder="Filter by name or email" aria-label="Filter guests" value={filter} onChange={(e) => setFilter(e.target.value)} />
+            <div className="flex flex-wrap items-center gap-2">
+              {picking ? (
+                <>
+                  <button type="button" className="btn btn-secondary text-sm" onClick={() => setPicked(new Set(shown.map((guest) => guest.id)))}>
+                    Select all {shown.length} shown
+                  </button>
+                  <button type="button" className="btn btn-primary text-sm" onClick={() => void removePicked()} disabled={picked.size === 0}>
+                    <Trash2 size={14} aria-hidden="true" />
+                    Remove {picked.size || ""} selected
+                  </button>
+                  <button type="button" className="btn btn-ghost text-sm" onClick={stopPicking}>
+                    Done
+                  </button>
+                </>
+              ) : (
+                <button type="button" className="btn btn-ghost text-sm" onClick={() => setPicking(true)}>
+                  <Trash2 size={14} aria-hidden="true" />
+                  Remove several
+                </button>
+              )}
+            </div>
+            {picking && (
+              <p className="text-xs text-[var(--muted)]">
+                Tick the replies to remove. To clear out answers you do not recognize, type something they share into the filter, then select all shown.
+              </p>
+            )}
             <ul className="grid gap-2">
               {shown.map((guest) => (
-                <GuestRow key={guest.id} guest={guest} data={data} onRemove={() => void remove(guest)} />
+                <GuestRow
+                  key={guest.id}
+                  guest={guest}
+                  data={data}
+                  onRemove={() => void remove(guest)}
+                  picking={picking}
+                  picked={picked.has(guest.id)}
+                  onPick={(on) => pick(guest, on)}
+                />
               ))}
             </ul>
           </>
@@ -489,12 +559,31 @@ function Reminders({
   );
 }
 
-function GuestRow({ guest, data, onRemove }: { guest: GuestRecord; data: InviteData; onRemove: () => void }) {
+function GuestRow({
+  guest,
+  data,
+  onRemove,
+  picking = false,
+  picked = false,
+  onPick,
+}: {
+  guest: GuestRecord;
+  data: InviteData;
+  onRemove: () => void;
+  picking?: boolean;
+  picked?: boolean;
+  onPick?: (on: boolean) => void;
+}) {
   const events = sortEvents(data.events.filter(eventIsComplete));
   const changed = !!guest.previous?.answers;
   return (
-    <li className="rounded-xl border border-[var(--line)] bg-[var(--panel)]">
-      <details>
+    <li className={`flex items-start rounded-xl border bg-[var(--panel)] ${picked ? "border-[var(--accent)]" : "border-[var(--line)]"}`}>
+      {picking && (
+        <label className="flex min-h-12 shrink-0 cursor-pointer items-center pl-4">
+          <input type="checkbox" className="h-5 w-5" checked={picked} onChange={(e) => onPick?.(e.target.checked)} aria-label={`Select ${guest.name}`} />
+        </label>
+      )}
+      <details className="min-w-0 flex-1">
         <summary className="flex min-h-12 cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3">
           <span className="font-semibold">{guest.name}</span>
           <span className="flex flex-wrap gap-1">

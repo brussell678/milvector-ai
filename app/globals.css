@@ -375,7 +375,8 @@ body {
 
 .alert-error {
   background: color-mix(in oklab, var(--panel) 72%, #5c2318 28%);
-  color: #ffd8cc;
+  /* Theme text color, readable on both themes (see .tool-alert error). */
+  color: var(--foreground);
   border-color: color-mix(in oklab, #ff8f73 55%, var(--line) 45%);
 }
 
@@ -1430,7 +1431,9 @@ summary:focus-visible,
 .tool-alert[data-variant="error"] {
   background: color-mix(in oklab, var(--panel) 78%, #8b2000 22%);
   border: 1px solid color-mix(in oklab, #c13e2a 38%, var(--line) 62%);
-  color: #ffd8cc;
+  /* The theme's own text color: dark on the light theme's pale red, light on
+     the dark theme's deep red. A fixed light pink was unreadable in light mode. */
+  color: var(--foreground);
 }
 
 .tool-alert[data-variant="stop"] {

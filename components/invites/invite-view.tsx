@@ -7,6 +7,7 @@ import { GlanceSection, InfoSection, PhotosSection, ProgramSection, SectionHead,
 import { ShareActions } from "@/components/invites/share-actions";
 import { StickyAction } from "@/components/invites/sticky-rsvp";
 import { StreamPlayer } from "@/components/invites/stream-player";
+import { YourAnswer } from "@/components/invites/your-answer";
 import { BRANCH_NAMES, hasBaseEvent, type InviteData, type InviteEvent, type InviteViewName } from "@/lib/invites/schema";
 import { contrastRatio, inviteColors, readTemplate } from "@/lib/invites/templates";
 import { ceremonyOf, directionsUrl, eventIsComplete, formatDateLong, formatTimeRange, googleCalendarUrl, publicLocation, sortEvents } from "@/lib/invites/time";
@@ -99,7 +100,7 @@ export function InviteView({ data: given, slug, pageUrl, coverSrc, qrSvg, view =
         ? { label: "RSVP", target: "rsvp" }
         : { label: "See the details", target: "events" }
       : view === "eventday"
-        ? program
+        ? program && data.program.items.length > 0
           ? { label: "See the program", target: "program" }
           : { label: "Where to be", target: "events" }
         : messagesOpen
@@ -191,7 +192,7 @@ export function InviteView({ data: given, slug, pageUrl, coverSrc, qrSvg, view =
     view === "invite"
       ? [eventsSection, baseSection, rsvpSection, glanceSection, infoSection, programSection, streamSection, photosSection, shareSection]
       : view === "eventday"
-        ? [programSection, streamSection, eventsSection, baseSection, glanceSection, infoSection, rsvpSection, photosSection, shareSection]
+        ? [framed ? null : <YourAnswer key="your-answer" data={data} slug={slug} />, programSection, streamSection, eventsSection, baseSection, glanceSection, infoSection, rsvpSection, photosSection, shareSection]
         : // Afterward the getting-there logistics are history and drop off.
           [rsvpSection, programSection, streamSection, photosSection, eventsSection, shareSection];
 
@@ -260,7 +261,15 @@ export function InviteView({ data: given, slug, pageUrl, coverSrc, qrSvg, view =
         </p>
       </footer>
 
-      {!framed && ceremony && eventIsComplete(ceremony) && <StickyAction dateLine={formatDateLong(ceremony.date)} label={action.label} target={action.target} />}
+      {!framed && ceremony && eventIsComplete(ceremony) && (
+        <StickyAction
+          dateLine={formatDateLong(ceremony.date)}
+          label={action.label}
+          target={action.target}
+          slug={slug}
+          answeredLabel={view === "invite" && rsvpOpen ? "Your answer" : undefined}
+        />
+      )}
     </div>
   );
 }
@@ -298,7 +307,9 @@ function EventCard({
         {where && <span className="block">{where}</span>}
         {event.addressPrivate && view !== "memories" && (
           <span className="mt-1 block text-sm" style={{ color: c.muted }}>
-            Private home. The street address is shared with guests who RSVP.
+            {view === "eventday"
+              ? "Private home. Guests who answered have the street address in their confirmation, and at the top of this page when they open their personal link."
+              : "Private home. The street address is shared with guests who RSVP."}
           </span>
         )}
       </>,

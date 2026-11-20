@@ -73,12 +73,20 @@ export function hasProgram(data: InviteData): boolean {
   return data.sections.program && (p.items.length > 0 || p.people.length > 0 || p.bios.length > 0);
 }
 
+// With no sequence written yet, the section is named for what it holds.
+function programTitle(data: InviteData, view: InviteViewName): string {
+  const { items, people, bios } = data.program;
+  if (items.length > 0) return PROGRAM_TITLES[view];
+  if (people.length > 0) return "The official party";
+  return bios.length === 1 ? "Biography" : "Biographies";
+}
+
 export function ProgramSection({ data, view, style }: { data: InviteData; view: InviteViewName; style: SectionStyle }) {
   if (!hasProgram(data)) return null;
   const { items, note, people, bios } = data.program;
   const c = style.colors;
   return (
-    <Section id="program" title={PROGRAM_TITLES[view]} style={style} intro={view === "memories" ? "The program from the day, kept as a record." : undefined}>
+    <Section id="program" title={programTitle(data, view)} style={style} intro={view === "memories" ? "The program from the day, kept as a record." : undefined}>
       {note && view !== "memories" && (
         <p className="mt-4 rounded-xl border-l-4 px-4 py-3 text-sm font-semibold" style={{ borderColor: c.accent, background: c.surface }}>
           {note}

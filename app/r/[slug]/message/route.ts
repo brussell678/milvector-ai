@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { isMissingSchema } from "@/lib/cards/store";
 import { MessageSubmitSchema } from "@/lib/invites/rsvp";
-import { supabaseServer } from "@/lib/supabase/server";
+import { submitFromSite } from "@/lib/invites/submit";
 
 const REASONS: Record<string, { status: number; error: string }> = {
   not_found: { status: 404, error: "This page is not taking messages right now." },
   closed: { status: 409, error: "Messages are closed on this page." },
   busy: { status: 429, error: "A lot of messages came in today. Please try again tomorrow." },
+  slow: { status: 429, error: "A lot of messages have come from this connection in the last hour. Please try again a little later." },
   invalid: { status: 400, error: "Add your name and a message, then try again." },
 };
 
@@ -21,13 +22,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
   const parsed = MessageSubmitSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Check the form and try again." }, { status: 400 });
 
-  const supabase = await supabaseServer();
-  const { data, error } = await supabase.rpc("submit_invite_message", { p_slug: slug, p_name: parsed.data.name, p_message: parsed.data.message });
+  const { data, error } = await submitFromSite(req, slug, "message", { p_slug: slug, p_name: parsed.data.name, p_message: parsed.data.message });
   if (error) {
-    return NextResponse.json(
-      { error: isMissingSchema(error) ? "Messages are not set up on this site yet." : "That did not go through. Please try again in a moment." },
-      { status: isMissingSchema(error) ? 503 : 500 },
-    );
+    const notReady = isMissingSchema(error) || error.code === "42501";
+    return NextResponse.json({ error: notReady ? "Messages are not set up on this site yet." : "That did not go through. Please try again in a moment." }, { status: notReady ? 503 : 500 });
   }
   const result = (data ?? {}) as { ok?: boolean; reason?: string };
   if (!result.ok) {

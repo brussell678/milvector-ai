@@ -9,5 +9,8 @@ Build a business card you never run out of. Share it with a link, a QR code, or 
 ## Retirement Invitation Builder {new}
 Build one page for your retirement ceremony and the celebration after it, free. Guests RSVP on their phone, get base pass steps and directions, and the same link and QR code turn into the program on the day and a thank-you page afterward. Find it under Tools, or from the ceremony tasks on your Timeline.
 
+## Error messages are easy to read again {fix}
+In the light theme, error messages across MilVector, from sign-in to the tools, showed pale pink text on a pale pink box. They now use the same dark text as everything else, so you can read what went wrong.
+
 ## Timeline documents open again {fix}
 The ceremony checklist, planning checklist, and Appendix J buttons on Timeline tasks led to a page not found. They now open the document, and the button says which one it is.

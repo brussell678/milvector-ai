@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isMissingSchema } from "@/lib/cards/store";
+import { captionProblem } from "@/lib/invites/opsec";
 import { PHASE_C_NOT_READY, UUID_RE, ownedInvite } from "@/lib/invites/owner";
 import { MAX_PHOTOS, validCover } from "@/lib/invites/schema";
 
@@ -30,6 +31,8 @@ export async function POST(req: Request, { params }: Params) {
   if (!validCover(jpeg)) return NextResponse.json({ error: "That photo could not be used. Try a different image." }, { status: 400 });
   const text = caption.safeParse(String(body?.caption ?? ""));
   if (!text.success) return NextResponse.json({ error: "Keep captions under 120 characters." }, { status: 400 });
+  const problem = captionProblem(text.data);
+  if (problem) return NextResponse.json({ error: problem }, { status: 400 });
 
   const { data: last } = await supabase.from("retirement_invite_photos").select("position").eq("invite_id", id).order("position", { ascending: false }).limit(1);
   const position = ((last ?? [])[0]?.position ?? 0) + 1;

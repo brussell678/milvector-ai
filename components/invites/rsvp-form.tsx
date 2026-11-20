@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import { CalendarPlus, Check, Copy, Mail, MapPin, Minus, Plus, X } from "lucide-react";
 import {
   MAX_PARTY,
@@ -19,6 +19,7 @@ import {
   type PassPerson,
   type RsvpStatus,
 } from "@/lib/invites/rsvp";
+import { forgetAnswer, rememberAnswer, useLinkToken, useRememberedAnswer } from "@/lib/invites/guest-memory";
 import type { InviteData, InviteEvent } from "@/lib/invites/schema";
 import { eventIsComplete, formatDateLong, formatTimeRange, googleCalendarUrl, sortEvents } from "@/lib/invites/time";
 
@@ -26,6 +27,30 @@ import { eventIsComplete, formatDateLong, formatTimeRange, googleCalendarUrl, so
 // Colors come from the template through CSS variables set on the page.
 
 type Saved = { token: string | null; addresses: Record<string, string>; late: boolean; passPeople: PassPerson[] };
+
+// A saved answer as get_invite_rsvp returns it, or why it could not be opened.
+type AnswerReply = {
+  rsvp?: {
+    name?: string;
+    email?: string;
+    phone?: string | null;
+    answers?: Record<string, Partial<EventAnswer>>;
+    meals?: Record<string, number>;
+    dietary?: string | null;
+    dodId?: "yes" | "no" | null;
+    passPeople?: PassPerson[] | null;
+    passNames?: string | null;
+    message?: string | null;
+    addresses?: Record<string, string>;
+  };
+  error?: string;
+};
+
+async function fetchAnswer(slug: string, token: string): Promise<AnswerReply> {
+  const res = await fetch(`/r/${slug}/rsvp?token=${token}`).catch(() => null);
+  const json = res ? await res.json().catch(() => ({})) : {};
+  return res?.ok ? json : { error: json.error };
+}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -291,39 +316,56 @@ export function RsvpForm({ data, slug, pageUrl, framed = false }: { data: Invite
   const [notice, setNotice] = useState("");
   const [saved, setSaved] = useState<Saved | null>(null);
 
-  // A guest returning from their personal link sees their answer filled in.
+  // A guest coming back sees their answer, with any private address, rather
+  // than a blank form: from their personal link, or from this phone, which
+  // remembers that they answered. "Change my answer" opens it for editing.
+  const fromLink = useLinkToken();
+  const remembered = useRememberedAnswer(slug);
+  const [welcomeBack, setWelcomeBack] = useState(false);
+  const [someoneElse, setSomeoneElse] = useState(false);
+
+  // Shows a saved answer from the server's reply, or says the link failed.
+  function showAnswer(answerToken: string, viaLink: boolean, json: AnswerReply) {
+    if (!json?.rsvp) {
+      if (!viaLink) forgetAnswer(slug);
+      setNotice(json?.error ?? "That link no longer works. Answer again with the same email to update your RSVP.");
+      return;
+    }
+    const r = json.rsvp;
+    const people = passPeopleOf({ pass_people: r.passPeople ?? null, pass_names: r.passNames ?? null });
+    setToken(answerToken);
+    setName(r.name ?? "");
+    setEmail(r.email ?? "");
+    setPhone(r.phone ?? "");
+    setAnswers(r.answers ?? {});
+    setMealCounts(r.meals ?? {});
+    setDietary(r.dietary ?? "");
+    setDodId(r.dodId ?? "");
+    setPassPeople(people.length ? people : [{ name: "", email: "" }]);
+    setMessage(r.message ?? "");
+    setNotice("");
+    setWelcomeBack(true);
+    setSaved({ token: answerToken, addresses: r.addresses ?? {}, late: false, passPeople: r.dodId === "no" ? people : [] });
+    if (viaLink) rememberAnswer(slug, { token: answerToken, name: r.name ?? "", at: new Date().toISOString() });
+    document.getElementById("rsvp")?.scrollIntoView({ block: "start" });
+  }
+
+  async function openRemembered(answerToken: string) {
+    showAnswer(answerToken, false, await fetchAnswer(slug, answerToken));
+  }
+
+  const showFromLink = useEffectEvent((answerToken: string, json: AnswerReply) => showAnswer(answerToken, true, json));
   useEffect(() => {
-    if (framed) return;
-    const linkToken = new URLSearchParams(window.location.search).get("rsvp");
-    if (!linkToken || !/^[a-f0-9]{32,80}$/.test(linkToken)) return;
+    if (framed || !fromLink) return;
     let cancelled = false;
     (async () => {
-      const res = await fetch(`/r/${slug}/rsvp?token=${linkToken}`).catch(() => null);
-      const json = res ? await res.json().catch(() => ({})) : {};
-      if (cancelled) return;
-      if (!res?.ok || !json.rsvp) {
-        setNotice(json.error ?? "That link no longer works. Answer again with the same email to update your RSVP.");
-        return;
-      }
-      const r = json.rsvp;
-      setToken(linkToken);
-      setName(r.name ?? "");
-      setEmail(r.email ?? "");
-      setPhone(r.phone ?? "");
-      setAnswers(r.answers ?? {});
-      setMealCounts(r.meals ?? {});
-      setDietary(r.dietary ?? "");
-      setDodId(r.dodId ?? "");
-      const people = passPeopleOf({ pass_people: r.passPeople ?? null, pass_names: r.passNames ?? null });
-      setPassPeople(people.length ? people : [{ name: "", email: "" }]);
-      setMessage(r.message ?? "");
-      setNotice("Welcome back. Your answer is filled in below. Change anything and save it again.");
-      document.getElementById("rsvp")?.scrollIntoView({ block: "start" });
+      const json = await fetchAnswer(slug, fromLink);
+      if (!cancelled) showFromLink(fromLink, json);
     })();
     return () => {
       cancelled = true;
     };
-  }, [framed, slug]);
+  }, [framed, fromLink, slug]);
 
   const complete: GuestAnswers = Object.fromEntries(
     Object.entries(answers)
@@ -387,7 +429,10 @@ export function RsvpForm({ data, slug, pageUrl, framed = false }: { data: Invite
       return;
     }
     if (json.token) setToken(json.token);
-    setSaved({ token: json.token ?? token, addresses: json.addresses ?? {}, late: !!json.late, passPeople: needsPass ? adults : [] });
+    const kept = json.token ?? token;
+    if (kept) rememberAnswer(slug, { token: kept, name: name.trim(), at: new Date().toISOString() });
+    setSaved({ token: kept, addresses: json.addresses ?? {}, late: !!json.late, passPeople: needsPass ? adults : [] });
+    setWelcomeBack(false);
     setNotice("");
     document.getElementById("rsvp")?.scrollIntoView({ block: "start", behavior: "smooth" });
   }
@@ -421,6 +466,7 @@ export function RsvpForm({ data, slug, pageUrl, framed = false }: { data: Invite
         answers={complete}
         dodId={dodId}
         saved={saved}
+        welcomeBack={welcomeBack}
         onChange={() => setSaved(null)}
       />
     );
@@ -432,6 +478,29 @@ export function RsvpForm({ data, slug, pageUrl, framed = false }: { data: Invite
         <p className="rounded-xl border-l-4 border-[var(--iv-accent)] bg-[var(--iv-surface)] px-4 py-3 text-sm" role="status">
           {notice}
         </p>
+      )}
+      {remembered && !fromLink && !token && !someoneElse && !framed && (
+        <div className="rounded-2xl border-l-4 border-[var(--iv-accent)] bg-[var(--iv-surface)] p-4" role="status">
+          <p className="font-semibold">{remembered.name ? `You already answered on this phone, as ${remembered.name}.` : "You already answered on this phone."}</p>
+          <p className="mt-1 text-sm text-[var(--iv-muted)]">See your answer, with the address and calendar links, or change it.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="inline-flex min-h-11 items-center rounded-xl px-4 text-sm font-bold"
+              style={{ background: "var(--iv-accent)", color: "var(--iv-on-accent)" }}
+              onClick={() => void openRemembered(remembered.token)}
+            >
+              See my answer
+            </button>
+            <button
+              type="button"
+              className="inline-flex min-h-11 items-center rounded-xl border border-[var(--iv-line)] bg-[var(--iv-bg)] px-4 text-sm font-semibold"
+              onClick={() => setSomeoneElse(true)}
+            >
+              I am someone else
+            </button>
+          </div>
+        </div>
       )}
       <p className="text-[var(--iv-muted)]">
         {data.rsvp.deadline ? `Please answer by ${formatDateLong(data.rsvp.deadline)}. ` : ""}
@@ -446,7 +515,7 @@ export function RsvpForm({ data, slug, pageUrl, framed = false }: { data: Invite
         </label>
         <label className="grid gap-1">
           <span className={labelText}>Email</span>
-          <span className={hint}>So you can change your answer later. Your confirmation shows on this screen; nothing is sold or shared.</span>
+          <span className={hint}>So you can change your answer later. Only the host sees it, and MilVector never emails you.</span>
           <input className={input} type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required maxLength={120} disabled={framed} />
         </label>
         <label className="grid gap-1">
@@ -587,6 +656,7 @@ function Confirmation({
   answers,
   dodId,
   saved,
+  welcomeBack,
   onChange,
 }: {
   data: InviteData;
@@ -598,9 +668,12 @@ function Confirmation({
   answers: GuestAnswers;
   dodId: string;
   saved: Saved;
+  welcomeBack: boolean;
   onChange: () => void;
 }) {
-  const [copied, setCopied] = useState(false);
+  // "copied", or "manual" when the browser refused (common in the browsers
+  // built into Facebook and Instagram), which shows the link to copy by hand.
+  const [copyState, setCopyState] = useState<"" | "copied" | "manual">("");
   const personalUrl = saved.token ? `${pageUrl}?rsvp=${saved.token}#rsvp` : pageUrl;
   const text = confirmationText({ data, name, answers, addresses: saved.addresses, dodId, passPeople: saved.passPeople, pageUrl, personalUrl });
   const mailto = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(text.subject)}&body=${encodeURIComponent(text.body)}`;
@@ -610,9 +683,11 @@ function Confirmation({
   return (
     <div className="mt-5 flex flex-col gap-5" role="status">
       <div>
-        <p className="text-2xl font-bold">Thank you, {name.split(" ")[0]}.</p>
+        <p className="text-2xl font-bold">
+          {welcomeBack ? "Welcome back" : "Thank you"}, {name.split(" ")[0]}.
+        </p>
         <p className="mt-1 text-[var(--iv-muted)]">
-          Your answer is saved. Keep this screen, or use the buttons below to keep a copy.
+          {welcomeBack ? "This is your answer. You can change it any time." : "Your answer is saved. Keep this screen, or use the buttons below to keep a copy."}
           {saved.late ? " It came in after the RSVP date, and the host can still see it." : ""}
         </p>
       </div>
@@ -643,11 +718,12 @@ function Confirmation({
                     </div>
                   ) : null}
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <a href={`/r/${slug}/calendar/${event.id}`} download className={button}>
+                    {/* With a private address, the calendar entry carries it, so it is there on the day. */}
+                    <a href={`/r/${slug}/calendar/${event.id}${privateAddress && saved.token ? `?rsvp=${saved.token}` : ""}`} download className={button}>
                       <CalendarPlus size={16} aria-hidden="true" />
                       Add to calendar
                     </a>
-                    <a href={googleCalendarUrl({ data, event, pageUrl })} target="_blank" rel="noopener noreferrer" className={button}>
+                    <a href={googleCalendarUrl({ data, event, pageUrl, privateAddress })} target="_blank" rel="noopener noreferrer" className={button}>
                       <CalendarPlus size={16} aria-hidden="true" />
                       Google Calendar
                     </a>
@@ -708,15 +784,25 @@ function Confirmation({
               type="button"
               className={button}
               onClick={async () => {
-                await navigator.clipboard.writeText(personalUrl).catch(() => {});
-                setCopied(true);
+                try {
+                  await navigator.clipboard.writeText(personalUrl);
+                  setCopyState("copied");
+                } catch {
+                  setCopyState("manual");
+                }
               }}
             >
-              {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
-              {copied ? "Link copied" : "Copy my personal link"}
+              {copyState === "copied" ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+              {copyState === "copied" ? "Link copied" : "Copy my personal link"}
             </button>
           )}
         </div>
+        {copyState === "manual" && (
+          <label className="mt-3 grid gap-1">
+            <span className="text-sm font-semibold">This browser would not copy it. Press and hold the link to copy it:</span>
+            <input className={input} readOnly value={personalUrl} onFocus={(e) => e.currentTarget.select()} />
+          </label>
+        )}
       </article>
 
       <button type="button" className={`${button} w-full`} onClick={onChange}>
