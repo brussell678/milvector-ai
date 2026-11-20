@@ -116,6 +116,59 @@ export function unsupportedAcronyms(text: string, support: string): string[] {
   return [...found];
 }
 
+// Named tools, platforms, and frameworks that postings ask for by name and
+// that are not acronyms, so the check above cannot see them. Naming one is a
+// claim of having used it, so it must appear in the supporting text.
+const NAMED_TOOLS: [string, RegExp][] = [
+  ["Tableau", /\btableau\b/i],
+  ["Power BI", /\bpower\s?bi\b/i],
+  ["Power Automate", /\bpower\s?automate\b/i],
+  ["Power Apps", /\bpower\s?apps\b/i],
+  ["Looker", /\blooker\b/i],
+  ["Qlik", /\bqlik\b/i],
+  ["Alteryx", /\balteryx\b/i],
+  ["Salesforce", /\bsalesforce\b/i],
+  ["ServiceNow", /\bservice\s?now\b/i],
+  ["Workday", /\bworkday\b/i],
+  ["NetSuite", /\bnetsuite\b/i],
+  ["HubSpot", /\bhubspot\b/i],
+  ["Zendesk", /\bzendesk\b/i],
+  ["Dynamics 365", /\bdynamics\s?365\b/i],
+  ["Oracle", /\boracle\b/i],
+  ["Jira", /\bjira\b/i],
+  ["Confluence", /\bconfluence\b/i],
+  ["Asana", /\basana\b/i],
+  ["Smartsheet", /\bsmartsheet\b/i],
+  ["Microsoft Project", /\b(?:microsoft|ms)\s?project\b/i],
+  ["SharePoint", /\bsharepoint\b/i],
+  ["Snowflake", /\bsnowflake\b/i],
+  ["Databricks", /\bdatabricks\b/i],
+  ["Azure", /\bazure\b/i],
+  ["Google Cloud", /\bgoogle\s?cloud\b/i],
+  ["Kubernetes", /\bkubernetes\b/i],
+  ["Docker", /\bdocker\b/i],
+  ["Python", /\bpython\b/i],
+  ["TensorFlow", /\btensorflow\b/i],
+  ["PyTorch", /\bpytorch\b/i],
+  ["LangChain", /\blangchain\b/i],
+  ["ChatGPT", /\bchatgpt\b/i],
+  ["Copilot", /\bcopilot\b/i],
+  ["Claude", /\bclaude\b/i],
+  ["Gemini", /\bgemini\b/i],
+  ["Palantir", /\bpalantir\b/i],
+  ["UiPath", /\buipath\b/i],
+  ["Prosci", /\bprosci\b/i],
+  ["ADKAR", /\badkar\b/i],
+  ["Miro", /\bmiro\b/i],
+  ["Figma", /\bfigma\b/i],
+  ["GitHub", /\bgithub\b/i],
+];
+
+/** Named tools in the text that the support text never mentions. */
+export function unsupportedTools(text: string, support: string): string[] {
+  return NAMED_TOOLS.filter(([, pattern]) => pattern.test(text) && !pattern.test(support)).map(([name]) => name);
+}
+
 // ─── Language ─────────────────────────────────────────────────────────
 
 const BANNED_PHRASES = [

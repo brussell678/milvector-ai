@@ -18,7 +18,7 @@ import {
   type EvidenceSource,
   type Role,
 } from "@/lib/resume/record";
-import { bannedPhrases, cleanPunctuation, duplicateIndexes, unsupportedAcronyms, unsupportedCredentials, ungroundedNumbers, extractNumbers, type Finding } from "@/lib/resume/gates";
+import { bannedPhrases, cleanPunctuation, duplicateIndexes, unsupportedAcronyms, unsupportedCredentials, unsupportedTools, ungroundedNumbers, extractNumbers, type Finding } from "@/lib/resume/gates";
 import { estimatePages, FIT_TARGET_PAGES, MAX_PAGES, type LayoutInput } from "@/lib/resume/layout";
 
 const text = (value: unknown) => String(value ?? "").trim();
@@ -203,11 +203,17 @@ export function buildRecord(args: {
 }
 
 /** Drops sentences that carry a figure or credential the support text does not. */
-function honestSentences(paragraph: string, figureSupport: string, credentialSupport: string, allowedNumbers: string[] = []) {
+function honestSentences(paragraph: string, figureSupport: string, credentialSupport: string, allowedNumbers: string[] = [], tools: string[] = []) {
   // Split only where a sentence really ends, not at the decimal in "$1.2M".
   const sentences = paragraph.split(/(?<=[.!?])\s+(?=[A-Z])/).filter((s) => s.trim());
   const removed: string[] = [];
   const kept = sentences.filter((sentence) => {
+    // A named tool is reported with the tools check, not the credentials one.
+    const named = unsupportedTools(sentence, figureSupport);
+    if (named.length > 0) {
+      named.forEach((tool) => tools.push(tool));
+      return false;
+    }
     const bad = ungroundedNumbers(sentence, figureSupport, allowedNumbers).length > 0 || unsupportedCredentials(sentence, credentialSupport).length > 0;
     if (bad) removed.push(sentence.trim());
     return !bad;
@@ -323,19 +329,27 @@ export function gateTargetedResume(args: {
   profileClearance?: string | null;
   yearsOfService?: number | null;
   contactLines?: number;
+  // Built from the member's own master resume: its role titles stand as
+  // written (C6), and its summary, competencies, and highlights may support
+  // the targeted summary and skills, though never a role's bullets.
+  titlesFromRecord?: boolean;
+  extraSupport?: string;
 }): GateResult {
   const { record } = args;
   const findings: Finding[] = [];
   const roleById = new Map(record.roles.map((r) => [r.id, r]));
   const credentialSupport = [...record.credentials.map((c) => c.text), args.profileClearance ? `${args.profileClearance} clearance` : ""].join("; ");
   const allUsableText = [...usableEvidence(record).values()].join(" ");
+  const summarySupport = args.extraSupport ? `${allUsableText} ${args.extraSupport}` : allUsableText;
   const allowedNumbers = args.yearsOfService ? [String(args.yearsOfService), String(Math.floor(args.yearsOfService))] : [];
 
   let noEvidence = 0;
   let wrongRole = 0;
   let badFigures = 0;
   let badCredentials = 0;
+  let badTools = 0;
   let unknownRoles = 0;
+  const toolDetails = new Set<string>();
   const unsupportedTerms = new Set<string>();
   const figureDetails: string[] = [];
   const credentialDetails = new Set<string>();
@@ -376,6 +390,13 @@ export function gateTargetedResume(args: {
         claims.forEach((c) => credentialDetails.add(c));
         continue;
       }
+      // A named tool must be in the evidence this bullet cites (C4).
+      const tools = unsupportedTools(body, support + " " + role.title + " " + role.organization);
+      if (tools.length > 0) {
+        badTools += 1;
+        tools.forEach((t) => toolDetails.add(t));
+        continue;
+      }
       const terms = unsupportedAcronyms(body, support + " " + role.title + " " + role.militaryTitle + " " + role.organization);
       terms.forEach((t) => unsupportedTerms.add(t));
       bullets.push({ text: body, evidence: valid });
@@ -383,7 +404,7 @@ export function gateTargetedResume(args: {
     if (bullets.length === 0) continue;
     experience.push({
       roleId: role.id,
-      title: cleanPunctuation(text(entry.title)) || role.title,
+      title: args.titlesFromRecord ? role.title : cleanPunctuation(text(entry.title)) || role.title,
       organization: role.organization,
       dates: dateRange(role),
       bullets,
@@ -427,17 +448,19 @@ export function gateTargetedResume(args: {
   });
 
   // Summary and skills
-  const summaryCheck = honestSentences(cleanPunctuation(text(args.raw.summary)), allUsableText, credentialSupport, allowedNumbers);
+  const summaryTools: string[] = [];
+  const summaryCheck = honestSentences(cleanPunctuation(text(args.raw.summary)), summarySupport, credentialSupport, allowedNumbers, summaryTools);
+  summaryTools.forEach((t) => toolDetails.add(t));
   const skills = list(args.raw.skills).map(cleanPunctuation);
   // A skills entry is a direct claim, so a tool, system, or regulation named
   // there must appear somewhere in the record.
-  const recordText = allUsableText + " " + record.roles.map((r) => r.title + " " + r.militaryTitle).join(" ") + " " + credentialSupport;
+  const recordText = summarySupport + " " + record.roles.map((r) => r.title + " " + r.militaryTitle).join(" ") + " " + credentialSupport;
   const droppedSkills: string[] = [];
   const keptSkills = skills.filter((skill) => {
     const claims = unsupportedCredentials(skill, credentialSupport);
     claims.forEach((c) => credentialDetails.add(c));
     if (claims.length > 0) return false;
-    if (unsupportedAcronyms(skill, recordText).length > 0) {
+    if (unsupportedAcronyms(skill, recordText).length > 0 || unsupportedTools(skill, recordText).length > 0) {
       droppedSkills.push(skill);
       return false;
     }
@@ -446,11 +469,14 @@ export function gateTargetedResume(args: {
   const credentialRemovals = badCredentials + (skills.length - keptSkills.length - droppedSkills.length) + summaryCheck.removed.length;
   findings.push({
     gate: "terms",
-    level: droppedSkills.length > 0 || unsupportedTerms.size > 0 ? "warn" : "pass",
+    level: droppedSkills.length > 0 || unsupportedTerms.size > 0 || badTools > 0 || summaryTools.length > 0 ? "warn" : "pass",
     check: "No tools or systems your record does not mention",
     detail:
-      droppedSkills.length > 0 || unsupportedTerms.size > 0
+      droppedSkills.length > 0 || unsupportedTerms.size > 0 || badTools > 0 || summaryTools.length > 0
         ? [
+            badTools || summaryTools.length
+              ? `Removed ${badTools} bullet(s)${summaryTools.length ? " and a summary sentence" : ""} naming a tool the cited evidence does not mention: ${[...toolDetails].join(", ")}.`
+              : "",
             droppedSkills.length ? "Removed from skills, because nothing in your record mentions them: " + droppedSkills.join(", ") + "." : "",
             unsupportedTerms.size ? "Check these terms in your bullets before sending. They are in the posting but not in your record: " + [...unsupportedTerms].join(", ") + "." : "",
           ]

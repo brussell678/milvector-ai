@@ -148,9 +148,13 @@ export function promptTargetedFromRecord(args: {
   recordText: string;
   fitMapText: string;
   yearsOfService?: number | null;
+  // "master": the record is the member's own refined master resume, so its
+  // role titles stand as written.
+  source?: "record" | "master";
 }) {
+  const fromMaster = args.source === "master";
   return `
-You are a resume strategist writing a targeted resume for a transitioning U.S. service member, for one specific posting. You select and reword from their verified record. You do not add to it.
+You are a resume strategist writing a targeted resume for a transitioning U.S. service member, for one specific posting. You select and reword from ${fromMaster ? "the master resume they wrote and refined themselves" : "their verified record"}. You do not add to it.
 
 Every bullet is checked by software after you write it. A bullet is deleted if it cites no evidence id, cites an id that is not in the record, cites evidence from a different role, or contains a figure its cited evidence does not contain. Write bullets that survive.
 
@@ -161,7 +165,7 @@ Rules:
 - Never attach a tool, system, software, regulation, or standard to a bullet unless the cited evidence names it. Appending a posting keyword ("using a CMMS", "DOT compliance", "in SAP") to a true accomplishment makes it false. If the posting wants something the record lacks, put it in gaps.
 - Order bullets within each role strongest-for-this-posting first. If the resume runs long, bullets are cut from the end.
 - 4 to 6 bullets for the most relevant roles, 2 to 3 for older or less relevant ones. Aim to fill two pages for a career of ten years or more.
-- title: a civilian job title for that role that is honest about its level. The organization and dates are filled in from the record; do not write them.
+${fromMaster ? "- title: leave it empty. The title, organization, and dates come from the master resume as the member wrote them." : "- title: a civilian job title for that role that is honest about its level. The organization and dates are filled in from the record; do not write them."}
 - summary: 3 to 4 lines positioning the candidate for THIS posting, from the record only. A figure may appear only if it appears in the record. Do not state a clearance, degree, or certification unless it is in CREDENTIALS.
 - skills: 10 to 16 keywords the posting asks for that the record genuinely demonstrates. Never list a certification, license, clearance, tool, system, or regulation the record does not show. Skills entries naming something absent from the record are deleted.
 - credential_ids: the CRED ids worth listing for this posting, most relevant first.
@@ -194,5 +198,43 @@ ${args.fitMapText || "(not run)"}
 
 CANDIDATE RECORD (ids first):
 ${args.recordText}
+`.trim();
+}
+
+// ─── Master resume: structure ──────────────────────────────────────────
+
+/**
+ * Splits the member's own master resume into its parts so code can check a
+ * targeted resume against it. Copying, not writing: code confirms every
+ * returned line appears in the master word for word and drops any that do not.
+ */
+export function promptMasterStructure(args: { masterText: string }) {
+  return `
+You are splitting one person's resume into its parts so software can check later writing against it. You are NOT editing it.
+
+The one rule: copy text exactly. Every piece of text you return must appear in the resume word for word, with the same spelling, numbers, and punctuation. Do not reword, shorten, merge, correct, or add anything. A bullet that wraps across lines in the text is returned whole, as one line. Software compares every line you return with the resume and throws away any that do not match.
+
+What goes where:
+- summary: each paragraph of the profile or summary at the top.
+- competencies: each skill, area of expertise, or competency item. Split a list separated by "|" or bullets into its items.
+- roles: every job or billet, in the order the resume lists them. title, organization, start, and end are copied from the resume (end may be "Present"). lines: every bullet or sentence that belongs to that job.
+- A line from a highlights, impact, recognition, or evaluation excerpts section goes under a role only when the line itself, or the sentence that introduces it, names that role or its organization. Otherwise it goes in unassigned.
+- credentials: each degree, certification, course, or training item, and any security clearance, with its kind.
+- unassigned: every other line that states something about the person, such as awards and highlights that do not belong to one role.
+- Leave out the person's name, phone number, email address, street address, and links.
+
+Return strict JSON:
+{
+  "summary": [],
+  "competencies": [],
+  "roles": [
+    { "title": "", "organization": "", "start": "", "end": "", "lines": [] }
+  ],
+  "credentials": [ { "kind": "education|certification|training|clearance", "text": "" } ],
+  "unassigned": []
+}
+
+RESUME:
+${args.masterText}
 `.trim();
 }
