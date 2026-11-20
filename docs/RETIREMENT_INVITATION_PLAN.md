@@ -228,13 +228,15 @@ public text get a warning.
 | Timeline task "Identify ceremony attendee list - send out e-Invite" (150 days out) | Opens the builder |
 | Timeline task "Identify key individuals for retirement ceremony" | Opens the builder at the program step |
 | Timeline tasks "Design retirement brochure" and "Finalize ceremony sequence of events" | Open the builder at the program step |
-| Timeline task "Finalize speech" | Opens the Messages tab |
+| Timeline task "Finalize speech" | Opens the Guests tab, where the messages are |
 | Resource Library | The builder links to the existing ceremony checklist, LOI, program samples, and flag certificate templates for the unit-side paperwork |
 | Tools hub | "Retirement Invitation Builder (Preview)" in DECIDE, visible to the admin until opened |
 
-Timeline links are set in `data/milvector_transition_tasks.json`
-(`assistance_type: "tool"`). Confirm during the build that the database copy of
-those tasks picks them up.
+Timeline links are set in `data/milvector_transition_tasks.json` as
+`tool_link`, beside the existing checklist link. Confirmed in Phase D: the
+pages overlay that file on the database rows by `external_id`
+(`mergeDashboardTasks`), so the database copy needs no reseed. Links to a
+preview tool are dropped for anyone the preview is not open to.
 
 ---
 
@@ -294,4 +296,4 @@ that is how pages break on phones, and it is a website builder, not a tool.
 | B | **Built 2026-11-19, awaiting Brandon's gate.** Needs migration 0032 run in the Supabase SQL editor first. Verified: 57 database checks for 0032 (in-memory Postgres), 43 unit tests for the feature, and a 35-check browser walkthrough against a stand-in database running the REAL migrations (host setup, two guests on phones at 390 and 320, personal link, pass ticks, spreadsheet, add by hand). Not yet seen against the real database or on a real phone |
 | B follow-up | Brandon's findings fixed 2026-11-19: Base step 1 names the email the base writes to; passes are for adults only; each adult gives their own email (migration 0033) |
 | C | **Built 2026-11-19, awaiting Brandon's gate.** Needs migration 0034 run in the Supabase SQL editor first (0033 before it). Builder gains Program and Info tabs; Look gains career photos and section toggles; Share gains the before/on/after setting and thank-you line; Guests gains reminders (sent from the host's own email, with "Mark as sent") and messages left on the day. The guest page changes by the venue's calendar: invitation before, program first on the day, thank-you after; `?view=invite`, `eventday`, or `memories` shows any of them. Verified: 27 database checks for 0034 (with 0031 to 0033 rerun: 29, 57, 15), 224 unit tests (22 new), a 62-check browser walkthrough against a stand-in database running the REAL migrations (all three views at 390 and 320, photo upload, reorder, captions, stream tap to play, day message and its honeypot, the calendar switching the page by itself, reminders and mark as sent), Phase A and B walkthroughs rerun (39 and 39), production build clean. Not yet seen against the real database or on a real phone |
-| D | Not started |
+| D | **Built 2026-11-19, awaiting Brandon's gate.** Timeline: "Identify ceremony attendee list" opens the builder; "Identify key individuals", "Design retirement brochure", and "Finalize ceremony sequence of events" open it at the Program tab; "Finalize speech" opens the Guests tab, where the messages are (`tool_link` in data/milvector_transition_tasks.json, overlaid on the database rows by lib/transition-data.ts, so no reseed needed). The links show only to people the preview is open to (`toolLinkVisible` in lib/tools/preview.ts); members still see just the checklist. Found and fixed on the way: every Timeline document button (12 tasks) pointed at `./docs/public/...`, a 404; they now open `/api/public-docs/...` in a new tab and name the document. Library: the Program tab lists the unit paperwork (checklist, LOI and its four enclosures, program samples, narration scripts, flag and family certificates); the Share tab lists the two paper invitation templates. Privacy page: a guest-data section and a commitment line. Retention: migration 0035 schedules the 180-day purge daily with pg_cron, since until now it ran only on activity. What's New: the builder entry and a Timeline fix entry are held in docs/whatsnew-pending.md for Brandon's wording check. Verified: 235 unit tests (11 new), Phase D walkthrough 21/21 with the builder open and 11/11 as a member with it closed, production build clean. 0035 cannot run in the local test database (no pg_cron); its SQL matches Supabase's documented setup |

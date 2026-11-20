@@ -1364,7 +1364,7 @@
                       "source_row":  104,
                       "assistance_type":  "doc",
                       "assistance_ref":  "./docs/public/2b - Retirement Ceremony Checklist v3.pdf",
-                      "assistance_notes":  "MilVector has ceremony checklists and templates in docs/public.",
+                      "assistance_notes":  "MilVector has ceremony checklists and templates in the Library.",
                       "supporting_tasks":  [
 
                                            ]
@@ -1385,7 +1385,7 @@
                       "source_row":  105,
                       "assistance_type":  "doc",
                       "assistance_ref":  "./docs/public/2b - Retirement Ceremony Checklist v3.pdf",
-                      "assistance_notes":  "MilVector has ceremony checklists and templates in docs/public.",
+                      "assistance_notes":  "MilVector has ceremony checklists and templates in the Library.",
                       "supporting_tasks":  [
 
                                            ]
@@ -1448,7 +1448,8 @@
                       "source_row":  108,
                       "assistance_type":  "doc",
                       "assistance_ref":  "./docs/public/2b - Retirement Ceremony Checklist v3.pdf",
-                      "assistance_notes":  "MilVector has ceremony checklists and templates in docs/public.",
+                      "assistance_notes":  "MilVector has ceremony checklists and templates in the Library.",
+                      "tool_link":  "/app/tools/retirement-invitation",
                       "supporting_tasks":  [
 
                                            ]
@@ -1469,7 +1470,8 @@
                       "source_row":  109,
                       "assistance_type":  "doc",
                       "assistance_ref":  "./docs/public/2b - Retirement Ceremony Checklist v3.pdf",
-                      "assistance_notes":  "MilVector has ceremony checklists and templates in docs/public.",
+                      "assistance_notes":  "MilVector has ceremony checklists and templates in the Library.",
+                      "tool_link":  "/app/tools/retirement-invitation?tab=program",
                       "supporting_tasks":  [
 
                                            ]
@@ -1511,7 +1513,7 @@
                       "source_row":  111,
                       "assistance_type":  "doc",
                       "assistance_ref":  "./docs/public/2b - Retirement Ceremony Checklist v3.pdf",
-                      "assistance_notes":  "MilVector has ceremony checklists and templates in docs/public.",
+                      "assistance_notes":  "MilVector has ceremony checklists and templates in the Library.",
                       "supporting_tasks":  [
 
                                            ]
@@ -1532,7 +1534,7 @@
                       "source_row":  112,
                       "assistance_type":  "doc",
                       "assistance_ref":  "./docs/public/2b - Retirement Ceremony Checklist v3.pdf",
-                      "assistance_notes":  "MilVector has ceremony checklists and templates in docs/public.",
+                      "assistance_notes":  "MilVector has ceremony checklists and templates in the Library.",
                       "supporting_tasks":  [
 
                                            ]
@@ -1575,6 +1577,7 @@
                       "assistance_type":  "none",
                       "assistance_ref":  null,
                       "assistance_notes":  "No direct MilVector tool or public template currently mapped for this task.",
+                      "tool_link":  "/app/tools/retirement-invitation?tab=program",
                       "supporting_tasks":  [
 
                                            ]
@@ -1595,7 +1598,8 @@
                       "source_row":  115,
                       "assistance_type":  "doc",
                       "assistance_ref":  "./docs/public/2b - Retirement Ceremony Checklist v3.pdf",
-                      "assistance_notes":  "MilVector has ceremony checklists and templates in docs/public.",
+                      "assistance_notes":  "MilVector has ceremony checklists and templates in the Library.",
+                      "tool_link":  "/app/tools/retirement-invitation?tab=program",
                       "supporting_tasks":  [
 
                                            ]
@@ -1637,7 +1641,7 @@
                       "source_row":  117,
                       "assistance_type":  "doc",
                       "assistance_ref":  "./docs/public/2b - Retirement Ceremony Checklist v3.pdf",
-                      "assistance_notes":  "MilVector has ceremony checklists and templates in docs/public.",
+                      "assistance_notes":  "MilVector has ceremony checklists and templates in the Library.",
                       "supporting_tasks":  [
 
                                            ]
@@ -1658,7 +1662,8 @@
                       "source_row":  118,
                       "assistance_type":  "doc",
                       "assistance_ref":  "./docs/public/2b - Retirement Ceremony Checklist v3.pdf",
-                      "assistance_notes":  "MilVector has ceremony checklists and templates in docs/public.",
+                      "assistance_notes":  "MilVector has ceremony checklists and templates in the Library.",
+                      "tool_link":  "/app/tools/retirement-invitation?tab=guests",
                       "supporting_tasks":  [
 
                                            ]

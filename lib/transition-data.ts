@@ -17,6 +17,8 @@ type FallbackTask = {
   assistance_type: "tool" | "doc" | "none";
   assistance_ref: string | null;
   assistance_notes: string | null;
+  // A MilVector tool that does the task, shown beside the document link.
+  tool_link?: string | null;
   supporting_tasks: FallbackSupportingTask[];
 };
 
@@ -100,6 +102,17 @@ export async function getLibraryLinkFallbacks() {
   return (payload.links ?? []).filter((link) => link.review_status === "ready" && !!link.url);
 }
 
+/**
+ * The task data names library files as "./docs/public/<file>", a path no
+ * page serves. The files are served by /api/public-docs/<file>, as on the
+ * Library page. Anything else passes through unchanged.
+ */
+export function publicDocHref(ref: string | null): string | null {
+  if (!ref) return ref;
+  const match = /^\.?\/?docs\/public\/(.+)$/.exec(ref);
+  return match ? `/api/public-docs/${encodeURIComponent(match[1])}` : ref;
+}
+
 function shouldUseFallbackTasks<T extends DashboardTaskLike>(tasks: T[]) {
   if (tasks.length === 0) return true;
   const withExternalId = tasks.filter((task) => !!task.external_id).length;
@@ -118,7 +131,7 @@ function toFallbackDashboardTasks<T extends DashboardTaskLike>(fallbackTasks: Fa
         category: task.category,
         phase_month: task.phase_month,
         days_before_event: task.days_before_event,
-        tool_link: null,
+        tool_link: task.tool_link ?? null,
         knowledge_article: null,
         assistance_type: task.assistance_type,
         assistance_ref: task.assistance_ref,
@@ -128,9 +141,21 @@ function toFallbackDashboardTasks<T extends DashboardTaskLike>(fallbackTasks: Fa
   );
 }
 
-export function mergeDashboardTasks<T extends DashboardTaskLike>(tasks: T[], fallbackTasks: FallbackTask[]) {
+/**
+ * The tasks a member sees: database rows overlaid with the curated task data
+ * (matched by external id, then title). Library file links are pointed at the
+ * route that serves them. `canOpen` drops a tool link the member cannot use
+ * yet, such as a tool still in preview.
+ */
+export function mergeDashboardTasks<T extends DashboardTaskLike>(tasks: T[], fallbackTasks: FallbackTask[], canOpen: (href: string) => boolean = () => true) {
+  const finish = (task: T): T => ({
+    ...task,
+    assistance_ref: publicDocHref(task.assistance_ref),
+    tool_link: task.tool_link && canOpen(task.tool_link) ? task.tool_link : null,
+  });
+
   if (shouldUseFallbackTasks(tasks)) {
-    return toFallbackDashboardTasks<T>(fallbackTasks);
+    return toFallbackDashboardTasks<T>(fallbackTasks).map(finish);
   }
 
   const byExternalId = new Map(fallbackTasks.map((task) => [task.external_id, task]));
@@ -138,9 +163,9 @@ export function mergeDashboardTasks<T extends DashboardTaskLike>(tasks: T[], fal
 
   return tasks.map((task) => {
     const fallback = (task.external_id && byExternalId.get(task.external_id)) ?? byTitle.get(normalize(task.title));
-    if (!fallback) return task;
+    if (!fallback) return finish(task);
 
-    return {
+    return finish({
       ...task,
       description: fallback.description ?? task.description,
       category: fallback.category ?? task.category,
@@ -149,9 +174,10 @@ export function mergeDashboardTasks<T extends DashboardTaskLike>(tasks: T[], fal
       assistance_type: fallback.assistance_type ?? task.assistance_type,
       assistance_ref: fallback.assistance_ref ?? task.assistance_ref,
       assistance_notes: fallback.assistance_notes ?? task.assistance_notes,
+      tool_link: fallback.tool_link ?? task.tool_link,
       transition_supporting_tasks:
         fallback.supporting_tasks.length > 0 ? fallback.supporting_tasks : task.transition_supporting_tasks,
-    };
+    });
   });
 }
 

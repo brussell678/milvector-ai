@@ -50,7 +50,8 @@ type SavedInvite = {
   updatedAt: string;
 };
 type Defaults = { name: string; rank: string; branch: string; ceremonyDate: string; email: string };
-type Tab = "basics" | "events" | "base" | "rsvp" | "program" | "info" | "look" | "preview" | "share" | "guests";
+const TAB_IDS = ["basics", "events", "base", "rsvp", "program", "info", "look", "preview", "share", "guests"] as const;
+type Tab = (typeof TAB_IDS)[number];
 type Message = { kind: "ok" | "error"; text: string } | null;
 type BuilderPhoto = { id: string; position: number; caption: string; updatedAt: string };
 
@@ -125,6 +126,9 @@ export function RetirementInvitationBuilder() {
           setSaved(json.invite);
           setDraft(json.invite.invite);
           setSlugDraft(json.invite.slug);
+          // Timeline tasks link straight to a tab, e.g. ?tab=program.
+          const asked = new URLSearchParams(window.location.search).get("tab");
+          if (asked && (TAB_IDS as readonly string[]).includes(asked)) setTab(asked as Tab);
         }
       }
       setLoading(false);
@@ -1069,7 +1073,98 @@ function ProgramTab({ draft, set }: { draft: InviteData; set: <K extends keyof I
         )}
         {!draft.sections.stream && stream && <ToolAlert variant="warn">The stream is hidden from guests. Turn it back on in the Look tab.</ToolAlert>}
       </section>
+
+      <section className="tool-section">
+        <p className="tool-kicker">FOR THE UNIT SIDE</p>
+        <p className="section-description">
+          Your page is for guests. The ceremony itself runs on unit paperwork. These templates come from a Marine Corps retirement; most units use the
+          same pieces. Download one, then adapt it to your unit.
+        </p>
+        <DocList docs={UNIT_PAPERWORK} />
+        <a href="/app/library" className="text-sm font-semibold text-[var(--accent)] underline underline-offset-2">
+          See everything in the Library
+        </a>
+      </section>
     </>
+  );
+}
+
+// Templates already in the MilVector Library (docs/public), served by
+// /api/public-docs. Grouped the way a host works through them.
+type LibraryDoc = { label: string; files: { file: string; kind: string }[] };
+
+const UNIT_PAPERWORK: LibraryDoc[] = [
+  {
+    label: "Retirement ceremony checklist",
+    files: [
+      { file: "2b - Retirement Ceremony Checklist v3.pdf", kind: "PDF" },
+      { file: "2c - Retirement Ceremony Checklist Template v3.docx", kind: "Word" },
+    ],
+  },
+  { label: "Letter of instruction", files: [{ file: "3a - Retirement Ceremony  LOI.docx", kind: "Word" }] },
+  {
+    label: "Its enclosures",
+    files: [
+      { file: "3b - Retirement Ceremony LOI Encl 1_SOE.docx", kind: "Sequence of events, Word" },
+      { file: "3c - Retirement Ceremony LOI Encl 2_Key Personnel.docx", kind: "Key personnel, Word" },
+      { file: "3d - Retirement Ceremony LOI Encl 3_Band Request.pdf", kind: "Band request, PDF" },
+      { file: "3e - Retirement Ceremony LOI Encl 4_Layout.pptx", kind: "Layout, PowerPoint" },
+    ],
+  },
+  {
+    label: "Printed program samples",
+    files: [
+      { file: "6 - Retirement Ceremony Program Sample_1.pptx", kind: "Sample 1, PowerPoint" },
+      { file: "6 - Retirement Ceremony Program Sample_2.pptx", kind: "Sample 2, PowerPoint" },
+      { file: "6 - Retirement Ceremony Program Sample_3.pptx", kind: "Sample 3, PowerPoint" },
+    ],
+  },
+  {
+    label: "Narration scripts",
+    files: [
+      { file: "3g - Retirement Ceremony_The Watch Script.docx", kind: "The Watch, Word" },
+      { file: "3f - Retirement Ceremony Old Glory - Johnny Cash Version.docx", kind: "Old Glory, Word" },
+    ],
+  },
+  {
+    label: "Flag certificate",
+    files: [
+      { file: "7 - Flag Certificate Template_1.docx", kind: "Word" },
+      { file: "7 - Flag Certificate Template_2.pptx", kind: "PowerPoint" },
+    ],
+  },
+  { label: "Certificate of appreciation for family", files: [{ file: "4 - Certificate of Appreciation_Family_Template.pptx", kind: "PowerPoint" }] },
+];
+
+const PAPER_INVITES: LibraryDoc[] = [
+  {
+    label: "Invitation templates",
+    files: [
+      { file: "5 - Retirement Ceremony Invitation Template.docx", kind: "Word, to print" },
+      { file: "5 - Retirement Ceremony Invitation via Email Template.docx", kind: "Word, for email" },
+    ],
+  },
+];
+
+const docHref = (file: string) => `/api/public-docs/${encodeURIComponent(file)}`;
+
+function DocList({ docs }: { docs: LibraryDoc[] }) {
+  return (
+    <ul className="grid gap-2">
+      {docs.map((doc) => (
+        <li key={doc.label} className="rounded-xl border border-[var(--line)] p-3 text-sm">
+          <p className="font-medium">{doc.label}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {doc.files.map((item) => (
+              <a key={item.file} href={docHref(item.file)} target="_blank" rel="noopener noreferrer" className="btn btn-secondary !min-h-10 text-xs">
+                <Download size={14} aria-hidden="true" />
+                {item.kind}
+              </a>
+            ))}
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -1685,6 +1780,15 @@ function ShareTab({
         <p className="text-xs text-[var(--muted)]">
           Sending from a .mil account? Government networks often block images, so lead with the link. It always works.
         </p>
+      </section>
+
+      <section className="tool-section">
+        <p className="tool-kicker">PAPER INVITATIONS</p>
+        <p className="section-description">
+          Mailing invitations too, or sending a formal one to the official party? Start from a Word template and put the QR code above on it, so every
+          printed card opens this page.
+        </p>
+        <DocList docs={PAPER_INVITES} />
       </section>
     </>
   );

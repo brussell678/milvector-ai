@@ -1,7 +1,19 @@
+import { toolTitleFor } from "@/lib/tools/registry";
 import type { DashboardLink, DashboardTask } from "./types";
 
 function isExternal(href: string) {
   return href.startsWith("http://") || href.startsWith("https://");
+}
+
+// "/api/public-docs/2b%20-%20Retirement%20Ceremony%20Checklist%20v3.pdf"
+// reads as "Retirement Ceremony Checklist v3".
+function docName(href: string): string | null {
+  const match = /^\/api\/public-docs\/(.+)$/.exec(href);
+  if (!match) return null;
+  return decodeURIComponent(match[1])
+    .replace(/\.[a-z0-9]+$/i, "")
+    .replace(/^[0-9a-z]{1,3}\s*-\s*/i, "")
+    .trim();
 }
 
 function buildRequirements(task: DashboardTask) {
@@ -56,7 +68,7 @@ export function TaskDrawer({
             <p className="text-xs font-semibold tracking-widest text-[var(--accent)]">TASK DETAIL</p>
             <h3 className="mt-1 text-xl font-bold">{task.title}</h3>
           </div>
-          <button className="btn btn-secondary text-xs" onClick={onClose} type="button">
+          <button className="btn btn-secondary shrink-0 text-xs" onClick={onClose} type="button">
             Close
           </button>
         </div>
@@ -85,15 +97,15 @@ export function TaskDrawer({
               <a
                 href={task.assistance_ref}
                 className="btn btn-secondary text-xs"
-                target={isExternal(task.assistance_ref) ? "_blank" : undefined}
-                rel={isExternal(task.assistance_ref) ? "noopener noreferrer" : undefined}
+                target={isExternal(task.assistance_ref) || docName(task.assistance_ref) ? "_blank" : undefined}
+                rel={isExternal(task.assistance_ref) || docName(task.assistance_ref) ? "noopener noreferrer" : undefined}
               >
-                Open Assistance
+                {docName(task.assistance_ref) ? `Open the ${docName(task.assistance_ref)}` : "Open Assistance"}
               </a>
             )}
             {task.tool_link && (
-              <a href={task.tool_link} className="btn btn-secondary text-xs">
-                Open Related Tool
+              <a href={task.tool_link} className="btn btn-primary text-xs">
+                {toolTitleFor(task.tool_link) ? `Open the ${toolTitleFor(task.tool_link)}` : "Open Related Tool"}
               </a>
             )}
             {task.knowledge_article && (

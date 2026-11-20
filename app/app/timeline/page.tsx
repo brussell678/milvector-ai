@@ -1,5 +1,6 @@
 import { supabaseServer } from "@/lib/supabase/server";
 import { getLibraryLinkFallbacks, getTransitionTaskFallbacks, mergeDashboardTasks, mergeLibraryLinks } from "@/lib/transition-data";
+import { toolLinkVisible } from "@/lib/tools/preview";
 import { daysUntilDate, phaseMonthFromDays } from "@/lib/timeline";
 import { TimelinePhaseBoard } from "@/components/dashboard/TimelinePhaseBoard";
 import type { DashboardLink, DashboardTask } from "@/components/dashboard/types";
@@ -29,7 +30,7 @@ export default async function TimelinePage() {
     getLibraryLinkFallbacks(),
   ]);
 
-  const tasks = mergeDashboardTasks((tasksRes.data ?? []) as DashboardTask[], taskFallbacks);
+  const tasks = mergeDashboardTasks((tasksRes.data ?? []) as DashboardTask[], taskFallbacks, (href) => toolLinkVisible(href, user.email));
   const completedTaskIds = (completedRes.data ?? []).map((x) => x.task_id);
   const links = mergeLibraryLinks((linksRes.data ?? []) as DashboardLink[], linkFallbacks);
   const easDate = profileRes.data?.eas_date ?? profileRes.data?.separation_date ?? null;

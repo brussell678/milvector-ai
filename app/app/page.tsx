@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { daysUntilDate, phaseFromDays, phaseMonthFromDays } from "@/lib/timeline";
 import { getLibraryLinkFallbacks, getTransitionTaskFallbacks, mergeDashboardTasks, mergeLibraryLinks } from "@/lib/transition-data";
+import { toolLinkVisible } from "@/lib/tools/preview";
 import { PhaseObjectives } from "@/components/dashboard/PhaseObjectives";
 import type { DashboardLink, DashboardTask } from "@/components/dashboard/types";
 
@@ -61,7 +62,7 @@ export default async function DashboardPage() {
     getLibraryLinkFallbacks(),
   ]);
 
-  const allMilestoneTasks = mergeDashboardTasks((tasksRes.data ?? []) as DashboardTask[], taskFallbacks);
+  const allMilestoneTasks = mergeDashboardTasks((tasksRes.data ?? []) as DashboardTask[], taskFallbacks, (href) => toolLinkVisible(href, user.email));
   const phaseTasks = allMilestoneTasks.filter((task) => task.phase_month === currentPhaseMonth);
   const completedTaskIds = (completedRes.data ?? []).map((x) => x.task_id);
   const links = mergeLibraryLinks((linksRes.data ?? []) as DashboardLink[], linkFallbacks);

@@ -43,6 +43,11 @@ const privacyPoints = [
       "A business card you publish is a public page: anyone with its link or QR code can see what you put on it, so include only what you would hand to a stranger. Cards are kept out of search engines and are not covered by site analytics. MilVector counts views and contact saves as totals only, with no record of who the visitor was. Details a visitor chooses to send you go only to you, and you can unpublish or delete a card at any time.",
   },
   {
+    title: "Retirement Invitations And Their Guests",
+    detail:
+      "A retirement invitation a member publishes is a public page: anyone with its link or QR code can see it. Invitations are kept out of search engines and are not covered by site analytics. A home address the host marks private is shown only to guests who answer yes or maybe. If you are a guest, what you send through the page (your name, email, an optional mobile number, your answers, the names and emails of adults in your party who need a base visitor pass, and any message) goes only to the host. MilVector's admin cannot read it, MilVector does not email you, and your details are not used for anything else. The page never asks for a Social Security number or date of birth. You get a private link to change your answer, the host can delete your reply at any time, and every answer and message is deleted 180 days after the ceremony.",
+  },
+  {
     title: "Admin Review And Support",
     detail:
       "Support cases, community moderation, and library submissions can be reviewed by the MilVector admin account so issues can be resolved and unsafe content can be managed inside the workspace.",
@@ -54,6 +59,7 @@ const commitments = [
   "We use email sign-in to reduce bot abuse and protect platform operating costs.",
   "We do not sell your information.",
   "Site analytics run on public pages only, never inside your workspace.",
+  "Guests who answer a retirement invitation are seen only by the host, and their answers are deleted 180 days after the ceremony.",
   "You control what you upload into your workspace.",
   "Community and support content may be reviewed when moderation or resolution is required.",
 ];

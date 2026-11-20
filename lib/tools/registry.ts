@@ -160,3 +160,10 @@ export const toolLabels: Record<string, string> = {
   va_rating_navigator: "VA Rating Navigator",
   sbp_advisor: "SBP Decision Advisor",
 };
+
+/** A tool's name for a link to it, such as a Timeline task's button. */
+export function toolTitleFor(href: string): string | null {
+  const path = href.split(/[?#]/)[0];
+  const card = toolGroups.flatMap((group) => group.tools).find((tool) => tool.href === path);
+  return card ? card.title.replace(/\s*\(Preview\)$/, "") : null;
+}
