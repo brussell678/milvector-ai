@@ -1,30 +1,14 @@
 import { NextResponse } from "next/server";
 import { isMissingSchema } from "@/lib/cards/store";
-import { inviteBuilderEnabled } from "@/lib/invites/access";
+import { PHASE_C_NOT_READY as NOT_READY, ownedInvite } from "@/lib/invites/owner";
 import { GUEST_COLUMNS, HostGuestSchema, attendingBaseEvent } from "@/lib/invites/rsvp";
 import { readInviteData } from "@/lib/invites/schema";
-import { supabaseServer } from "@/lib/supabase/server";
 
 type Params = { params: Promise<{ id: string }> };
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-// Shown until the newest invitation migration has been run.
-const NOT_READY = "Guest answers are not fully set up yet. Run migration 0033_invite_pass_people.sql in the Supabase SQL editor.";
-
-async function ownedInvite(id: string) {
-  const supabase = await supabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: NextResponse.json({ error: "Sign in to continue." }, { status: 401 }) } as const;
-  if (!inviteBuilderEnabled(user.email) || !UUID_RE.test(id)) return { error: NextResponse.json({ error: "Not found" }, { status: 404 }) } as const;
-  const { data: invite } = await supabase.from("retirement_invites").select("id,data").eq("id", id).eq("user_id", user.id).maybeSingle<{ id: string; data: unknown }>();
-  if (!invite) return { error: NextResponse.json({ error: "Not found" }, { status: 404 }) } as const;
-  return { supabase, user, invite } as const;
-}
-
-// Everyone who has answered. Old answers past the retention date are
-// deleted first, so the host never sees data that should be gone.
+// Everyone who has answered, and the messages left on the day. Old answers
+// past the retention date are deleted first, so the host never sees data
+// that should be gone.
 export async function GET(_req: Request, { params }: Params) {
   const { id } = await params;
   const auth = await ownedInvite(id);
@@ -32,16 +16,19 @@ export async function GET(_req: Request, { params }: Params) {
   const { supabase } = auth;
 
   await supabase.rpc("purge_expired_invite_guests");
-  const { data, error } = await supabase
-    .from("retirement_invite_guests")
-    .select(GUEST_COLUMNS)
-    .eq("invite_id", id)
-    .order("updated_at", { ascending: false })
-    .limit(500);
+  const guestsWith = (columns: string) =>
+    supabase.from("retirement_invite_guests").select(columns).eq("invite_id", id).order("updated_at", { ascending: false }).limit(500);
+  const [first, { data: messages }] = await Promise.all([
+    guestsWith(GUEST_COLUMNS),
+    supabase.from("retirement_invite_messages").select("id,name,message,created_at").eq("invite_id", id).order("created_at", { ascending: false }).limit(500),
+  ]);
+  // Before migration 0034 the reminder column does not exist. The list still
+  // loads without it; only reminders and day messages wait for the update.
+  const { data, error } = first.error && isMissingSchema(first.error) ? await guestsWith(GUEST_COLUMNS.replace(",last_reminded_at", "")) : first;
   if (error) {
     return NextResponse.json({ error: isMissingSchema(error) ? NOT_READY : error.message }, { status: isMissingSchema(error) ? 503 : 500 });
   }
-  return NextResponse.json({ guests: data ?? [] }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json({ guests: data ?? [], messages: messages ?? [] }, { headers: { "Cache-Control": "no-store" } });
 }
 
 // The host adds someone by hand: a relative who will never use the form.

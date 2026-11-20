@@ -30,6 +30,7 @@ function guest(over: Partial<GuestRecord>): GuestRecord {
     dod_id: null,
     pass_names: null,
     pass_people: null,
+    last_reminded_at: null,
     message: null,
     pipeline: {},
     previous: null,

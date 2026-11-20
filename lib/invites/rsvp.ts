@@ -135,12 +135,22 @@ export type GuestRecord = {
   source: "guest" | "host";
   late: boolean;
   changed_at: string | null;
+  last_reminded_at: string | null;
   created_at: string;
   updated_at: string;
 };
 
+// A message a guest left on the day or after, when the RSVP form has become
+// a message form.
+export type DayMessage = { id: string; name: string; message: string; created_at: string };
+
+export const MessageSubmitSchema = z.object({
+  name: text(80).refine((v) => v.length >= 2, "Enter your name."),
+  message: text(1500).refine((v) => v.length >= 1, "Write your message."),
+});
+
 export const GUEST_COLUMNS =
-  "id,email,name,phone,answers,meals,dietary,dod_id,pass_names,pass_people,message,pipeline,previous,source,late,changed_at,created_at,updated_at";
+  "id,email,name,phone,answers,meals,dietary,dod_id,pass_names,pass_people,message,pipeline,previous,source,late,changed_at,last_reminded_at,created_at,updated_at";
 
 /** The adults on a guest's pass list, reading answers saved before 0033 too. */
 export function passPeopleOf(guest: Pick<GuestRecord, "pass_people" | "pass_names">): PassPerson[] {

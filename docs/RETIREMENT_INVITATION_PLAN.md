@@ -268,8 +268,10 @@ that is how pages break on phones, and it is a website builder, not a tool.
 
 - **Photos:** a cover photo, plus up to 12 more of the retiree's career
   with optional captions (the "Along the way" strip). Each is shrunk in the browser before upload (about
-  300KB), which also strips location data. Stored in a private bucket and served
-  only for a published page.
+  300KB), which also strips location data. Stored in the database (migration
+  0034) and served only for a published page, or to the host in preview. On the
+  page every photo is trimmed to the same shape from the bottom first, so a
+  portrait keeps the face; a tap opens the whole photo.
 - **Templates:** three at launch: a dark navy and brass look like Brandon's own
   page, a white formal look, and a field look in olive and sand. Switching
   templates never loses content.
@@ -290,5 +292,6 @@ that is how pages break on phones, and it is a website builder, not a tool.
 | A | **Built 2026-11-19, awaiting Brandon's gate.** Needs migration 0031 run in the Supabase SQL editor first. Verified: 29 database access checks (in-memory Postgres), 25 unit tests, and a 39-check browser walkthrough against a stand-in database (create, events, private address, cover photo, publish, all three templates as a guest at 390 and 320 wide, calendar file, desktop editor). Not yet seen against the real database or on a real phone |
 | A gate | Passed 2026-11-19. Brandon's findings fixed: meaningless color dots on the QR buttons, cramped icon buttons site-wide, cropped cover photo in the Look tab |
 | B | **Built 2026-11-19, awaiting Brandon's gate.** Needs migration 0032 run in the Supabase SQL editor first. Verified: 57 database checks for 0032 (in-memory Postgres), 43 unit tests for the feature, and a 35-check browser walkthrough against a stand-in database running the REAL migrations (host setup, two guests on phones at 390 and 320, personal link, pass ticks, spreadsheet, add by hand). Not yet seen against the real database or on a real phone |
-| C | Not started |
+| B follow-up | Brandon's findings fixed 2026-11-19: Base step 1 names the email the base writes to; passes are for adults only; each adult gives their own email (migration 0033) |
+| C | **Built 2026-11-19, awaiting Brandon's gate.** Needs migration 0034 run in the Supabase SQL editor first (0033 before it). Builder gains Program and Info tabs; Look gains career photos and section toggles; Share gains the before/on/after setting and thank-you line; Guests gains reminders (sent from the host's own email, with "Mark as sent") and messages left on the day. The guest page changes by the venue's calendar: invitation before, program first on the day, thank-you after; `?view=invite`, `eventday`, or `memories` shows any of them. Verified: 27 database checks for 0034 (with 0031 to 0033 rerun: 29, 57, 15), 224 unit tests (22 new), a 62-check browser walkthrough against a stand-in database running the REAL migrations (all three views at 390 and 320, photo upload, reorder, captions, stream tap to play, day message and its honeypot, the calendar switching the page by itself, reminders and mark as sent), Phase A and B walkthroughs rerun (39 and 39), production build clean. Not yet seen against the real database or on a real phone |
 | D | Not started |

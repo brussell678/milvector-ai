@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
-import { Camera, Check, Download, ExternalLink, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Camera, Check, Download, ExternalLink, Plus, Trash2 } from "lucide-react";
 import { CopyButton, Field, Toggle, download } from "@/components/invites/builder-ui";
 import { GuestsTab } from "@/components/invites/guests-tab";
 import { InviteView } from "@/components/invites/invite-view";
@@ -13,18 +13,31 @@ import {
   BRANCHES,
   BRANCH_NAMES,
   COVER_MAX_CHARS,
+  MAX_BIOS,
   MAX_EVENTS,
+  MAX_INFO_BLOCKS,
   MAX_MEAL_OPTIONS,
+  MAX_PEOPLE,
+  MAX_PHOTOS,
+  MAX_PROGRAM_ITEMS,
+  MAX_SCHEDULE_EXTRAS,
+  STAND_CUES,
   TIME_ZONES,
   blankEvent,
+  newEventId,
+  standardProgram,
   starterInvite,
   type BaseAccess,
   type InviteData,
   type InviteEvent,
+  type InviteViewName,
+  type Program,
   type RsvpSettings,
+  type Sections,
 } from "@/lib/invites/schema";
 import { ACCENT_PRESETS, TEMPLATES, TEMPLATE_IDS, inviteColors, readTemplate } from "@/lib/invites/templates";
 import { ceremonyOf, eventIsComplete, formatDateLong, formatTime, publicLocation, sortEvents } from "@/lib/invites/time";
+import { resolveView, youtubeId } from "@/lib/invites/view";
 import { siteUrl } from "@/lib/seo";
 
 type SavedInvite = {
@@ -37,8 +50,9 @@ type SavedInvite = {
   updatedAt: string;
 };
 type Defaults = { name: string; rank: string; branch: string; ceremonyDate: string; email: string };
-type Tab = "basics" | "events" | "base" | "rsvp" | "look" | "preview" | "share" | "guests";
+type Tab = "basics" | "events" | "base" | "rsvp" | "program" | "info" | "look" | "preview" | "share" | "guests";
 type Message = { kind: "ok" | "error"; text: string } | null;
+type BuilderPhoto = { id: string; position: number; caption: string; updatedAt: string };
 
 const pageUrlFor = (slug: string) => `${siteUrl}/r/${slug}`;
 
@@ -88,6 +102,10 @@ export function RetirementInvitationBuilder() {
   const [tab, setTab] = useState<Tab>("basics");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<Message>(null);
+  const [photos, setPhotos] = useState<BuilderPhoto[]>([]);
+  const [photosReady, setPhotosReady] = useState(true);
+  // Which view the preview shows. "auto" follows the calendar like guests see.
+  const [previewView, setPreviewView] = useState<"auto" | InviteViewName>("auto");
 
   const dirty = !!saved && !!draft && (JSON.stringify(saved.invite) !== JSON.stringify(draft) || saved.slug !== slugDraft);
 
@@ -101,6 +119,8 @@ export function RetirementInvitationBuilder() {
         setLoadError(json.error ?? "Your invitation could not be loaded. Check your connection and refresh the page.");
       } else {
         setDefaults(json.defaults);
+        setPhotos(json.photos ?? []);
+        setPhotosReady(json.photosReady !== false);
         if (json.invite) {
           setSaved(json.invite);
           setDraft(json.invite.invite);
@@ -216,6 +236,8 @@ export function RetirementInvitationBuilder() {
     { id: "events", label: "Events" },
     { id: "base", label: "Base" },
     { id: "rsvp", label: "RSVP" },
+    { id: "program", label: "Program" },
+    { id: "info", label: "Info" },
     { id: "look", label: "Look" },
     { id: "preview", label: "Preview", phoneOnly: true },
     { id: "share", label: "Share" },
@@ -224,6 +246,10 @@ export function RetirementInvitationBuilder() {
   const coverSrc = saved.cover ? `data:image/jpeg;base64,${saved.cover}` : null;
   // The guest list is a working table, so it gets the full width.
   const wide = tab === "guests";
+  const shownView: InviteViewName = previewView === "auto" ? resolveView(draft) : previewView;
+  const pagePhotos = photos.map((photo) => ({ id: photo.id, caption: photo.caption, src: `/r/${saved.slug}/photos/${photo.id}?v=${encodeURIComponent(photo.updatedAt)}` }));
+  const preview = <InviteView data={draft} slug={saved.slug} pageUrl={pageUrlFor(slugDraft)} coverSrc={coverSrc} view={shownView} photos={pagePhotos} framed />;
+  const viewSwitch = <PreviewViewSwitch value={previewView} onChange={setPreviewView} auto={resolveView(draft)} />;
 
   return (
     <div className="flex flex-col gap-4">
@@ -248,7 +274,7 @@ export function RetirementInvitationBuilder() {
         </ToolAlert>
       )}
 
-      <nav className="grid grid-cols-4 gap-1 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-1 sm:grid-cols-8 lg:grid-cols-7" aria-label="Invitation sections">
+      <nav className="grid grid-cols-4 gap-1 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-1 sm:grid-cols-5 lg:grid-cols-9" aria-label="Invitation sections">
         {tabs.map((item) => (
           <button
             key={item.id}
@@ -284,24 +310,40 @@ export function RetirementInvitationBuilder() {
           {tab === "events" && <EventsTab draft={draft} set={set} setEvent={setEvent} addEvent={addEvent} removeEvent={removeEvent} />}
           {tab === "base" && <BaseTab draft={draft} set={set} goToEvents={() => setTab("events")} />}
           {tab === "rsvp" && <RsvpTab draft={draft} set={set} />}
-          {tab === "guests" && <GuestsTab inviteId={saved.id} slug={saved.slug} data={saved.invite} published={saved.published} />}
-          {tab === "look" && <LookTab draft={draft} set={set} cover={coverSrc} onCover={onCover} onRemoveCover={() => patch({ cover: null }, "Cover photo removed.")} saving={saving} />}
+          {tab === "program" && <ProgramTab draft={draft} set={set} />}
+          {tab === "info" && <InfoTab draft={draft} set={set} />}
+          {tab === "guests" && <GuestsTab inviteId={saved.id} slug={saved.slug} data={saved.invite} published={saved.published} pageUrl={pageUrlFor(saved.slug)} />}
+          {tab === "look" && (
+            <LookTab
+              draft={draft}
+              set={set}
+              cover={coverSrc}
+              onCover={onCover}
+              onRemoveCover={() => patch({ cover: null }, "Cover photo removed.")}
+              saving={saving}
+              photosPanel={<PhotosPanel inviteId={saved.id} slug={saved.slug} photos={photos} setPhotos={setPhotos} ready={photosReady} />}
+            />
+          )}
           {tab === "preview" && (
-            <div className="overflow-hidden rounded-2xl border border-[var(--line)] lg:hidden">
-              <div className="pointer-events-none select-none" aria-hidden="true">
-                <InviteView data={draft} slug={saved.slug} pageUrl={pageUrlFor(slugDraft)} coverSrc={coverSrc} framed />
+            <div className="flex flex-col gap-3 lg:hidden">
+              {viewSwitch}
+              <div className="overflow-hidden rounded-2xl border border-[var(--line)]">
+                <div className="pointer-events-none select-none" aria-hidden="true">
+                  {preview}
+                </div>
               </div>
             </div>
           )}
-          {tab === "share" && <ShareTab saved={saved} dirty={dirty} onPublish={togglePublish} saving={saving} />}
+          {tab === "share" && <ShareTab saved={saved} draft={draft} set={set} dirty={dirty} onPublish={togglePublish} saving={saving} />}
         </div>
 
         {/* Live preview beside the editor on wide screens */}
         <aside className={`hidden lg:sticky lg:top-4 ${wide ? "" : "lg:block"}`} aria-label="Preview of the guest page">
           <p className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">What a guest sees on a phone</p>
-          <div className="h-[760px] overflow-y-auto rounded-[28px] border-[10px] border-[#1a1f1b] bg-[#1a1f1b] shadow-[var(--shadow-lg)]">
+          <div className="mb-2">{viewSwitch}</div>
+          <div className="h-[720px] overflow-y-auto rounded-[28px] border-[10px] border-[#1a1f1b] bg-[#1a1f1b] shadow-[var(--shadow-lg)]">
             <div className="pointer-events-none select-none overflow-hidden rounded-[18px]" aria-hidden="true">
-              <InviteView data={draft} slug={saved.slug} pageUrl={pageUrlFor(slugDraft)} coverSrc={coverSrc} framed />
+              {preview}
             </div>
           </div>
           <p className="mt-2 text-xs text-[var(--muted)]">Updates as you type. Guests see the last saved version.</p>
@@ -784,7 +826,379 @@ function RsvpTab({ draft, set }: { draft: InviteData; set: <K extends keyof Invi
   );
 }
 
+// ─── Lists: shared row controls ───────────────────────────────────────
+
+function move<T>(list: T[], index: number, delta: number): T[] {
+  const target = index + delta;
+  if (target < 0 || target >= list.length) return list;
+  const next = [...list];
+  [next[index], next[target]] = [next[target], next[index]];
+  return next;
+}
+
+// Up, down, and remove for one row. Arrows instead of drag and drop: they
+// work the same with a thumb, a mouse, and a keyboard.
+function RowTools({ index, count, name, onMove, onRemove }: { index: number; count: number; name: string; onMove: (delta: number) => void; onRemove: () => void }) {
+  return (
+    <div className="flex shrink-0 gap-1">
+      <button type="button" className="btn btn-ghost !min-h-10 !px-2.5" aria-label={`Move ${name} up`} onClick={() => onMove(-1)} disabled={index === 0}>
+        <ArrowUp size={16} aria-hidden="true" />
+      </button>
+      <button type="button" className="btn btn-ghost !min-h-10 !px-2.5" aria-label={`Move ${name} down`} onClick={() => onMove(1)} disabled={index === count - 1}>
+        <ArrowDown size={16} aria-hidden="true" />
+      </button>
+      <button type="button" className="btn btn-ghost !min-h-10 !px-2.5" aria-label={`Remove ${name}`} onClick={onRemove}>
+        <Trash2 size={16} aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
+function Small({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) {
+  return (
+    <label className={`block space-y-1 ${className}`}>
+      <span className="text-xs font-medium text-[var(--muted)]">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function AddButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button type="button" className="btn btn-secondary w-full text-sm sm:w-auto" onClick={onClick}>
+      <Plus size={14} aria-hidden="true" />
+      {children}
+    </button>
+  );
+}
+
+// ─── Program ──────────────────────────────────────────────────────────
+
+const ROLE_HINTS = ["Retiring official", "Master of ceremonies", "Chaplain", "Narrator", "Color guard", "Bugler"];
+
+function ProgramTab({ draft, set }: { draft: InviteData; set: <K extends keyof InviteData>(key: K, value: InviteData[K]) => void }) {
+  const program = draft.program;
+  const setProgram = (patchValue: Partial<Program>) => set("program", { ...program, ...patchValue });
+  const items = program.items;
+  const setItem = (id: string, patchValue: Partial<Program["items"][number]>) => setProgram({ items: items.map((item) => (item.id === id ? { ...item, ...patchValue } : item)) });
+  const addItem = (kind: "item" | "heading") =>
+    items.length < MAX_PROGRAM_ITEMS && setProgram({ items: [...items, { id: newEventId(), kind, title: "", who: "", cue: "" }] });
+  const people = program.people;
+  const setPerson = (id: string, patchValue: Partial<Program["people"][number]>) => setProgram({ people: people.map((p) => (p.id === id ? { ...p, ...patchValue } : p)) });
+  const bios = program.bios;
+  const setBio = (id: string, patchValue: Partial<Program["bios"][number]>) => setProgram({ bios: bios.map((b) => (b.id === id ? { ...b, ...patchValue } : b)) });
+  const stream = program.streamUrl.trim();
+  const streamOk = !stream || /^https:\/\/[^\s]+\.[^\s]+/i.test(stream);
+  const sectionsOff = !draft.sections.program;
+
+  return (
+    <>
+      {sectionsOff && <ToolAlert variant="warn">The program is hidden from guests. Turn it back on under Sections on the page, in the Look tab.</ToolAlert>}
+      <section className="tool-section">
+        <p className="tool-kicker">THE SEQUENCE OF EVENTS</p>
+        <p className="section-description">
+          The order of the ceremony. Before the day it gives guests a feel for what to expect. On the day it leads the page, so guests can follow along and
+          know when to stand. Blank lines are left off.
+        </p>
+        {items.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-[var(--line)] p-4">
+            <p className="text-sm">Most retirement ceremonies follow the same order. Start from it and change what yours does differently.</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button type="button" className="btn btn-primary text-sm" onClick={() => setProgram({ items: standardProgram() })}>
+                Start from the standard retirement sequence
+              </button>
+              <button type="button" className="btn btn-secondary text-sm" onClick={() => addItem("item")}>
+                <Plus size={14} aria-hidden="true" />
+                Start blank
+              </button>
+            </div>
+          </div>
+        ) : (
+          <ol className="grid gap-2">
+            {items.map((item, index) => {
+              const name = item.kind === "heading" ? `heading ${index + 1}` : `line ${index + 1}`;
+              return (
+                <li key={item.id} className={`grid gap-2 rounded-xl border p-3 ${item.kind === "heading" ? "border-[var(--accent)] bg-[var(--surface)]" : "border-[var(--line)]"}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
+                      {index + 1}. {item.kind === "heading" ? "Heading" : "Line"}
+                    </span>
+                    <RowTools
+                      index={index}
+                      count={items.length}
+                      name={name}
+                      onMove={(delta) => setProgram({ items: move(items, index, delta) })}
+                      onRemove={() => setProgram({ items: items.filter((other) => other.id !== item.id) })}
+                    />
+                  </div>
+                  <Small label={item.kind === "heading" ? "Heading text" : "What happens"}>
+                    <input
+                      className="input"
+                      value={item.title}
+                      maxLength={100}
+                      placeholder={item.kind === "heading" ? "e.g. Reception to follow" : "e.g. Presentation of awards"}
+                      onChange={(e) => setItem(item.id, { title: e.target.value })}
+                    />
+                  </Small>
+                  {item.kind === "item" && (
+                    <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_11rem]">
+                      <Small label="Who (optional)">
+                        <input className="input" value={item.who} maxLength={160} placeholder="e.g. Chaplain (LCDR) Jane Doe" onChange={(e) => setItem(item.id, { who: e.target.value })} />
+                      </Small>
+                      <Small label="Audience">
+                        <select className="input" value={item.cue} onChange={(e) => setItem(item.id, { cue: e.target.value as (typeof STAND_CUES)[number] })}>
+                          {STAND_CUES.map((cue) => (
+                            <option key={cue} value={cue}>
+                              {cue || "No cue"}
+                            </option>
+                          ))}
+                        </select>
+                      </Small>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        )}
+        {items.length > 0 && items.length < MAX_PROGRAM_ITEMS && (
+          <div className="flex flex-wrap gap-2">
+            <AddButton onClick={() => addItem("item")}>Add a line</AddButton>
+            <AddButton onClick={() => addItem("heading")}>Add a heading</AddButton>
+          </div>
+        )}
+        <Field label="A note above the program (optional)" hint="One line, such as a request about photos or phones.">
+          <input className="input" value={program.note} maxLength={200} placeholder="e.g. Photography welcome. No flash during the ceremony, please." onChange={(e) => setProgram({ note: e.target.value })} />
+        </Field>
+      </section>
+
+      <section className="tool-section">
+        <p className="tool-kicker">ON THE PLATFORM</p>
+        <p className="section-description">The official party, so guests know who is who. Rank and name as you want them printed.</p>
+        {people.map((person, index) => (
+          <div key={person.id} className="grid gap-2 rounded-xl border border-[var(--line)] p-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">Person {index + 1}</span>
+              <RowTools
+                index={index}
+                count={people.length}
+                name={`person ${index + 1}`}
+                onMove={(delta) => setProgram({ people: move(people, index, delta) })}
+                onRemove={() => setProgram({ people: people.filter((other) => other.id !== person.id) })}
+              />
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Small label="Role">
+                <input className="input" value={person.role} maxLength={60} list="invite-role-hints" placeholder="e.g. Retiring official" onChange={(e) => setPerson(person.id, { role: e.target.value })} />
+              </Small>
+              <Small label="Rank and name">
+                <input className="input" value={person.name} maxLength={80} placeholder="e.g. Colonel John Smith" onChange={(e) => setPerson(person.id, { name: e.target.value })} />
+              </Small>
+            </div>
+            <Small label="One line about them (optional)">
+              <input className="input" value={person.line} maxLength={120} placeholder="e.g. Commanding Officer, 2d Light Armored Reconnaissance Battalion" onChange={(e) => setPerson(person.id, { line: e.target.value })} />
+            </Small>
+          </div>
+        ))}
+        <datalist id="invite-role-hints">
+          {ROLE_HINTS.map((role) => (
+            <option key={role} value={role} />
+          ))}
+        </datalist>
+        {people.length < MAX_PEOPLE && (
+          <AddButton onClick={() => setProgram({ people: [...people, { id: newEventId(), role: "", name: "", line: "" }] })}>Add a person</AddButton>
+        )}
+      </section>
+
+      <section className="tool-section">
+        <p className="tool-kicker">BIOGRAPHIES</p>
+        <p className="section-description">
+          Yours, and the retiring official&apos;s if you like. The short version shows on the page; the full one opens with a tap. A program printed on paper
+          rarely has room for either.
+        </p>
+        {bios.map((bio, index) => (
+          <div key={bio.id} className="grid gap-2 rounded-xl border border-[var(--line)] p-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">Biography {index + 1}</span>
+              <RowTools
+                index={index}
+                count={bios.length}
+                name={`biography ${index + 1}`}
+                onMove={(delta) => setProgram({ bios: move(bios, index, delta) })}
+                onRemove={() => setProgram({ bios: bios.filter((other) => other.id !== bio.id) })}
+              />
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Small label="Rank and name">
+                <input className="input" value={bio.name} maxLength={80} onChange={(e) => setBio(bio.id, { name: e.target.value })} />
+              </Small>
+              <Small label="Role (optional)">
+                <input className="input" value={bio.role} maxLength={80} placeholder="e.g. Retiree" onChange={(e) => setBio(bio.id, { role: e.target.value })} />
+              </Small>
+            </div>
+            <Small label="Short version">
+              <textarea className="input min-h-24" value={bio.short} maxLength={800} placeholder="Two or three sentences." onChange={(e) => setBio(bio.id, { short: e.target.value })} />
+            </Small>
+            <Small label="Full biography (optional)">
+              <textarea className="input min-h-40" value={bio.full} maxLength={4000} placeholder="Paste the official biography here." onChange={(e) => setBio(bio.id, { full: e.target.value })} />
+            </Small>
+          </div>
+        ))}
+        {bios.length < MAX_BIOS && (
+          <AddButton onClick={() => setProgram({ bios: [...bios, { id: newEventId(), name: bios.length === 0 ? [draft.retiree.rank, draft.retiree.name].filter(Boolean).join(" ") : "", role: bios.length === 0 ? "Retiree" : "", short: "", full: "" }] })}>
+            Add a biography
+          </AddButton>
+        )}
+        <p className="text-xs text-[var(--muted)]">A biography is public to anyone with the link. Leave out family details you would not put on a flyer.</p>
+      </section>
+
+      <section className="tool-section">
+        <p className="tool-kicker">LIVE STREAM</p>
+        <p className="section-description">
+          For family who cannot travel. Paste the link to a YouTube live stream or recording and it plays right on the page after a tap. A link to anything
+          else, such as Facebook Live or Zoom, shows as a button.
+        </p>
+        <Field label="Stream or recording link (optional)" hint="Set it up ahead of time. YouTube gives you the link when you schedule the stream.">
+          <input className="input" type="url" inputMode="url" value={program.streamUrl} maxLength={300} placeholder="https://youtube.com/live/..." onChange={(e) => setProgram({ streamUrl: e.target.value })} />
+        </Field>
+        {stream && !streamOk && <ToolAlert variant="error">Use the full link, starting with https://</ToolAlert>}
+        {stream && streamOk && (
+          <p className="text-xs text-[var(--muted)]">
+            {youtubeId(stream) ? "YouTube link recognized. It plays on the page." : "Not a YouTube link, so guests get a button that opens it."}
+          </p>
+        )}
+        {!draft.sections.stream && stream && <ToolAlert variant="warn">The stream is hidden from guests. Turn it back on in the Look tab.</ToolAlert>}
+      </section>
+    </>
+  );
+}
+
+// ─── Info ─────────────────────────────────────────────────────────────
+
+const INFO_SUGGESTIONS: { title: string; placeholder: string }[] = [
+  { title: "Lodging", placeholder: "e.g. A block of rooms is held at the Hampton Inn under Russell Retirement until May 1. Call the front desk to book." },
+  { title: "Getting there", placeholder: "e.g. The closest airport is Jacksonville (OAJ). Wilmington (ILM) is an hour away and has more flights." },
+  { title: "Parking", placeholder: "e.g. Park in the lot behind Bldg. 1854. Overflow parking is across the street." },
+  { title: "Gifts", placeholder: "e.g. Your presence is the gift. Please, no gifts." },
+];
+
+function InfoTab({ draft, set }: { draft: InviteData; set: <K extends keyof InviteData>(key: K, value: InviteData[K]) => void }) {
+  const extras = draft.schedule;
+  const setExtra = (id: string, patchValue: Partial<InviteData["schedule"][number]>) =>
+    set("schedule", extras.map((extra) => (extra.id === id ? { ...extra, ...patchValue } : extra)));
+  const blocks = draft.info;
+  const setBlock = (id: string, patchValue: Partial<InviteData["info"][number]>) =>
+    set("info", blocks.map((block) => (block.id === id ? { ...block, ...patchValue } : block)));
+  const addBlock = (title = "") => blocks.length < MAX_INFO_BLOCKS && set("info", [...blocks, { id: newEventId(), title, body: "", linkLabel: "", linkUrl: "" }]);
+  const unused = INFO_SUGGESTIONS.filter((s) => !blocks.some((block) => block.title.trim().toLowerCase() === s.title.toLowerCase()));
+  const ceremonyDate = draft.events[0]?.date ?? "";
+
+  return (
+    <>
+      <section className="tool-section">
+        <p className="tool-kicker">THE DAY AT A GLANCE</p>
+        <p className="section-description">
+          Your events are already on it. Add the other times guests need, such as when to leave for the gate, a photo session, or a hotel shuttle. Blank
+          lines are left off.
+        </p>
+        {!draft.sections.schedule && <ToolAlert variant="warn">The day at a glance is hidden from guests. Turn it back on in the Look tab.</ToolAlert>}
+        {extras.map((extra, index) => (
+          <div key={extra.id} className="grid gap-2 rounded-xl border border-[var(--line)] p-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">Schedule line {index + 1}</span>
+              <RowTools
+                index={index}
+                count={extras.length}
+                name={`schedule line ${index + 1}`}
+                onMove={(delta) => set("schedule", move(extras, index, delta))}
+                onRemove={() => set("schedule", extras.filter((other) => other.id !== extra.id))}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-[10rem_8rem_minmax(0,1fr)]">
+              <Small label="Date">
+                <input className="input" type="date" value={extra.date} onChange={(e) => setExtra(extra.id, { date: e.target.value })} />
+              </Small>
+              <Small label="Time (optional)">
+                <input className="input" type="time" value={extra.time} onChange={(e) => setExtra(extra.id, { time: e.target.value })} />
+              </Small>
+              <Small label="What" className="col-span-2 sm:col-span-1">
+                <input className="input" value={extra.title} maxLength={80} placeholder="e.g. Leave the hotel for the main gate" onChange={(e) => setExtra(extra.id, { title: e.target.value })} />
+              </Small>
+            </div>
+            <Small label="Note (optional)">
+              <input className="input" value={extra.note} maxLength={200} onChange={(e) => setExtra(extra.id, { note: e.target.value })} />
+            </Small>
+          </div>
+        ))}
+        {extras.length < MAX_SCHEDULE_EXTRAS && (
+          <AddButton onClick={() => set("schedule", [...extras, { id: newEventId(), date: ceremonyDate, time: "", title: "", note: "" }])}>Add a schedule line</AddButton>
+        )}
+      </section>
+
+      <section className="tool-section">
+        <p className="tool-kicker">FOR YOUR VISIT</p>
+        <p className="section-description">
+          What out-of-town guests ask about. Each block gets a title, a few lines, and an optional link, such as a hotel booking page.
+        </p>
+        {!draft.sections.info && <ToolAlert variant="warn">These blocks are hidden from guests. Turn them back on in the Look tab.</ToolAlert>}
+        {blocks.map((block, index) => {
+          const suggestion = INFO_SUGGESTIONS.find((s) => s.title.toLowerCase() === block.title.trim().toLowerCase());
+          const link = block.linkUrl.trim();
+          return (
+            <div key={block.id} className="grid gap-2 rounded-xl border border-[var(--line)] p-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">Block {index + 1}</span>
+                <RowTools
+                  index={index}
+                  count={blocks.length}
+                  name={`block ${index + 1}`}
+                  onMove={(delta) => set("info", move(blocks, index, delta))}
+                  onRemove={() => set("info", blocks.filter((other) => other.id !== block.id))}
+                />
+              </div>
+              <Small label="Title">
+                <input className="input" value={block.title} maxLength={60} onChange={(e) => setBlock(block.id, { title: e.target.value })} />
+              </Small>
+              <Small label="Details">
+                <textarea className="input min-h-24" value={block.body} maxLength={1500} placeholder={suggestion?.placeholder ?? ""} onChange={(e) => setBlock(block.id, { body: e.target.value })} />
+              </Small>
+              <div className="grid gap-2 sm:grid-cols-[12rem_minmax(0,1fr)]">
+                <Small label="Link text (optional)">
+                  <input className="input" value={block.linkLabel} maxLength={40} placeholder="e.g. Book a room" onChange={(e) => setBlock(block.id, { linkLabel: e.target.value })} />
+                </Small>
+                <Small label="Link (optional)">
+                  <input className="input" type="url" inputMode="url" value={block.linkUrl} maxLength={300} placeholder="https://" onChange={(e) => setBlock(block.id, { linkUrl: e.target.value })} />
+                </Small>
+              </div>
+              {link && !/^https:\/\/[^\s]+\.[^\s]+/i.test(link) && <ToolAlert variant="error">Use the full link, starting with https://</ToolAlert>}
+            </div>
+          );
+        })}
+        {blocks.length < MAX_INFO_BLOCKS && (
+          <div className="flex flex-wrap gap-2">
+            {unused.map((s) => (
+              <AddButton key={s.title} onClick={() => addBlock(s.title)}>
+                {s.title}
+              </AddButton>
+            ))}
+            <AddButton onClick={() => addBlock()}>Something else</AddButton>
+          </div>
+        )}
+      </section>
+    </>
+  );
+}
+
 // ─── Look ─────────────────────────────────────────────────────────────
+
+const SECTION_TOGGLES: { key: keyof Sections; label: string; hint: string }[] = [
+  { key: "schedule", label: "The day at a glance", hint: "Every event and schedule line in time order." },
+  { key: "program", label: "The program", hint: "Sequence of events, the platform party, and biographies." },
+  { key: "info", label: "For your visit", hint: "Lodging, getting there, and your other blocks." },
+  { key: "photos", label: "Career photos", hint: "The photos you add below." },
+  { key: "stream", label: "Live stream", hint: "The stream link from the Program tab." },
+  { key: "share", label: "Share and QR code", hint: "Lets guests pass the invitation along." },
+];
 
 function LookTab({
   draft,
@@ -793,6 +1207,7 @@ function LookTab({
   onCover,
   onRemoveCover,
   saving,
+  photosPanel,
 }: {
   draft: InviteData;
   set: <K extends keyof InviteData>(key: K, value: InviteData[K]) => void;
@@ -800,6 +1215,7 @@ function LookTab({
   onCover: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveCover: () => void;
   saving: boolean;
+  photosPanel: React.ReactNode;
 }) {
   const template = readTemplate(draft.template);
   return (
@@ -910,9 +1326,195 @@ function LookTab({
           The page is public to anyone with the link. Leave out current operations, sensitive equipment, and people who have not agreed to be on it.
         </p>
       </section>
+
+      {photosPanel}
+
+      <section className="tool-section">
+        <p className="tool-kicker">SECTIONS ON THE PAGE</p>
+        <p className="section-description">
+          A section with nothing in it never shows, so most people leave these on. Turn one off to hide it without deleting what you wrote.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {SECTION_TOGGLES.map((toggle) => (
+            <Toggle
+              key={toggle.key}
+              checked={draft.sections[toggle.key]}
+              onChange={(value) => set("sections", { ...draft.sections, [toggle.key]: value })}
+              label={toggle.label}
+              hint={toggle.hint}
+            />
+          ))}
+        </div>
+      </section>
     </>
   );
 }
+
+// Career photos save the moment they are added, like the cover. They are not
+// part of the draft, so there is nothing to lose by switching tabs.
+function PhotosPanel({
+  inviteId,
+  slug,
+  photos,
+  setPhotos,
+  ready,
+}: {
+  inviteId: string;
+  slug: string;
+  photos: BuilderPhoto[];
+  setPhotos: (photos: BuilderPhoto[]) => void;
+  ready: boolean;
+}) {
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  const [captions, setCaptions] = useState<Record<string, string>>({});
+
+  async function add(event: React.ChangeEvent<HTMLInputElement>) {
+    const files = [...(event.target.files ?? [])].slice(0, MAX_PHOTOS - photos.length);
+    event.target.value = "";
+    if (!files.length) return;
+    setError("");
+    let list = photos;
+    for (const [index, file] of files.entries()) {
+      setBusy(files.length > 1 ? `Adding photo ${index + 1} of ${files.length}...` : "Adding photo...");
+      let jpeg = "";
+      try {
+        jpeg = await processCover(file);
+      } catch {
+        setError(`${file.name} could not be used. Try a JPEG or PNG photo.`);
+        continue;
+      }
+      const res = await fetch(`/api/invites/${inviteId}/photos`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ jpeg }) }).catch(() => null);
+      const json = res ? await res.json().catch(() => ({})) : {};
+      if (!res?.ok || !json.photo) {
+        setError(json.error ?? "A photo did not upload. Check your connection and try again.");
+        break;
+      }
+      list = [...list, json.photo];
+      setPhotos(list);
+    }
+    setBusy("");
+  }
+
+  async function saveCaption(photo: BuilderPhoto) {
+    const caption = (captions[photo.id] ?? photo.caption).trim();
+    if (caption === photo.caption) return;
+    const res = await fetch(`/api/invites/${inviteId}/photos/${photo.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ caption }) }).catch(() => null);
+    const json = res ? await res.json().catch(() => ({})) : {};
+    if (!res?.ok || !json.photo) {
+      setError(json.error ?? "The caption did not save. Try again.");
+      return;
+    }
+    setPhotos(photos.map((p) => (p.id === photo.id ? json.photo : p)));
+  }
+
+  async function reorder(index: number, delta: number) {
+    const next = move(photos, index, delta);
+    if (next === photos) return;
+    setPhotos(next);
+    const res = await fetch(`/api/invites/${inviteId}/photos`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ order: next.map((p) => p.id) }) }).catch(() => null);
+    if (!res?.ok) {
+      setPhotos(photos);
+      setError("The new order did not save. Try again.");
+    }
+  }
+
+  async function remove(photo: BuilderPhoto) {
+    if (!window.confirm("Remove this photo from the page?")) return;
+    const res = await fetch(`/api/invites/${inviteId}/photos/${photo.id}`, { method: "DELETE" }).catch(() => null);
+    if (!res?.ok) {
+      setError("The photo could not be removed. Try again.");
+      return;
+    }
+    setPhotos(photos.filter((p) => p.id !== photo.id));
+  }
+
+  return (
+    <section className="tool-section">
+      <p className="tool-kicker">CAREER PHOTOS</p>
+      <p className="section-description">
+        Up to {MAX_PHOTOS}, from boot camp or commissioning to now. The first one shows largest. Each saves as soon as you add it, shrunk on your device with
+        the location data removed. On the page every photo is trimmed to the same shape, keeping the top, where faces usually are; a tap opens the whole
+        photo.
+      </p>
+      {!ready ? (
+        <ToolAlert variant="warn">Career photos are not switched on yet. Everything else on this page works. Check back soon.</ToolAlert>
+      ) : (
+        <>
+          {photos.length > 0 && (
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {photos.map((photo, index) => (
+                <li key={photo.id} className="grid gap-2 rounded-xl border border-[var(--line)] p-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- the member's own photo, served by the invitation */}
+                  <img
+                    src={`/r/${slug}/photos/${photo.id}?v=${encodeURIComponent(photo.updatedAt)}`}
+                    alt={photo.caption || `Career photo ${index + 1}`}
+                    className="aspect-[4/3] w-full rounded-lg bg-[var(--surface)] object-contain"
+                    loading="lazy"
+                  />
+                  <Small label={`Caption, photo ${index + 1}`}>
+                    <input
+                      className="input"
+                      value={captions[photo.id] ?? photo.caption}
+                      maxLength={120}
+                      placeholder="e.g. Parris Island, 2004"
+                      onChange={(e) => setCaptions((prev) => ({ ...prev, [photo.id]: e.target.value }))}
+                      onBlur={() => saveCaption(photo)}
+                    />
+                  </Small>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-[var(--muted)]">{index === 0 ? "Shown first and largest" : `Photo ${index + 1}`}</span>
+                    <RowTools index={index} count={photos.length} name={`photo ${index + 1}`} onMove={(delta) => reorder(index, delta)} onRemove={() => remove(photo)} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          {error && <ToolAlert variant="error">{error}</ToolAlert>}
+          {photos.length < MAX_PHOTOS ? (
+            <label className={`btn btn-secondary w-full cursor-pointer text-sm sm:w-auto ${busy ? "pointer-events-none opacity-60" : ""}`}>
+              <Camera size={14} aria-hidden="true" />
+              {busy || (photos.length ? "Add more photos" : "Add career photos")}
+              <input type="file" accept="image/*" multiple className="sr-only" onChange={add} disabled={!!busy} />
+            </label>
+          ) : (
+            <p className="text-sm text-[var(--muted)]">That is all {MAX_PHOTOS}. Remove one to add another.</p>
+          )}
+          <p className="text-xs text-[var(--muted)]">Captions save when you leave the box. Leave out photos showing current operations or people who would not want to be on it.</p>
+        </>
+      )}
+    </section>
+  );
+}
+
+// Before, on, and after the day. The page switches by itself; this shows
+// each version without waiting for the calendar.
+function PreviewViewSwitch({ value, onChange, auto }: { value: "auto" | InviteViewName; onChange: (value: "auto" | InviteViewName) => void; auto: InviteViewName }) {
+  const options: { id: "auto" | InviteViewName; label: string }[] = [
+    { id: "auto", label: "Now" },
+    { id: "invite", label: "Before" },
+    { id: "eventday", label: "On the day" },
+    { id: "memories", label: "After" },
+  ];
+  return (
+    <div className="grid grid-cols-4 gap-1 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-1" role="group" aria-label="Which version of the page to preview">
+      {options.map((option) => (
+        <button
+          key={option.id}
+          type="button"
+          onClick={() => onChange(option.id)}
+          aria-pressed={value === option.id}
+          title={option.id === "auto" ? `What guests see today: ${VIEW_NAMES[auto]}` : undefined}
+          className={`min-h-10 rounded-lg px-1 text-xs font-semibold ${value === option.id ? "bg-[var(--accent)] text-white" : "text-[var(--muted)] hover:bg-[var(--surface)]"}`}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+const VIEW_NAMES: Record<InviteViewName, string> = { invite: "the invitation", eventday: "the day-of program", memories: "the thank-you page" };
 
 // ─── Share ────────────────────────────────────────────────────────────
 
@@ -921,7 +1523,21 @@ const QR_COLORS = [
   { id: "black", label: "Black", hex: "#000000" },
 ] as const;
 
-function ShareTab({ saved, dirty, onPublish, saving }: { saved: SavedInvite; dirty: boolean; onPublish: () => void; saving: boolean }) {
+function ShareTab({
+  saved,
+  draft,
+  set,
+  dirty,
+  onPublish,
+  saving,
+}: {
+  saved: SavedInvite;
+  draft: InviteData;
+  set: <K extends keyof InviteData>(key: K, value: InviteData[K]) => void;
+  dirty: boolean;
+  onPublish: () => void;
+  saving: boolean;
+}) {
   const url = pageUrlFor(saved.slug);
   // The accent is offered only when it is dark enough to scan. A light accent
   // (brass, gold) would print as near black anyway, so offering it misleads.
@@ -983,6 +1599,8 @@ function ShareTab({ saved, dirty, onPublish, saving }: { saved: SavedInvite; dir
         </div>
         <p className="text-xs text-[var(--muted)]">Before you publish, only you can open it. That is the easiest way to check it on your own phone.</p>
       </section>
+
+      <ViewSettings draft={draft} set={set} slug={saved.slug} />
 
       <section className="tool-section">
         <p className="tool-kicker">QR CODE FOR PRINT</p>
@@ -1071,6 +1689,58 @@ function ShareTab({ saved, dirty, onPublish, saving }: { saved: SavedInvite; dir
     </>
   );
 }
+
+const VIEW_CHOICES: { id: InviteData["view"]["override"]; label: string; hint: string }[] = [
+  { id: "auto", label: "Switch by the date (recommended)", hint: "Invitation before the day, program on the day, thank-you after." },
+  { id: "invite", label: "Keep it as the invitation", hint: "For a ceremony that moved, until you update the date." },
+  { id: "eventday", label: "Show the day-of version now", hint: "The program and where to be lead the page." },
+  { id: "memories", label: "Show the thank-you now", hint: "Messages, photos, and the program as a keepsake." },
+];
+
+// One link, three versions. The printed QR code never changes, so the page
+// does it for the host by the calendar at the venue.
+function ViewSettings({ draft, set, slug }: { draft: InviteData; set: <K extends keyof InviteData>(key: K, value: InviteData[K]) => void; slug: string }) {
+  const view = draft.view;
+  const now = resolveView({ ...draft, view: { ...view, override: "auto" } });
+  return (
+    <section className="tool-section">
+      <p className="tool-kicker">BEFORE, ON, AND AFTER THE DAY</p>
+      <p className="section-description">
+        The same link and QR code serve three versions of the page. Before the ceremony it is an invitation with the RSVP form. On the day the program leads,
+        so a code printed on the program card opens it. Afterward it becomes a thank-you, with a place for guests to leave messages. It switches on its own at
+        midnight where the ceremony is held, in the time zone set under Basics.
+      </p>
+      <fieldset className="grid gap-2">
+        <legend className="sr-only">Which version guests see</legend>
+        {VIEW_CHOICES.map((choice) => (
+          <label key={choice.id} className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--line)] p-3 text-sm has-[:checked]:border-[var(--accent)]">
+            <input type="radio" name="invite-view" className="mt-1 h-4 w-4 shrink-0" checked={view.override === choice.id} onChange={() => set("view", { ...view, override: choice.id })} />
+            <span>
+              <span className="font-medium">{choice.label}</span>
+              <span className="block text-xs text-[var(--muted)]">{choice.id === "auto" ? `${choice.hint} Today that is ${VIEW_NAMES[now]}.` : choice.hint}</span>
+            </span>
+          </label>
+        ))}
+      </fieldset>
+      <Field label="Thank-you line" hint="Leads the page after the day, in place of the welcome.">
+        <textarea className="input min-h-20" value={view.thankYou} maxLength={300} onChange={(e) => set("view", { ...view, thankYou: e.target.value })} />
+      </Field>
+      <div className="grid gap-2">
+        <p className="text-sm font-medium">Open each version, saved, on your own phone</p>
+        <div className="flex flex-wrap gap-2">
+          {(["invite", "eventday", "memories"] as const).map((name) => (
+            <a key={name} href={`/r/${slug}?view=${name}`} target="_blank" rel="noopener noreferrer" className="btn btn-secondary text-sm">
+              <ExternalLink size={14} aria-hidden="true" />
+              {VIEW_LABELS[name]}
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const VIEW_LABELS: Record<InviteViewName, string> = { invite: "Before", eventday: "On the day", memories: "After" };
 
 // Plain wording a host can paste anywhere. Built from the saved invitation,
 // which is what guests will see when they open the link.

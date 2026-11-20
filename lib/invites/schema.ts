@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { SLUG_RE } from "@/lib/cards/schema";
+import { SLUG_RE, safeHttpsUrl } from "@/lib/cards/schema";
 import { TEMPLATE_IDS } from "@/lib/invites/templates";
 
 // A retirement invitation. One row in retirement_invites; everything a guest
@@ -119,6 +119,113 @@ export const BaseAccessSchema = z
   })
   .default({});
 
+// ─── Phase C: program, guest information, sections, views ────────────
+
+const itemId = z.string().regex(/^[a-z0-9]{4,12}$/);
+
+// A link a guest can open: full https only.
+const httpsLink = z
+  .string()
+  .max(300)
+  .transform((v, ctx) => {
+    if (!v.trim()) return "";
+    const safe = safeHttpsUrl(v);
+    if (!safe) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Links must be full https addresses, like https://example.com." });
+      return z.NEVER;
+    }
+    return safe;
+  });
+
+export const STAND_CUES = ["", "Please stand", "Remain standing", "Please be seated"] as const;
+export const MAX_PROGRAM_ITEMS = 30;
+export const MAX_PEOPLE = 8;
+export const MAX_BIOS = 4;
+
+// The ceremony program: the sequence of events, who is on the platform, and
+// their bios. A "heading" item starts a new part, such as a family tribute
+// held after the official ceremony.
+export const ProgramSchema = z
+  .object({
+    items: z
+      .array(
+        z.object({
+          id: itemId,
+          kind: z.enum(["item", "heading"]).default("item"),
+          title: text(100),
+          who: text(160).default(""),
+          cue: z.enum(STAND_CUES).default(""),
+        }),
+      )
+      .max(MAX_PROGRAM_ITEMS, `A program can have up to ${MAX_PROGRAM_ITEMS} lines.`)
+      .transform((list) => list.filter((item) => item.title.length > 0))
+      .default([]),
+    // A line at the top, such as "Photography welcome. No flash, please."
+    note: text(200).default(""),
+    people: z
+      .array(z.object({ id: itemId, role: text(60), name: text(80), line: text(120).default("") }))
+      .max(MAX_PEOPLE, `List up to ${MAX_PEOPLE} people.`)
+      .transform((list) => list.filter((person) => person.name.length > 0))
+      .default([]),
+    bios: z
+      .array(z.object({ id: itemId, name: text(80), role: text(80).default(""), short: text(800).default(""), full: text(4000).default("") }))
+      .max(MAX_BIOS, `Add up to ${MAX_BIOS} bios.`)
+      .transform((list) => list.filter((bio) => bio.name.length > 0 && (bio.short || bio.full)))
+      .default([]),
+    // A live stream or recording. A YouTube link plays on the page after a tap.
+    streamUrl: httpsLink.default(""),
+  })
+  .default({});
+
+// Career photos live in their own table (migration 0034), not in this data.
+export const MAX_PHOTOS = 12;
+
+export const MAX_SCHEDULE_EXTRAS = 10;
+export const MAX_INFO_BLOCKS = 6;
+
+// Extra lines for "The day at a glance", beside the events themselves,
+// such as "0900 Leave for the gate".
+export const ScheduleExtraSchema = z.object({
+  id: itemId,
+  date: optionalDate("Pick a real date for each schedule line."),
+  time: z.union([z.literal(""), clock]).default(""),
+  title: text(80),
+  note: text(200).default(""),
+});
+
+// Free-form information for guests: lodging, getting there, parking.
+export const InfoBlockSchema = z.object({
+  id: itemId,
+  title: text(60),
+  body: text(1500).default(""),
+  linkLabel: text(40).default(""),
+  linkUrl: httpsLink.default(""),
+});
+
+// Optional sections the host can switch off. Base access and RSVP have their
+// own switches; events always show.
+export const SectionsSchema = z
+  .object({
+    schedule: z.boolean().default(true),
+    program: z.boolean().default(true),
+    info: z.boolean().default(true),
+    photos: z.boolean().default(true),
+    stream: z.boolean().default(true),
+    share: z.boolean().default(true),
+  })
+  .default({});
+
+export const VIEWS = ["invite", "eventday", "memories"] as const;
+export type InviteViewName = (typeof VIEWS)[number];
+
+// The page changes with the calendar on its own. The host can pin a view.
+export const ViewSchema = z
+  .object({
+    override: z.enum(["auto", ...VIEWS]).default("auto"),
+    thankYou: text(300).default("Thank you to everyone who stood with us."),
+  })
+  .default({});
+
 export const InviteEventSchema = z.object({
   id: z.string().regex(/^[a-z0-9]{4,12}$/),
   name: text(60).refine((v) => v.length >= 2, "Give each event a name."),
@@ -154,6 +261,19 @@ export const InviteDataSchema = z
     contactEmail: email.default(""),
     rsvp: RsvpSettingsSchema,
     base: BaseAccessSchema,
+    program: ProgramSchema,
+    schedule: z
+      .array(ScheduleExtraSchema)
+      .max(MAX_SCHEDULE_EXTRAS, `Add up to ${MAX_SCHEDULE_EXTRAS} schedule lines.`)
+      .transform((list) => list.filter((line) => line.title.length > 0))
+      .default([]),
+    info: z
+      .array(InfoBlockSchema)
+      .max(MAX_INFO_BLOCKS, `Add up to ${MAX_INFO_BLOCKS} information blocks.`)
+      .transform((list) => list.filter((block) => block.title.length > 0))
+      .default([]),
+    sections: SectionsSchema,
+    view: ViewSchema,
   })
   .superRefine((value, ctx) => {
     const ids = value.events.map((event) => event.id);
@@ -177,6 +297,33 @@ export type RsvpSettings = z.infer<typeof RsvpSettingsSchema>;
 export type BaseAccess = z.infer<typeof BaseAccessSchema>;
 export const DEFAULT_RSVP: RsvpSettings = RsvpSettingsSchema.parse(undefined);
 export const DEFAULT_BASE: BaseAccess = BaseAccessSchema.parse(undefined);
+export type Program = z.infer<typeof ProgramSchema>;
+export type ProgramItem = Program["items"][number];
+export type ScheduleExtra = z.infer<typeof ScheduleExtraSchema>;
+export type InfoBlock = z.infer<typeof InfoBlockSchema>;
+export type Sections = z.infer<typeof SectionsSchema>;
+export const DEFAULT_PROGRAM: Program = ProgramSchema.parse(undefined);
+export const DEFAULT_SECTIONS: Sections = SectionsSchema.parse(undefined);
+export const DEFAULT_VIEW = ViewSchema.parse(undefined);
+
+// The usual order of a military retirement ceremony, as a starting point the
+// host edits. Service songs and family tributes vary, so the host adds them.
+export function standardProgram(): ProgramItem[] {
+  const lines: [string, ProgramItem["cue"]][] = [
+    ["Posting of the colors", "Please stand"],
+    ["National Anthem", "Remain standing"],
+    ["Invocation", "Remain standing"],
+    ["Welcome and introductions", "Please be seated"],
+    ["Reading of the retirement orders", ""],
+    ["Presentation of awards", ""],
+    ["Remarks by the retiring official", ""],
+    ["Presentation of the flag and certificates of appreciation", ""],
+    ["Remarks by the retiree", ""],
+    ["Benediction", "Please stand"],
+    ["Retiring of the colors", "Remain standing"],
+  ];
+  return lines.map(([title, cue]) => ({ id: newEventId(), kind: "item", title, who: "", cue }));
+}
 
 export type InviteData = z.infer<typeof InviteDataSchema>;
 export type InviteEvent = z.infer<typeof InviteEventSchema>;
@@ -224,6 +371,11 @@ export function starterInvite(defaults: { name?: string; rank?: string; branch?:
     contactEmail: defaults.email ?? "",
     rsvp: DEFAULT_RSVP,
     base: DEFAULT_BASE,
+    program: DEFAULT_PROGRAM,
+    schedule: [],
+    info: [],
+    sections: DEFAULT_SECTIONS,
+    view: DEFAULT_VIEW,
   };
 }
 
@@ -259,6 +411,11 @@ export function readInviteData(raw: unknown): InviteData {
     contactEmail: pick(shape.contactEmail, source.contactEmail, ""),
     rsvp: pick(shape.rsvp, source.rsvp, DEFAULT_RSVP),
     base: pick(shape.base, source.base, DEFAULT_BASE),
+    program: pick(shape.program, source.program, DEFAULT_PROGRAM),
+    schedule: pick(shape.schedule, source.schedule, []),
+    info: pick(shape.info, source.info, []),
+    sections: pick(shape.sections, source.sections, DEFAULT_SECTIONS),
+    view: pick(shape.view, source.view, DEFAULT_VIEW),
   };
 }
 

@@ -1,13 +1,16 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { CalendarPlus, MapPin } from "lucide-react";
 import { BaseAccess } from "@/components/invites/base-access";
 import { headingFamily, inviteFontVariables } from "@/components/invites/fonts";
-import { RsvpForm } from "@/components/invites/rsvp-form";
+import { MessageForm, RsvpForm } from "@/components/invites/rsvp-form";
+import { GlanceSection, InfoSection, PhotosSection, ProgramSection, SectionHead, hasProgram, type PagePhoto, type SectionStyle } from "@/components/invites/sections";
 import { ShareActions } from "@/components/invites/share-actions";
-import { StickyRsvp } from "@/components/invites/sticky-rsvp";
-import { BRANCH_NAMES, hasBaseEvent, type InviteData, type InviteEvent } from "@/lib/invites/schema";
+import { StickyAction } from "@/components/invites/sticky-rsvp";
+import { StreamPlayer } from "@/components/invites/stream-player";
+import { BRANCH_NAMES, hasBaseEvent, type InviteData, type InviteEvent, type InviteViewName } from "@/lib/invites/schema";
 import { contrastRatio, inviteColors, readTemplate } from "@/lib/invites/templates";
-import { ceremonyOf, directionsUrl, eventIsComplete, formatDateLong, formatTime, formatTimeRange, googleCalendarUrl, publicLocation, sortEvents } from "@/lib/invites/time";
+import { ceremonyOf, directionsUrl, eventIsComplete, formatDateLong, formatTimeRange, googleCalendarUrl, publicLocation, sortEvents } from "@/lib/invites/time";
+import { filledIn } from "@/lib/invites/view";
 
 // The dark shade laid over a cover photo so white text reads on any picture.
 const SCRIM_TONE = "#141a22";
@@ -24,6 +27,9 @@ function todayIn(timeZone: string): string {
 // The guest-facing invitation. Renders the same on the public page and in the
 // builder's preview. It sizes itself by its own width (container queries), not
 // the browser window, so the preview frame shows exactly what a phone shows.
+//
+// Three views, one address: an invitation before the day, the program on the
+// day, a thank-you afterward. The views reorder and reword the same sections.
 
 type Props = {
   data: InviteData;
@@ -31,16 +37,20 @@ type Props = {
   pageUrl: string;
   coverSrc: string | null;
   qrSvg?: string | null;
+  view?: InviteViewName;
+  photos?: PagePhoto[];
   // In the builder: no full-screen height, and links that would leave the
   // editor are inert.
   framed?: boolean;
 };
 
-export function InviteView({ data, slug, pageUrl, coverSrc, qrSvg, framed = false }: Props) {
+export function InviteView({ data: given, slug, pageUrl, coverSrc, qrSvg, view = "invite", photos = [], framed = false }: Props) {
+  const data = filledIn(given);
   const template = readTemplate(data.template);
   const c = inviteColors(template, data.accent);
   const heading: CSSProperties = { fontFamily: headingFamily(template.heading) };
   const upper = template.heading !== "serif";
+  const style: SectionStyle = { colors: c, heading, upper };
   const events = sortEvents(data.events.filter(eventIsComplete));
   const ceremony = ceremonyOf(data);
   const fullName = [data.retiree.rank, data.retiree.name].filter(Boolean).join(" ");
@@ -60,11 +70,13 @@ export function InviteView({ data, slug, pageUrl, coverSrc, qrSvg, framed = fals
   const scrim = template.dark
     ? `linear-gradient(180deg, rgba(4,9,16,0.45) 0%, rgba(4,9,16,0.6) 60%, ${c.bg} 100%)`
     : "linear-gradient(180deg, rgba(4,9,16,0.42) 0%, rgba(4,9,16,0.62) 100%)";
-  const multiDay = new Set(events.map((event) => event.date)).size > 1;
   // The builder also blocks pointer events on the preview; this keeps keyboard
   // focus out of it.
   const inert = framed ? { tabIndex: -1, "aria-disabled": true } : {};
   const rsvpOpen = data.rsvp.enabled;
+  const messagesOpen = data.rsvp.message;
+  const program = hasProgram(data);
+  const stream = data.sections.stream && !!data.program.streamUrl;
   // The template's colors as CSS variables, for the interactive parts (the
   // RSVP form) that style themselves with utility classes.
   const vars = {
@@ -79,6 +91,109 @@ export function InviteView({ data, slug, pageUrl, coverSrc, qrSvg, framed = fals
     "--iv-on-accent": c.onAccent,
     "--iv-accent-text": c.accentText,
   } as CSSProperties;
+
+  // The one thing each view asks of a guest.
+  const action =
+    view === "invite"
+      ? rsvpOpen
+        ? { label: "RSVP", target: "rsvp" }
+        : { label: "See the details", target: "events" }
+      : view === "eventday"
+        ? program
+          ? { label: "See the program", target: "program" }
+          : { label: "Where to be", target: "events" }
+        : messagesOpen
+          ? { label: "Leave a message", target: "rsvp" }
+          : photos.length && data.sections.photos
+            ? { label: "See the photos", target: "photos" }
+            : { label: "See the day", target: "events" };
+
+  // ── Sections, each built once and placed by view ──
+  const eventsTitle = view === "invite" ? (events.length > 1 ? "Where and when" : "The ceremony") : view === "eventday" ? "Where to be" : "The day";
+  const eventsSection = (
+    <section id="events" className="scroll-mt-4" key="events">
+      <SectionHead title={eventsTitle} style={style} />
+      {events.length === 0 ? (
+        <p className="mt-4" style={{ color: c.muted }}>
+          Event details are on the way.
+        </p>
+      ) : (
+        <div className="mt-5 grid gap-4">
+          {events.map((event) => (
+            <EventCard key={event.id} event={event} data={data} slug={slug} pageUrl={pageUrl} colors={c} heading={heading} upper={upper} framed={framed} view={view} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+  const baseSection = hasBaseEvent(data) ? (
+    <BaseAccess
+      key="base"
+      data={data}
+      today={todayIn(data.timeZone)}
+      dayOf={view === "eventday"}
+      heading={<SectionHead title={view === "eventday" ? "Getting through the gate" : "Getting on base"} style={style} />}
+    />
+  ) : null;
+  const rsvpSection =
+    view === "invite" ? (
+      <section id="rsvp" className="scroll-mt-4" key="rsvp">
+        <SectionHead title="RSVP" style={style} />
+        <RsvpForm data={data} slug={slug} pageUrl={pageUrl} framed={framed} />
+      </section>
+    ) : messagesOpen ? (
+      <section id="rsvp" className="scroll-mt-4" key="rsvp">
+        <SectionHead title="Leave a message" style={style} />
+        <p className="mt-3 leading-relaxed" style={{ color: c.muted }}>
+          {view === "eventday" ? "RSVPs are closed. A message still reaches " : "The day has come and gone. A message still reaches "}
+          {data.retiree.name.split(" ")[0] || "the retiree"}.
+        </p>
+        <MessageForm data={data} slug={slug} framed={framed} />
+      </section>
+    ) : null;
+  const programSection = <ProgramSection key="program" data={data} view={view} style={style} />;
+  const streamSection = stream ? <StreamPlayer key="stream" url={data.program.streamUrl} view={view} framed={framed} heading={<SectionHead title={view === "invite" ? "Watching from somewhere else" : view === "eventday" ? "Watch it live" : "Watch the recording"} style={style} />} /> : null;
+  const glanceSection = data.sections.schedule ? <GlanceSection key="glance" data={data} style={style} /> : null;
+  const infoSection = <InfoSection key="info" data={data} style={style} framed={framed} />;
+  const photosSection = <PhotosSection key="photos" data={data} photos={photos} style={style} framed={framed} />;
+  const shareSection = data.sections.share ? (
+    <section key="share">
+      <SectionHead title="Pass it on" style={style} />
+      <p className="mt-3" style={{ color: c.muted }}>
+        Know someone who should see this? Send them the link, or let them scan the code from your screen.
+      </p>
+      <div className="mt-5 flex flex-col gap-5 @md:flex-row @md:items-center">
+        {qrSvg && (
+          <div
+            className="h-40 w-40 shrink-0 rounded-xl bg-white p-2 [&>svg]:h-full [&>svg]:w-full"
+            role="img"
+            aria-label="QR code that opens this invitation"
+            dangerouslySetInnerHTML={{ __html: qrSvg }}
+          />
+        )}
+        <div className="min-w-0">
+          <p className="break-all text-base font-semibold">{pageUrl.replace(/^https:\/\/(www\.)?/, "")}</p>
+          <div className="mt-3">
+            {framed ? (
+              <p className="text-sm" style={{ color: c.muted }}>
+                Share and copy buttons appear here for guests.
+              </p>
+            ) : (
+              <ShareActions url={pageUrl} title={`${fullName}: Retirement`} accent={c.accent} onAccent={c.onAccent} accentText={c.accentText} />
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+  ) : null;
+
+  const order: ReactNode[] =
+    view === "invite"
+      ? [eventsSection, baseSection, rsvpSection, glanceSection, infoSection, programSection, streamSection, photosSection, shareSection]
+      : view === "eventday"
+        ? [programSection, streamSection, eventsSection, baseSection, glanceSection, infoSection, rsvpSection, photosSection, shareSection]
+        : // Afterward the getting-there logistics are history and drop off.
+          [rsvpSection, programSection, streamSection, photosSection, eventsSection, shareSection];
 
   return (
     <div className={`${inviteFontVariables} @container relative w-full overflow-hidden ${framed ? "" : "min-h-screen"}`} style={vars}>
@@ -106,112 +221,26 @@ export function InviteView({ data, slug, pageUrl, coverSrc, qrSvg, framed = fals
             </span>
           </h1>
           <div className="mx-auto mt-6 h-0.5 w-16" style={{ background: onCover ? "#ffffff" : c.accent }} aria-hidden="true" />
-          {data.welcome && (
+          {(view === "memories" ? data.view.thankYou : data.welcome) && (
             <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed" style={{ color: heroMuted }}>
-              {data.welcome}
+              {view === "memories" ? data.view.thankYou : data.welcome}
             </p>
           )}
           {ceremony && eventIsComplete(ceremony) && (
             <div className="mx-auto mt-8 inline-flex flex-col gap-1 border-y px-2 py-3 text-sm" style={{ borderColor: onCover ? "rgba(255,255,255,0.35)" : c.line, color: heroInk }}>
-              <strong className="text-base">{formatDateLong(ceremony.date)}</strong>
+              <strong className="text-base">{view === "eventday" ? `Today, ${formatDateLong(ceremony.date)}` : formatDateLong(ceremony.date)}</strong>
               {publicLocation(ceremony) && <span style={{ color: heroMuted }}>{publicLocation(ceremony)}</span>}
             </div>
           )}
           <p className="mt-8">
-            <a
-              href={rsvpOpen ? "#rsvp" : "#events"}
-              className="inline-flex min-h-12 min-w-40 items-center justify-center rounded-xl px-7 text-base font-bold"
-              style={heroButton}
-              {...inert}
-            >
-              {rsvpOpen ? "RSVP" : "See the details"}
+            <a href={`#${action.target}`} className="inline-flex min-h-12 min-w-40 items-center justify-center rounded-xl px-7 text-base font-bold" style={heroButton} {...inert}>
+              {action.label}
             </a>
           </p>
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-2xl flex-col gap-12 px-5 pb-14">
-        {/* ── Events ─────────────────────────────────────────── */}
-        <section id="events" className="scroll-mt-4">
-          <SectionHead title={events.length > 1 ? "Where and when" : "The ceremony"} accentText={c.accentText} heading={heading} upper={upper} />
-          {events.length === 0 ? (
-            <p className="mt-4" style={{ color: c.muted }}>
-              Event details are on the way.
-            </p>
-          ) : (
-            <div className="mt-5 grid gap-4">
-              {events.map((event) => (
-                <EventCard key={event.id} event={event} data={data} slug={slug} pageUrl={pageUrl} colors={c} heading={heading} upper={upper} framed={framed} />
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* ── Getting on base ────────────────────────────────── */}
-        {hasBaseEvent(data) && (
-          <BaseAccess data={data} today={todayIn(data.timeZone)} heading={<SectionHead title="Getting on base" accentText={c.accentText} heading={heading} upper={upper} />} />
-        )}
-
-        {/* ── RSVP ───────────────────────────────────────────── */}
-        <section id="rsvp" className="scroll-mt-4">
-          <SectionHead title="RSVP" accentText={c.accentText} heading={heading} upper={upper} />
-          <RsvpForm data={data} slug={slug} pageUrl={pageUrl} framed={framed} />
-        </section>
-
-        {/* ── The day at a glance ────────────────────────────── */}
-        {events.length > 1 && (
-          <section>
-            <SectionHead title="The day at a glance" accentText={c.accentText} heading={heading} upper={upper} />
-            <ol className="mt-5 border-l-2 pl-5" style={{ borderColor: c.line }}>
-              {events.map((event) => (
-                <li key={event.id} className="relative pb-5 last:pb-0">
-                  <span className="absolute -left-[27px] top-1.5 h-3 w-3 rounded-full" style={{ background: c.accent }} aria-hidden="true" />
-                  <p className="text-sm font-bold tabular-nums" style={{ color: c.accentText }}>
-                    {multiDay ? `${formatDateLong(event.date).split(",")[0]} ` : ""}
-                    {formatTime(event.start, data.timeFormat)}
-                  </p>
-                  <p className="font-semibold">{event.name}</p>
-                  {publicLocation(event) && (
-                    <p className="text-sm" style={{ color: c.muted }}>
-                      {publicLocation(event)}
-                    </p>
-                  )}
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
-
-        {/* ── Pass it on ─────────────────────────────────────── */}
-        <section>
-          <SectionHead title="Pass it on" accentText={c.accentText} heading={heading} upper={upper} />
-          <p className="mt-3" style={{ color: c.muted }}>
-            Know someone who should be here? Send them the link, or let them scan the code from your screen.
-          </p>
-          <div className="mt-5 flex flex-col gap-5 @md:flex-row @md:items-center">
-            {qrSvg && (
-              <div
-                className="h-40 w-40 shrink-0 rounded-xl bg-white p-2 [&>svg]:h-full [&>svg]:w-full"
-                role="img"
-                aria-label="QR code that opens this invitation"
-                dangerouslySetInnerHTML={{ __html: qrSvg }}
-              />
-            )}
-            <div className="min-w-0">
-              <p className="break-all text-base font-semibold">{pageUrl.replace(/^https:\/\/(www\.)?/, "")}</p>
-              <div className="mt-3">
-                {framed ? (
-                  <p className="text-sm" style={{ color: c.muted }}>
-                    Share and copy buttons appear here for guests.
-                  </p>
-                ) : (
-                  <ShareActions url={pageUrl} title={`${fullName}: Retirement`} accent={c.accent} onAccent={c.onAccent} accentText={c.accentText} />
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
+      <main className="mx-auto flex max-w-2xl flex-col gap-12 px-5 pb-14">{order.filter(Boolean)}</main>
 
       <footer className="border-t px-5 py-8 text-center text-sm" style={{ borderColor: c.line, color: c.muted }}>
         {data.contactEmail && (
@@ -231,18 +260,7 @@ export function InviteView({ data, slug, pageUrl, coverSrc, qrSvg, framed = fals
         </p>
       </footer>
 
-      {!framed && rsvpOpen && ceremony && eventIsComplete(ceremony) && <StickyRsvp dateLine={formatDateLong(ceremony.date)} />}
-    </div>
-  );
-}
-
-function SectionHead({ title, accentText, heading, upper }: { title: string; accentText: string; heading: CSSProperties; upper: boolean }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="h-0.5 w-6 shrink-0" style={{ background: accentText }} aria-hidden="true" />
-      <h2 className={`text-2xl font-bold @2xl:text-3xl ${upper ? "uppercase tracking-tight" : ""}`} style={heading}>
-        {title}
-      </h2>
+      {!framed && ceremony && eventIsComplete(ceremony) && <StickyAction dateLine={formatDateLong(ceremony.date)} label={action.label} target={action.target} />}
     </div>
   );
 }
@@ -256,6 +274,7 @@ function EventCard({
   heading,
   upper,
   framed,
+  view,
 }: {
   event: InviteEvent;
   data: InviteData;
@@ -265,6 +284,7 @@ function EventCard({
   heading: CSSProperties;
   upper: boolean;
   framed: boolean;
+  view: InviteViewName;
 }) {
   const directions = directionsUrl(event);
   const inert = framed ? { tabIndex: -1, "aria-disabled": true } : {};
@@ -276,7 +296,7 @@ function EventCard({
       <>
         {event.place && <span className="block font-semibold">{event.place}</span>}
         {where && <span className="block">{where}</span>}
-        {event.addressPrivate && (
+        {event.addressPrivate && view !== "memories" && (
           <span className="mt-1 block text-sm" style={{ color: c.muted }}>
             Private home. The street address is shared with guests who RSVP.
           </span>
@@ -284,7 +304,7 @@ function EventCard({
       </>,
     ]);
   }
-  if (event.dressMilitary || event.dressCivilian) {
+  if ((event.dressMilitary || event.dressCivilian) && view !== "memories") {
     rows.push([
       "Dress",
       <>
@@ -293,9 +313,12 @@ function EventCard({
       </>,
     ]);
   }
-  if (event.notes) rows.push(["Good to know", <span key="notes" className="whitespace-pre-line">{event.notes}</span>]);
+  if (event.notes && view !== "memories") rows.push(["Good to know", <span key="notes" className="whitespace-pre-line">{event.notes}</span>]);
 
   const buttonStyle: CSSProperties = { borderColor: c.line, color: c.ink, background: c.bg };
+  // Calendar buttons only before the day; directions until it is over.
+  const showCalendar = view === "invite";
+  const showDirections = view !== "memories" && !!directions;
 
   return (
     <article className="rounded-2xl border p-5" style={{ background: c.surface, borderColor: c.line }}>
@@ -323,43 +346,49 @@ function EventCard({
         </dl>
       )}
 
-      {event.onBase && (
+      {event.onBase && view !== "memories" && (
         <p className="mt-4 rounded-xl border-l-4 px-4 py-3 text-sm leading-relaxed" style={{ borderColor: c.accent, background: c.bg }}>
-          <strong>Aboard a military installation.</strong> Guests without a DoD ID need a visitor pass to get through the gate. See Getting on base
-          below.
+          <strong>Aboard a military installation.</strong> Guests without a DoD ID need a visitor pass to get through the gate. See{" "}
+          {view === "eventday" ? "Getting through the gate" : "Getting on base"} below.
         </p>
       )}
 
-      <div className="mt-5 grid grid-cols-1 gap-2 @sm:grid-cols-2">
-        <a href={`/r/${slug}/calendar/${event.id}`} download className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-semibold" style={buttonStyle} {...inert}>
-          <CalendarPlus size={16} aria-hidden="true" />
-          Add to calendar
-        </a>
-        <a
-          href={googleCalendarUrl({ data, event, pageUrl })}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-semibold"
-          style={buttonStyle}
-          {...inert}
-        >
-          <CalendarPlus size={16} aria-hidden="true" />
-          Google Calendar
-        </a>
-        {directions && (
-          <a
-            href={directions}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-semibold @sm:col-span-2"
-            style={buttonStyle}
-            {...inert}
-          >
-            <MapPin size={16} aria-hidden="true" />
-            Directions
-          </a>
-        )}
-      </div>
+      {(showCalendar || showDirections) && (
+        <div className="mt-5 grid grid-cols-1 gap-2 @sm:grid-cols-2">
+          {showCalendar && (
+            <>
+              <a href={`/r/${slug}/calendar/${event.id}`} download className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-semibold" style={buttonStyle} {...inert}>
+                <CalendarPlus size={16} aria-hidden="true" />
+                Add to calendar
+              </a>
+              <a
+                href={googleCalendarUrl({ data, event, pageUrl })}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-semibold"
+                style={buttonStyle}
+                {...inert}
+              >
+                <CalendarPlus size={16} aria-hidden="true" />
+                Google Calendar
+              </a>
+            </>
+          )}
+          {showDirections && (
+            <a
+              href={directions!}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-semibold ${showCalendar ? "@sm:col-span-2" : ""}`}
+              style={buttonStyle}
+              {...inert}
+            >
+              <MapPin size={16} aria-hidden="true" />
+              Directions
+            </a>
+          )}
+        </div>
+      )}
     </article>
   );
 }

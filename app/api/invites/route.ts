@@ -37,8 +37,26 @@ export async function GET() {
   const metaName = String(user.user_metadata?.full_name ?? user.user_metadata?.name ?? "").trim();
 
   const row = (data ?? [])[0] as OwnerRow | undefined;
+
+  // Career photos arrive with migration 0034. Until it is run this query
+  // fails and the builder shows photos as not ready, without breaking.
+  let photos: { id: string; position: number; caption: string; updatedAt: string }[] = [];
+  let photosReady = true;
+  if (row) {
+    const { data: rows, error: photoError } = await supabase.from("retirement_invite_photos").select("id,position,caption,updated_at").eq("invite_id", row.id).order("position");
+    photosReady = !photoError;
+    photos = ((rows ?? []) as { id: string; position: number; caption: string; updated_at: string }[]).map((p) => ({
+      id: p.id,
+      position: p.position,
+      caption: p.caption,
+      updatedAt: p.updated_at,
+    }));
+  }
+
   return NextResponse.json({
     invite: row ? presentInvite(row) : null,
+    photos,
+    photosReady,
     defaults: {
       name: profile?.full_name?.trim() || metaName,
       rank: profile?.rank ?? "",

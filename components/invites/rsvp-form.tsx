@@ -186,6 +186,89 @@ function PassPeopleFields({
   );
 }
 
+// On the day and afterward the RSVP form becomes a message form: people who
+// were there still want to leave something.
+export function MessageForm({ data, slug, framed = false }: { data: InviteData; slug: string; framed?: boolean }) {
+  const [name, setName] = useState("");
+  const [message, setMessage] = useState("");
+  const [website, setWebsite] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [sent, setSent] = useState(false);
+  const first = data.retiree.name.split(" ")[0] || "the retiree";
+
+  async function send(event: React.FormEvent) {
+    event.preventDefault();
+    if (framed) return;
+    setError("");
+    setBusy(true);
+    const res = await fetch(`/r/${slug}/message`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, message, website }),
+    }).catch(() => null);
+    const json = res ? await res.json().catch(() => ({})) : {};
+    setBusy(false);
+    if (!res?.ok || !json.ok) {
+      setError(json.error ?? "That did not go through. Check your connection and try again. Your message is still here.");
+      return;
+    }
+    setSent(true);
+  }
+
+  if (sent) {
+    return (
+      <div className="mt-5" role="status">
+        <p className="text-2xl font-bold">Thank you, {name.split(" ")[0]}.</p>
+        <p className="mt-1 text-[var(--iv-muted)]">Your message is with {first}.</p>
+        <button
+          type="button"
+          className="mt-4 inline-flex min-h-11 items-center rounded-xl border border-[var(--iv-line)] bg-[var(--iv-bg)] px-4 text-sm font-semibold"
+          onClick={() => {
+            setSent(false);
+            setMessage("");
+          }}
+        >
+          Leave another message
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form className="mt-5 grid gap-4" onSubmit={send}>
+      <label className="grid gap-1">
+        <span className={labelText}>Your name</span>
+        <input className={input} value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" required minLength={2} maxLength={80} disabled={framed} />
+      </label>
+      <label className="grid gap-1">
+        <span className={labelText}>Your message for {first}</span>
+        <span className={hint}>Congratulations, a story, the thing you would have said in person.</span>
+        <textarea className={`${input} min-h-32`} value={message} onChange={(e) => setMessage(e.target.value)} required maxLength={1500} disabled={framed} />
+      </label>
+      <div className="hidden" aria-hidden="true">
+        <label>
+          Leave this blank
+          <input tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
+        </label>
+      </div>
+      {error && (
+        <p className="rounded-xl border-l-4 border-[#b42318] bg-[var(--iv-surface)] px-4 py-3 text-sm" role="alert">
+          {error}
+        </p>
+      )}
+      <button
+        type="submit"
+        className="min-h-12 w-full rounded-xl px-6 text-base font-bold disabled:opacity-60"
+        style={{ background: "var(--iv-accent)", color: "var(--iv-on-accent)" }}
+        disabled={busy || framed}
+      >
+        {busy ? "Sending..." : "Send my message"}
+      </button>
+    </form>
+  );
+}
+
 export function RsvpForm({ data, slug, pageUrl, framed = false }: { data: InviteData; slug: string; pageUrl: string; framed?: boolean }) {
   const events = useMemo(() => sortEvents(data.events.filter(eventIsComplete)), [data.events]);
   const meal = mealEvent(data);

@@ -8,7 +8,7 @@ function daysUntil(date: string, today: string): number {
 
 // "Getting on base": who needs a pass, by when, and the steps, in the order a
 // guest does them. Shown only when an event is aboard an installation.
-export function BaseAccess({ data, today, heading }: { data: InviteData; today: string; heading: React.ReactNode }) {
+export function BaseAccess({ data, today, heading, dayOf = false }: { data: InviteData; today: string; heading: React.ReactNode; dayOf?: boolean }) {
   const baseEvents = data.events.filter((event) => event.onBase).map((event) => event.name);
   const deadline = data.base.passDeadline;
   const left = deadline ? daysUntil(deadline, today) : null;
@@ -16,6 +16,27 @@ export function BaseAccess({ data, today, heading }: { data: InviteData; today: 
     ["Which gate, and when to leave", data.base.gate],
     ["What to bring", data.base.bring],
   ].filter(([, value]) => value) as [string, string][];
+
+  // On the day the sign-up steps are history. Only what gets a guest through
+  // the gate this morning is left: collecting the pass, the gate, what to bring.
+  if (dayOf) {
+    const steps = [["Collecting your pass", data.base.pickup], ...blocks].filter(([, value]) => value) as [string, string][];
+    return (
+      <section id="access" className="scroll-mt-4">
+        {heading}
+        <p className="mt-3 text-[var(--iv-muted)]">
+          Adults without a DoD ID need the visitor pass that was arranged beforehand. Without it, the gate turns you away. If you think you were missed,
+          contact the host before you drive.
+        </p>
+        {steps.map(([title, value]) => (
+          <div key={title} className="mt-5">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--iv-muted)]">{title}</p>
+            <p className="mt-1 whitespace-pre-line leading-relaxed">{value}</p>
+          </div>
+        ))}
+      </section>
+    );
+  }
 
   return (
     <section id="access" className="scroll-mt-4">

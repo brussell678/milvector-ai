@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import QRCode from "qrcode";
 import { InviteView } from "@/components/invites/invite-view";
 import { inviteUrl } from "@/lib/invites/access";
-import { loadInviteForViewer } from "@/lib/invites/store";
+import { loadInviteForViewer, loadInvitePhotos } from "@/lib/invites/store";
+import { resolveView } from "@/lib/invites/view";
 import { inviteColors, readTemplate } from "@/lib/invites/templates";
 import { ceremonyOf, eventIsComplete, formatDateLong, publicLocation } from "@/lib/invites/time";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -36,12 +37,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function InvitePage({ params }: Props) {
+export default async function InvitePage({ params, searchParams }: Props & { searchParams: Promise<{ view?: string }> }) {
   const { slug } = await params;
+  const { view: requested } = await searchParams;
   const supabase = await supabaseServer();
   const loaded = await loadInviteForViewer(supabase, slug);
   if (!loaded) notFound();
 
+  // Which view leads: the venue's clock decides, the host can pin one, and
+  // ?view= previews any of them. Nothing is hidden by a wrong guess.
+  const view = resolveView(loaded.data, new Date(), requested);
+  const photos = (await loadInvitePhotos(supabase, loaded.slug, loaded.viewer, loaded.id)).map((photo) => ({
+    id: photo.id,
+    caption: photo.caption,
+    src: `/r/${loaded.slug}/photos/${photo.id}?v=${encodeURIComponent(photo.updatedAt)}`,
+  }));
   const pageUrl = inviteUrl(loaded.slug);
   const colors = inviteColors(readTemplate(loaded.data.template), loaded.data.accent);
   const qrSvg = await QRCode.toString(pageUrl, {
@@ -70,6 +80,8 @@ export default async function InvitePage({ params }: Props) {
         pageUrl={pageUrl}
         coverSrc={loaded.hasCover ? `/r/${loaded.slug}/cover?v=${encodeURIComponent(loaded.updatedAt)}` : null}
         qrSvg={qrSvg}
+        view={view}
+        photos={photos}
       />
     </div>
   );

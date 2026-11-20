@@ -1,16 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Download, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { Download, Mail, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { CopyButton, Field, download } from "@/components/invites/builder-ui";
 import { ToolAlert } from "@/components/tools/tool-alert";
 import { forTheBase, guestsCsv, headcounts, mealTotals, needsPass, passComplete, passPeopleList, retention, withText } from "@/lib/invites/guests";
+import { REMINDER_GROUPS, reminderEmails, reminderGuests, reminderMailto, reminderPhones, reminderText, type ReminderGroup } from "@/lib/invites/reminders";
 import {
   MAX_PASS_PEOPLE,
   PIPELINE_STEPS,
   attending,
   partyLine,
   passPeopleOf,
+  type DayMessage,
   type EventAnswer,
   type GuestRecord,
   type PassPerson,
@@ -42,8 +44,9 @@ const STATUS_SHORT: Record<RsvpStatus, string> = { yes: "Yes", maybe: "Maybe", n
 // An outlined badge for plain facts (a no, a guest added by hand).
 const NEUTRAL_BADGE = "border border-[var(--line)] text-[var(--muted)]";
 
-export function GuestsTab({ inviteId, slug, data, published }: { inviteId: string; slug: string; data: InviteData; published: boolean }) {
+export function GuestsTab({ inviteId, slug, data, published, pageUrl }: { inviteId: string; slug: string; data: InviteData; published: boolean; pageUrl: string }) {
   const [guests, setGuests] = useState<GuestRecord[] | null>(null);
+  const [dayMessages, setDayMessages] = useState<DayMessage[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   // What counts as new is measured from the previous visit. This tab only
@@ -63,6 +66,7 @@ export function GuestsTab({ inviteId, slug, data, published }: { inviteId: strin
     }
     setError("");
     setGuests(json.guests ?? []);
+    setDayMessages(json.messages ?? []);
   }, [inviteId]);
 
   const refresh = () => {
@@ -79,7 +83,10 @@ export function GuestsTab({ inviteId, slug, data, published }: { inviteId: strin
       const json = res ? await res.json().catch(() => ({})) : {};
       if (cancelled) return;
       if (!res?.ok) setError(json.error ?? "The guest list could not be loaded. Check your connection and try again.");
-      else setGuests(json.guests ?? []);
+      else {
+        setGuests(json.guests ?? []);
+        setDayMessages(json.messages ?? []);
+      }
     })();
     return () => {
       cancelled = true;
@@ -124,9 +131,26 @@ export function GuestsTab({ inviteId, slug, data, published }: { inviteId: strin
     setGuests(list.filter((g) => g.id !== guest.id));
   }
 
+  async function removeMessage(message: DayMessage) {
+    if (!window.confirm(`Delete the message from ${message.name}? This cannot be undone.`)) return;
+    const res = await fetch(`/api/invites/${inviteId}/messages/${message.id}`, { method: "DELETE" }).catch(() => null);
+    if (!res?.ok) {
+      setError("That message could not be deleted. Try again.");
+      return;
+    }
+    setDayMessages(dayMessages.filter((m) => m.id !== message.id));
+  }
+
   if (guests === null) {
     return error ? <ToolAlert variant="error">{error}</ToolAlert> : <p className="section-card text-sm text-[var(--muted)]">Loading your guest list...</p>;
   }
+
+  // Answers from the RSVP form and messages left on or after the day, as
+  // one list to read and copy for a speech.
+  const allMessages = [
+    ...messages.map((item, index) => ({ key: `rsvp-${index}`, name: item.name, text: item.text, day: null as DayMessage | null })),
+    ...dayMessages.map((m) => ({ key: m.id, name: m.name, text: m.message, day: m })),
+  ];
 
   return (
     <div className="flex flex-col gap-4">
@@ -277,19 +301,40 @@ export function GuestsTab({ inviteId, slug, data, published }: { inviteId: strin
         </section>
       )}
 
-      {messages.length > 0 && (
+      {list.length > 0 && (
+        <Reminders
+          inviteId={inviteId}
+          data={data}
+          guests={list}
+          pageUrl={pageUrl}
+          onMarked={(ids, at) => setGuests(list.map((g) => (ids.includes(g.id) ? { ...g, last_reminded_at: at } : g)))}
+        />
+      )}
+
+      {allMessages.length > 0 && (
         <section className="tool-section">
           <p className="tool-kicker">MESSAGES FOR YOU</p>
           <ul className="grid gap-3">
-            {messages.map((item, index) => (
-              <li key={index} className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 text-sm">
+            {allMessages.map((item) => (
+              <li key={item.key} className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4 text-sm">
                 <p className="whitespace-pre-line leading-relaxed">{item.text}</p>
-                <p className="mt-2 text-xs font-semibold text-[var(--muted)]">{item.name}</p>
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs font-semibold text-[var(--muted)]">
+                    {item.name}
+                    {item.day && <span className="font-normal"> · left on the page {new Date(item.day.created_at).toLocaleDateString()}</span>}
+                  </p>
+                  {item.day && (
+                    <button type="button" className="btn btn-ghost !min-h-10 text-xs" onClick={() => void removeMessage(item.day as DayMessage)}>
+                      <Trash2 size={14} aria-hidden="true" />
+                      Delete
+                    </button>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
           <div>
-            <CopyButton text={messages.map((item) => `${item.text}\n(${item.name})`).join("\n\n")} label="Copy all messages" />
+            <CopyButton text={allMessages.map((item) => `${item.text}\n(${item.name})`).join("\n\n")} label="Copy all messages" />
           </div>
         </section>
       )}
@@ -312,6 +357,135 @@ export function GuestsTab({ inviteId, slug, data, published }: { inviteId: strin
 
       <AddGuest inviteId={inviteId} data={data} onAdded={(guest) => setGuests([guest, ...list])} />
     </div>
+  );
+}
+
+// Reminders go out from the host's own email app, so replies reach the host
+// and nothing is sent in MilVector's name. MilVector picks the group, writes
+// the message, and keeps track of who was reminded when.
+function Reminders({
+  inviteId,
+  data,
+  guests,
+  pageUrl,
+  onMarked,
+}: {
+  inviteId: string;
+  data: InviteData;
+  guests: GuestRecord[];
+  pageUrl: string;
+  onMarked: (ids: string[], at: string) => void;
+}) {
+  const [group, setGroup] = useState<ReminderGroup>("attending");
+  const [note, setNote] = useState("");
+  const [status, setStatus] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const counts = Object.fromEntries(REMINDER_GROUPS.map((g) => [g.id, reminderGuests(data, guests, g.id).length])) as Record<ReminderGroup, number>;
+  const groups = REMINDER_GROUPS.filter((g) => g.id !== "pass" || hasBaseEvent(data));
+  const chosen = reminderGuests(data, guests, group);
+  const emails = reminderEmails(chosen, group);
+  const phones = reminderPhones(chosen);
+  const noEmail = chosen.filter((guest) => !guest.email).length;
+  const text = reminderText({ data, group, note, pageUrl });
+  const mailto = emails.length ? reminderMailto({ bcc: emails, subject: text.subject, body: text.body }) : null;
+  const sms = `${text.subject}. ${pageUrl}`;
+  const lastSent = chosen
+    .map((guest) => guest.last_reminded_at)
+    .filter((at): at is string => !!at)
+    .sort()
+    .slice(-1)[0];
+
+  async function markSent() {
+    setBusy(true);
+    setStatus(null);
+    const ids = chosen.map((guest) => guest.id);
+    const res = await fetch(`/api/invites/${inviteId}/guests/reminded`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }) }).catch(() => null);
+    const json = res ? await res.json().catch(() => ({})) : {};
+    setBusy(false);
+    if (!res?.ok || !json.at) {
+      setStatus({ kind: "error", text: json.error ?? "That did not save. Try again." });
+      return;
+    }
+    onMarked(ids, json.at);
+    setStatus({ kind: "ok", text: `Marked ${ids.length} ${ids.length === 1 ? "guest" : "guests"} as reminded today.` });
+  }
+
+  return (
+    <section className="tool-section">
+      <p className="tool-kicker">REMINDERS</p>
+      <p className="section-description">
+        Sent from your own email, so replies come straight to you. MilVector writes the message and lists the addresses; it does not send anything.
+      </p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Who to remind">
+          <select
+            className="input"
+            value={group}
+            onChange={(e) => {
+              setGroup(e.target.value as ReminderGroup);
+              setStatus(null);
+            }}
+          >
+            {groups.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.label} ({counts[g.id]})
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="A line of your own (optional)" hint="Goes at the top of the message.">
+          <textarea className="input min-h-11" value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Two weeks out. Can't wait to see you there." />
+        </Field>
+      </div>
+
+      {chosen.length === 0 ? (
+        <p className="text-sm text-[var(--muted)]">Nobody in this group right now.</p>
+      ) : (
+        <>
+          <p className="text-sm">
+            <span className="font-bold">{emails.length}</span> {emails.length === 1 ? "email address" : "email addresses"}
+            {group === "pass" ? ", including each adult the base writes to" : ""}.
+            {noEmail > 0 && (
+              <span className="text-[var(--muted)]">
+                {" "}
+                {noEmail} {noEmail === 1 ? "guest has" : "guests have"} no email{phones.length ? "; text them instead" : ""}.
+              </span>
+            )}
+            {lastSent && <span className="text-[var(--muted)]"> Last reminder marked {new Date(lastSent).toLocaleDateString()}.</span>}
+          </p>
+          <div className="rounded-xl border border-[var(--line)] p-3 text-sm">
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">Subject</p>
+            <p className="mt-1">{text.subject}</p>
+            <p className="mt-3 text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">Message</p>
+            <p className="mt-1 whitespace-pre-line">{text.body}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {mailto && (
+              <a href={mailto} className="btn btn-primary text-sm">
+                <Mail size={14} aria-hidden="true" />
+                Open in my email
+              </a>
+            )}
+            <CopyButton text={emails.join(", ")} label="Copy addresses for BCC" disabled={emails.length === 0} />
+            <CopyButton text={text.subject} label="Copy subject" />
+            <CopyButton text={text.body} label="Copy message" />
+            {phones.length > 0 && <CopyButton text={phones.join(", ")} label={`Copy ${phones.length} mobile ${phones.length === 1 ? "number" : "numbers"}`} />}
+            {phones.length > 0 && <CopyButton text={sms} label="Copy a text message" />}
+          </div>
+          {emails.length > 0 && !mailto && (
+            <p className="text-xs text-[var(--muted)]">Too many addresses for one tap. Copy the addresses into BCC, then the subject and message.</p>
+          )}
+          <p className="text-xs text-[var(--muted)]">Put the addresses in BCC, not To, so guests do not see each other&apos;s email.</p>
+          <div className="flex flex-wrap items-center gap-3 border-t border-[var(--line)] pt-3">
+            <button type="button" className="btn btn-secondary text-sm" onClick={() => void markSent()} disabled={busy}>
+              {busy ? "Saving..." : "Mark as sent"}
+            </button>
+            <span className="text-xs text-[var(--muted)]">After you send it. Each guest&apos;s card shows the date.</span>
+          </div>
+          {status && <ToolAlert variant={status.kind === "ok" ? "info" : "error"}>{status.text}</ToolAlert>}
+        </>
+      )}
+    </section>
   );
 }
 
@@ -378,7 +552,10 @@ function GuestRow({ guest, data, onRemove }: { guest: GuestRecord; data: InviteD
                 .join("; ")}
             </p>
           )}
-          <p className="text-xs text-[var(--muted)]">Last updated {new Date(guest.updated_at).toLocaleString()}</p>
+          <p className="text-xs text-[var(--muted)]">
+            Last updated {new Date(guest.updated_at).toLocaleString()}
+            {guest.last_reminded_at && <>. Reminded {new Date(guest.last_reminded_at).toLocaleDateString()}</>}
+          </p>
           <div>
             <button type="button" className="btn btn-ghost text-sm" onClick={onRemove}>
               <Trash2 size={14} aria-hidden="true" />

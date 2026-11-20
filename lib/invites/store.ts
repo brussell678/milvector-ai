@@ -85,6 +85,33 @@ export async function loadInviteForViewer(supabase: SupabaseClient, slug: string
   return { id: row.id, slug: row.slug, data: readInviteData(row.data), hasCover: row.has_cover, updatedAt: row.updated_at, state: "live", viewer: "public" };
 }
 
+// ─── Career photos ────────────────────────────────────────────────────
+
+export type InvitePhoto = { id: string; position: number; caption: string; updatedAt: string };
+
+// The photo list (no image data) for a page the viewer is allowed to see.
+// Guests get it through the public function; the owner previewing a draft
+// reads their own rows. Empty when migration 0034 has not been run.
+export async function loadInvitePhotos(supabase: SupabaseClient, slug: string, viewer: LoadedInvite["viewer"], inviteId: string): Promise<InvitePhoto[]> {
+  type Row = { id: string; position: number; caption: string; updated_at: string };
+  const map = (rows: Row[]) => rows.map((row) => ({ id: row.id, position: row.position, caption: row.caption, updatedAt: row.updated_at }));
+  if (viewer !== "public") {
+    const { data } = await supabase.from("retirement_invite_photos").select("id,position,caption,updated_at").eq("invite_id", inviteId).order("position");
+    if (Array.isArray(data)) return map(data as Row[]);
+  }
+  const { data } = await supabase.rpc("get_public_invite_photos", { p_slug: slug.toLowerCase() });
+  return Array.isArray(data) ? map(data as Row[]) : [];
+}
+
+// One photo's image (base64 JPEG) for a page the viewer is allowed to see.
+export async function loadInvitePhoto(supabase: SupabaseClient, slug: string, photoId: string): Promise<string | null> {
+  const { data } = await supabase.rpc("get_public_invite_photo", { p_slug: slug.toLowerCase(), p_id: photoId });
+  if (typeof data === "string" && data) return data;
+  // Draft preview for the owner; row policies decide who gets a row back.
+  const { data: own } = await supabase.from("retirement_invite_photos").select("jpeg").eq("id", photoId).maybeSingle<{ jpeg: string }>();
+  return own?.jpeg ?? null;
+}
+
 // Cover photo bytes (base64 JPEG) for a page the viewer is allowed to see.
 export async function loadInviteCover(supabase: SupabaseClient, slug: string): Promise<string | null> {
   const clean = slug.toLowerCase();
