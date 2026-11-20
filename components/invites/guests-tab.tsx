@@ -4,8 +4,19 @@ import { useCallback, useEffect, useState } from "react";
 import { Download, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { CopyButton, Field, download } from "@/components/invites/builder-ui";
 import { ToolAlert } from "@/components/tools/tool-alert";
-import { guestsCsv, headcounts, mealTotals, needsPass, passComplete, passNameList, retention, withText } from "@/lib/invites/guests";
-import { PIPELINE_STEPS, attending, partyLine, type EventAnswer, type GuestRecord, type PipelineKey, type RsvpStatus } from "@/lib/invites/rsvp";
+import { forTheBase, guestsCsv, headcounts, mealTotals, needsPass, passComplete, passPeopleList, retention, withText } from "@/lib/invites/guests";
+import {
+  MAX_PASS_PEOPLE,
+  PIPELINE_STEPS,
+  attending,
+  partyLine,
+  passPeopleOf,
+  type EventAnswer,
+  type GuestRecord,
+  type PassPerson,
+  type PipelineKey,
+  type RsvpStatus,
+} from "@/lib/invites/rsvp";
 import { hasBaseEvent, type InviteData } from "@/lib/invites/schema";
 import { eventIsComplete, formatDateLong, sortEvents } from "@/lib/invites/time";
 
@@ -79,6 +90,7 @@ export function GuestsTab({ inviteId, slug, data, published }: { inviteId: strin
   const counts = headcounts(data, list);
   const meals = mealTotals(data, list);
   const passGuests = needsPass(data, list);
+  const allAdults = passPeopleList(passGuests);
   const allergies = withText(list, "dietary");
   const messages = withText(list, "message");
   const today = new Date().toISOString().slice(0, 10);
@@ -223,22 +235,32 @@ export function GuestsTab({ inviteId, slug, data, published }: { inviteId: strin
             <>
               <p className="text-sm">
                 <span className="font-bold">{passGuests.filter(passComplete).length}</span> of {passGuests.length} {passGuests.length === 1 ? "party has" : "parties have"} a pass in
-                hand. {passNameList(passGuests).length} names in all.
+                hand. {allAdults.length} {allAdults.length === 1 ? "adult" : "adults"} in all.
               </p>
+              {allAdults.some((person) => !person.email) && (
+                <p className="text-sm font-semibold text-[var(--warn)]">Some adults have no email address yet. The base needs one for each adult to send its link.</p>
+              )}
               <div className="flex flex-wrap gap-2">
-                <CopyButton text={passGuests.map((g) => g.email).filter(Boolean).join(", ")} label="Copy their emails" />
-                <CopyButton text={passNameList(passGuests).join("\n")} label="Copy all names" />
+                <CopyButton text={forTheBase(allAdults)} label="Copy names and emails for the base" />
+                <CopyButton text={[...new Set(allAdults.map((person) => person.email).filter(Boolean))].join(", ")} label="Copy just the emails" />
               </div>
               <ul className="grid gap-3">
                 {passGuests.map((guest) => (
                   <li key={guest.id} className="rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
-                    <p className="font-semibold">{guest.name}</p>
-                    {guest.email ? (
-                      <p className="break-all text-xs text-[var(--muted)]">{guest.email}</p>
-                    ) : (
-                      <p className="text-xs font-semibold text-[var(--warn)]">No email address. The base needs one to send its form to.</p>
-                    )}
-                    <p className="mt-2 whitespace-pre-line text-sm">{guest.pass_names || "No names given yet"}</p>
+                    <p className="font-semibold">{guest.name}&apos;s party</p>
+                    <ul className="mt-2 grid gap-1.5 text-sm">
+                      {passPeopleOf(guest).map((person, index) => (
+                        <li key={index}>
+                          <span className="font-medium">{person.name}</span>{" "}
+                          {person.email ? (
+                            <span className="break-words text-[var(--muted)]">{person.email}</span>
+                          ) : (
+                            <span className="font-semibold text-[var(--warn)]">no email yet</span>
+                          )}
+                        </li>
+                      ))}
+                      {passPeopleOf(guest).length === 0 && <li className="text-[var(--muted)]">No adults listed yet</li>}
+                    </ul>
                     <div className="mt-3 grid gap-2">
                       {PIPELINE_STEPS.map((step) => (
                         <label key={step.key} className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
@@ -375,19 +397,21 @@ function AddGuest({ inviteId, data, onAdded }: { inviteId: string; data: InviteD
   const [email, setEmail] = useState("");
   const [answers, setAnswers] = useState<Record<string, EventAnswer>>({});
   const [dodId, setDodId] = useState<"" | "yes" | "no">("");
-  const [passNames, setPassNames] = useState("");
+  const [passPeople, setPassPeople] = useState<PassPerson[]>([{ name: "", email: "" }]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const comingAboard = data.events.some((event) => event.onBase && attending(answers[event.id]?.status));
+  const updatePerson = (index: number, patch: Partial<PassPerson>) => setPassPeople((prev) => prev.map((p, i) => (i === index ? { ...p, ...patch } : p)));
 
   async function add(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
     setError("");
+    const adults = passPeople.map((p) => ({ name: p.name.trim(), email: p.email.trim() })).filter((p) => p.name || p.email);
     const res = await fetch(`/api/invites/${inviteId}/guests`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, answers, dodId: comingAboard ? dodId : "", passNames: comingAboard && dodId === "no" ? passNames : "" }),
+      body: JSON.stringify({ name, email, answers, dodId: comingAboard ? dodId : "", passPeople: comingAboard && dodId === "no" ? adults : [] }),
     }).catch(() => null);
     const json = res ? await res.json().catch(() => ({})) : {};
     setBusy(false);
@@ -400,7 +424,7 @@ function AddGuest({ inviteId, data, onAdded }: { inviteId: string; data: InviteD
     setEmail("");
     setAnswers({});
     setDodId("");
-    setPassNames("");
+    setPassPeople([{ name: "", email: "" }]);
   }
 
   return (
@@ -478,9 +502,28 @@ function AddGuest({ inviteId, data, onAdded }: { inviteId: string; data: InviteD
               </select>
             </Field>
             {dodId === "no" && (
-              <Field label="Full legal names of adults needing a pass" hint="One per line, as on their ID. Children do not need a pass. Add their email above: the base sends its form there.">
-                <textarea className="input min-h-20" value={passNames} onChange={(e) => setPassNames(e.target.value)} maxLength={600} />
-              </Field>
+              <div className="grid gap-3">
+                <p className="text-xs text-[var(--muted)]">
+                  Each adult who needs a pass, with their own email: the base sends each of them a link. Children do not need a pass. Missing an email? Add
+                  them now and fill it in later; the pass list flags it.
+                </p>
+                {passPeople.map((person, index) => (
+                  <div key={index} className="grid gap-2 rounded-xl border border-[var(--line)] p-3 sm:grid-cols-2">
+                    <Field label={`Adult ${index + 1}: full legal name`}>
+                      <input className="input" value={person.name} onChange={(e) => updatePerson(index, { name: e.target.value })} maxLength={80} />
+                    </Field>
+                    <Field label="Their email">
+                      <input className="input" type="email" value={person.email} onChange={(e) => updatePerson(index, { email: e.target.value })} maxLength={120} />
+                    </Field>
+                  </div>
+                ))}
+                {passPeople.length < MAX_PASS_PEOPLE && (
+                  <button type="button" className="btn btn-secondary w-full text-sm sm:w-auto" onClick={() => setPassPeople((prev) => [...prev, { name: "", email: "" }])}>
+                    <Plus size={14} aria-hidden="true" />
+                    Add another adult
+                  </button>
+                )}
+              </div>
             )}
           </div>
         )}

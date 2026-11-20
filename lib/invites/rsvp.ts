@@ -50,6 +50,24 @@ const phone = z
   .transform((v) => v.trim())
   .refine((v) => v === "" || /^[+()\d][\d\s().+\-x]{5,29}$/.test(v), "Enter a phone number using digits, spaces, and + ( ) - only.");
 
+export const MAX_PASS_PEOPLE = 30;
+export type PassPerson = { name: string; email: string };
+
+const PassPersonSchema = z.object({
+  name: text(80).refine((v) => v.length >= 2, "Enter each adult's full legal name."),
+  email: z
+    .string()
+    .max(120)
+    .transform((v) => v.trim().toLowerCase())
+    .refine((v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), "Enter an email address for each adult. The base sends each of them a link."),
+});
+
+// The host may not have every email yet; the Guests tab flags the gaps.
+const HostPassPersonSchema = z.object({
+  name: text(80).refine((v) => v.length >= 2, "Enter each adult's full legal name."),
+  email: optionalEmail.default(""),
+});
+
 export const RsvpSubmitSchema = z.object({
   token: z
     .string()
@@ -63,8 +81,14 @@ export const RsvpSubmitSchema = z.object({
   meals: z.record(z.string().max(40), count).default({}),
   dietary: text(300).default(""),
   dodId: z.enum(["yes", "no", ""]).default(""),
-  passNames: text(600).default(""),
+  // Each adult who needs a visitor pass, with their own email: the base sends
+  // each of them a link to enter their information.
+  passPeople: z.array(PassPersonSchema).max(MAX_PASS_PEOPLE, `List up to ${MAX_PASS_PEOPLE} adults.`).default([]),
   message: text(1500).default(""),
+}).superRefine((value, ctx) => {
+  if (value.dodId === "no" && value.passPeople.length === 0) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Add each adult who needs a pass, with their own email address.", path: ["passPeople"] });
+  }
 });
 export type RsvpSubmit = z.infer<typeof RsvpSubmitSchema>;
 
@@ -75,14 +99,14 @@ export const HostGuestSchema = z.object({
   phone: phone.default(""),
   answers,
   dodId: z.enum(["yes", "no", ""]).default(""),
-  passNames: text(600).default(""),
+  passPeople: z.array(HostPassPersonSchema).max(MAX_PASS_PEOPLE, `List up to ${MAX_PASS_PEOPLE} adults.`).default([]),
   dietary: text(300).default(""),
 });
 export type HostGuest = z.infer<typeof HostGuestSchema>;
 
 export const PIPELINE_STEPS = [
-  { key: "sent", label: "Names sent to the base" },
-  { key: "formDone", label: "Guest finished the base's form" },
+  { key: "sent", label: "Names and emails sent to the base" },
+  { key: "formDone", label: "Every adult finished the base's form" },
   { key: "inHand", label: "Pass in hand" },
 ] as const;
 export type PipelineKey = (typeof PIPELINE_STEPS)[number]["key"];
@@ -102,7 +126,9 @@ export type GuestRecord = {
   meals: Record<string, number>;
   dietary: string | null;
   dod_id: "yes" | "no" | null;
+  // Phase B kept names one per line; still read for answers saved before 0033.
   pass_names: string | null;
+  pass_people: PassPerson[] | null;
   message: string | null;
   pipeline: Pipeline;
   previous: { answers?: GuestAnswers; at?: string } | null;
@@ -114,7 +140,17 @@ export type GuestRecord = {
 };
 
 export const GUEST_COLUMNS =
-  "id,email,name,phone,answers,meals,dietary,dod_id,pass_names,message,pipeline,previous,source,late,changed_at,created_at,updated_at";
+  "id,email,name,phone,answers,meals,dietary,dod_id,pass_names,pass_people,message,pipeline,previous,source,late,changed_at,created_at,updated_at";
+
+/** The adults on a guest's pass list, reading answers saved before 0033 too. */
+export function passPeopleOf(guest: Pick<GuestRecord, "pass_people" | "pass_names">): PassPerson[] {
+  if (guest.pass_people && guest.pass_people.length) return guest.pass_people;
+  return (guest.pass_names ?? "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length >= 2)
+    .map((name) => ({ name, email: "" }));
+}
 
 // ─── What the guest sees after answering ─────────────────────────────
 
@@ -154,6 +190,7 @@ export function confirmationText(args: {
   answers: GuestAnswers;
   addresses: Record<string, string>;
   dodId: string;
+  passPeople?: PassPerson[];
   pageUrl: string;
   personalUrl: string;
 }): { subject: string; body: string } {
@@ -164,9 +201,10 @@ export function confirmationText(args: {
     const where = args.addresses[event.id] ? `${event.place ? `${event.place}, ` : ""}${args.addresses[event.id]}` : [event.place, event.addressPrivate ? event.area : event.address].filter(Boolean).join(", ");
     return [`${event.name}: ${partyLine(answer)}`, `${formatDateLong(event.date)}, ${formatTimeRange(event, data.timeFormat)}`, where].filter(Boolean).join("\n");
   });
+  const adults = (args.passPeople ?? []).map((person) => `${person.name}: ${person.email || "no email given"}`);
   const pass =
     args.dodId === "no" && attendingBaseEvent(data, args.answers)
-      ? `\n\nVISITOR PASS\n${passSteps(data).join("\n")}`
+      ? `\n\nVISITOR PASS\n${adults.length ? `The base will email each of these adults:\n${adults.join("\n")}\n\n` : ""}${passSteps(data).join("\n")}`
       : "";
   return {
     subject: `My RSVP: ${who}'s retirement`,
@@ -187,9 +225,9 @@ export function passSteps(data: InviteData): string[] {
   const deadline = data.base.passDeadline ? ` by ${formatDateLong(data.base.passDeadline)}` : "";
   const host = data.retiree.name.split(" ")[0] || "The host";
   return [
-    `1. RSVP${deadline} with an email address you check. The base sends a link to that address where you enter your information. List every adult who needs a pass by full legal name, as it appears on their ID. Children do not need a pass.`,
-    `2. ${host} sends the names and that email address to the base.`,
-    "3. Watch that inbox. When the base's link arrives, open it and fill it in the same day.",
+    `1. RSVP${deadline}, listing every adult who needs a pass with their full legal name, as it appears on their ID, and their own email address. The base sends each adult a link to enter their information, so use addresses they check. Children do not need a pass.`,
+    `2. ${host} sends the names and email addresses to the base.`,
+    "3. Each adult watches their inbox. When the base's link arrives, open it and fill it in the same day.",
     `4. ${data.base.pickup || "Collect your pass as the host directs before you head to the gate."}`,
   ];
 }

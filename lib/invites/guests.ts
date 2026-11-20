@@ -1,5 +1,5 @@
 import type { InviteData, InviteEvent } from "@/lib/invites/schema";
-import { attending, attendingBaseEvent, mealEvent, mealOptions, PIPELINE_STEPS, type GuestRecord } from "@/lib/invites/rsvp";
+import { attending, attendingBaseEvent, mealEvent, mealOptions, passPeopleOf, PIPELINE_STEPS, type GuestRecord, type PassPerson } from "@/lib/invites/rsvp";
 import { eventIsComplete, sortEvents } from "@/lib/invites/time";
 
 // The host's view of the answers: counts for chairs and food, who still needs
@@ -55,14 +55,19 @@ export function needsPass(data: InviteData, guests: GuestRecord[]): GuestRecord[
   return guests.filter((guest) => guest.dod_id === "no" && attendingBaseEvent(data, guest.answers));
 }
 
-/** Legal names, one per line, as the guest wrote them. */
-export function passNameList(guests: GuestRecord[]): string[] {
-  return guests.flatMap((guest) =>
-    (guest.pass_names ?? "")
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean),
-  );
+/** Every adult needing a pass across these guests, as the guests wrote them. */
+export function passPeopleList(guests: GuestRecord[]): PassPerson[] {
+  return guests.flatMap((guest) => passPeopleOf(guest));
+}
+
+/** One adult per line, "Full Name, email", ready to paste for the base. */
+export function forTheBase(people: PassPerson[]): string {
+  return people.map((person) => `${person.name}, ${person.email || "NO EMAIL GIVEN"}`).join("\n");
+}
+
+/** Adults the base cannot send its link to yet. */
+export function missingEmails(guest: GuestRecord): number {
+  return passPeopleOf(guest).filter((person) => !person.email).length;
 }
 
 export function passComplete(guest: GuestRecord): boolean {
@@ -94,7 +99,7 @@ export function guestsCsv(data: InviteData, guests: GuestRecord[]): string {
     ...events.flatMap((event) => [`${event.name}: answer`, `${event.name}: adults`, `${event.name}: children`]),
     ...meals.map((option) => `Meal: ${option}`),
     "Allergies or dietary needs",
-    ...(base ? ["Everyone holds a DoD ID", "Names for passes", ...PIPELINE_STEPS.map((step) => step.label)] : []),
+    ...(base ? ["Every adult holds a DoD ID", "Adults needing a pass (name and email)", ...PIPELINE_STEPS.map((step) => step.label)] : []),
     "Message",
     "Answered late",
     "Added by",
@@ -111,7 +116,13 @@ export function guestsCsv(data: InviteData, guests: GuestRecord[]): string {
     ...meals.map((option) => guest.meals[option] ?? 0),
     guest.dietary ?? "",
     ...(base
-      ? [guest.dod_id ?? "", (guest.pass_names ?? "").replace(/\r?\n/g, "; "), ...PIPELINE_STEPS.map((step) => (guest.pipeline[step.key] ? "yes" : ""))]
+      ? [
+          guest.dod_id ?? "",
+          passPeopleOf(guest)
+            .map((person) => `${person.name} <${person.email || "no email"}>`)
+            .join("; "),
+          ...PIPELINE_STEPS.map((step) => (guest.pipeline[step.key] ? "yes" : "")),
+        ]
       : []),
     guest.message ?? "",
     guest.late ? "yes" : "",

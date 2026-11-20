@@ -41,7 +41,7 @@ export async function POST(req: Request, { params }: Params) {
     p_meals: rsvp.meals,
     p_dietary: rsvp.dietary,
     p_dod_id: rsvp.dodId,
-    p_pass_names: rsvp.passNames,
+    p_pass_people: rsvp.passPeople,
     p_message: rsvp.message,
   });
   if (error) {

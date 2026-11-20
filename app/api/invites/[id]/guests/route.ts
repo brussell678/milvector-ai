@@ -8,7 +8,8 @@ import { supabaseServer } from "@/lib/supabase/server";
 type Params = { params: Promise<{ id: string }> };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const NOT_READY = "Guest answers are not set up yet. Run migration 0032_retirement_invite_guests.sql in the Supabase SQL editor.";
+// Shown until the newest invitation migration has been run.
+const NOT_READY = "Guest answers are not fully set up yet. Run migration 0033_invite_pass_people.sql in the Supabase SQL editor.";
 
 async function ownedInvite(id: string) {
   const supabase = await supabaseServer();
@@ -71,7 +72,7 @@ export async function POST(req: Request, { params }: Params) {
       answers,
       dietary: guest.dietary || null,
       dod_id: dodId,
-      pass_names: dodId === "no" ? guest.passNames || null : null,
+      pass_people: dodId === "no" ? guest.passPeople : [],
     })
     .select(GUEST_COLUMNS)
     .single();

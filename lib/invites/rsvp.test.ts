@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { guestsCsv, headcounts, mealTotals, needsPass, passComplete, passNameList, retention, withText } from "@/lib/invites/guests";
+import { forTheBase, guestsCsv, headcounts, mealTotals, missingEmails, needsPass, passComplete, passPeopleList, retention, withText } from "@/lib/invites/guests";
 import { HostGuestSchema, RsvpSubmitSchema, confirmationText, passSteps, type GuestRecord } from "@/lib/invites/rsvp";
 import { DEFAULT_RSVP, InviteDataSchema, readInviteData, type InviteData } from "@/lib/invites/schema";
 
@@ -29,6 +29,7 @@ function guest(over: Partial<GuestRecord>): GuestRecord {
     dietary: null,
     dod_id: null,
     pass_names: null,
+    pass_people: null,
     message: null,
     pipeline: {},
     previous: null,
@@ -95,6 +96,25 @@ describe("what a guest sends", () => {
   it("lets the host add someone with no email", () => {
     expect(HostGuestSchema.safeParse({ name: "Grandma Reyes", answers: { cer00001: { status: "yes", adults: 1 } } }).success).toBe(true);
   });
+
+  it("needs each adult needing a pass, each with a real email of their own", () => {
+    const pass = { ...ok, dodId: "no" };
+    expect(RsvpSubmitSchema.safeParse({ ...pass, passPeople: [] }).success).toBe(false);
+    expect(RsvpSubmitSchema.safeParse({ ...pass, passPeople: [{ name: "Patricia Ann Kimball", email: "" }] }).success).toBe(false);
+    expect(RsvpSubmitSchema.safeParse({ ...pass, passPeople: [{ name: "Patricia Ann Kimball", email: "not-an-email" }] }).success).toBe(false);
+    expect(RsvpSubmitSchema.safeParse({ ...pass, passPeople: [{ name: "P", email: "p@example.com" }] }).success).toBe(false);
+    const parsed = RsvpSubmitSchema.parse({ ...pass, passPeople: [{ name: " Patricia Ann Kimball ", email: " Pat@Example.com " }, { name: "Sam Kimball", email: "sam@example.com" }] });
+    expect(parsed.passPeople).toEqual([
+      { name: "Patricia Ann Kimball", email: "pat@example.com" },
+      { name: "Sam Kimball", email: "sam@example.com" },
+    ]);
+    expect(RsvpSubmitSchema.safeParse({ ...ok, dodId: "yes" }).success).toBe(true);
+  });
+
+  it("lets the host add an adult whose email is not known yet", () => {
+    const parsed = HostGuestSchema.parse({ name: "Grandma Reyes", answers: { cer00001: { status: "yes", adults: 1 } }, dodId: "no", passPeople: [{ name: "Rosa Reyes", email: "" }] });
+    expect(parsed.passPeople).toEqual([{ name: "Rosa Reyes", email: "" }]);
+  });
 });
 
 describe("the confirmation a guest keeps", () => {
@@ -107,6 +127,10 @@ describe("the confirmation a guest keeps", () => {
       answers: { cer00001: { status: "yes", adults: 2, children: 0 }, pty00002: { status: "maybe", adults: 2, children: 0 } },
       addresses: { pty00002: "123 Ocean Drive, North Topsail Beach, NC" },
       dodId: "no",
+      passPeople: [
+        { name: "Patricia Ann Kimball", email: "pat@example.com" },
+        { name: "Sam Kimball", email: "sam@example.com" },
+      ],
       pageUrl: "https://www.milvector.org/r/x",
       personalUrl: "https://www.milvector.org/r/x?rsvp=abc",
     });
@@ -114,6 +138,7 @@ describe("the confirmation a guest keeps", () => {
     expect(text.body).toContain("Retirement Party: Maybe, 2 adults");
     expect(text.body).toContain("The Reyes home, 123 Ocean Drive");
     expect(text.body).toContain("VISITOR PASS");
+    expect(text.body).toContain("The base will email each of these adults:\nPatricia Ann Kimball: pat@example.com\nSam Kimball: sam@example.com");
     expect(text.body).toContain("?rsvp=abc");
   });
 
@@ -127,8 +152,9 @@ describe("the confirmation a guest keeps", () => {
   it("walks a pass guest through the steps with the host's own pickup note", () => {
     const steps = passSteps(data).join(" ");
     expect(steps).toContain("by Friday, 25 September 2026");
-    expect(steps).toContain("Jordan sends the names and that email address to the base");
-    expect(steps).toContain("with an email address you check");
+    expect(steps).toContain("Jordan sends the names and email addresses to the base");
+    expect(steps).toContain("and their own email address");
+    expect(steps).toContain("The base sends each adult a link");
     expect(steps).toContain("Children do not need a pass");
     expect(steps).toContain("Collect it from Jordan");
   });
@@ -137,7 +163,16 @@ describe("the confirmation a guest keeps", () => {
 describe("the host's counts", () => {
   const data = invite();
   const guests = [
-    guest({ answers: { cer00001: { status: "yes", adults: 2, children: 1 }, pty00002: { status: "yes", adults: 2, children: 1 } }, meals: { Chicken: 2, Beef: 1 }, dod_id: "no", pass_names: "Pat Kimball\n\nSam Kimball", dietary: "Shellfish" }),
+    guest({
+      answers: { cer00001: { status: "yes", adults: 2, children: 1 }, pty00002: { status: "yes", adults: 2, children: 1 } },
+      meals: { Chicken: 2, Beef: 1 },
+      dod_id: "no",
+      pass_people: [
+        { name: "Pat Kimball", email: "pat@example.com" },
+        { name: "Sam Kimball", email: "" },
+      ],
+      dietary: "Shellfish",
+    }),
     guest({ answers: { cer00001: { status: "maybe", adults: 1, children: 0 }, pty00002: { status: "maybe", adults: 1, children: 0 } }, meals: { Beef: 1 }, message: "Congratulations, Chief." }),
     guest({ answers: { cer00001: { status: "no", adults: 0, children: 0 }, pty00002: { status: "yes", adults: 1, children: 0 } }, meals: { Chicken: 1 }, dod_id: "no", pass_names: "Not Coming Aboard" }),
     guest({ answers: { pty00002: { status: "no", adults: 0, children: 0 } }, meals: { Chicken: 9 } }),
@@ -163,9 +198,22 @@ describe("the host's counts", () => {
   it("lists pass guests only when they are coming aboard", () => {
     const pass = needsPass(data, guests);
     expect(pass.map((g) => g.name)).toEqual([guests[0].name]);
-    expect(passNameList(pass)).toEqual(["Pat Kimball", "Sam Kimball"]);
+    expect(passPeopleList(pass)).toEqual([
+      { name: "Pat Kimball", email: "pat@example.com" },
+      { name: "Sam Kimball", email: "" },
+    ]);
+    expect(missingEmails(pass[0])).toBe(1);
+    expect(forTheBase(passPeopleList(pass))).toBe("Pat Kimball, pat@example.com\nSam Kimball, NO EMAIL GIVEN");
     expect(passComplete(pass[0])).toBe(false);
     expect(passComplete({ ...pass[0], pipeline: { sent: true, formDone: true, inHand: true } })).toBe(true);
+  });
+
+  it("still reads a pass list saved before each adult had an email", () => {
+    const old = guest({ answers: { cer00001: { status: "yes", adults: 2, children: 0 } }, dod_id: "no", pass_names: "Ann Before\n\n  Bob Before  \nX" });
+    expect(passPeopleList([old])).toEqual([
+      { name: "Ann Before", email: "" },
+      { name: "Bob Before", email: "" },
+    ]);
   });
 
   it("collects allergies and messages", () => {
@@ -182,7 +230,7 @@ describe("the spreadsheet", () => {
     const [header, row] = csv.trim().split("\r\n");
     expect(header).toContain("Retirement Ceremony: answer");
     expect(header).toContain("Meal: Chicken");
-    expect(header).toContain("Names sent to the base");
+    expect(header).toContain("Names and emails sent to the base");
     expect(row.startsWith('"Pat, the elder"')).toBe(true);
   });
 

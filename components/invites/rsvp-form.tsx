@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CalendarPlus, Check, Copy, Mail, MapPin, Minus, Plus } from "lucide-react";
+import { CalendarPlus, Check, Copy, Mail, MapPin, Minus, Plus, X } from "lucide-react";
 import {
   MAX_PARTY,
+  MAX_PASS_PEOPLE,
   NO_SSN_NOTE,
   attending,
   attendingBaseEvent,
@@ -11,9 +12,11 @@ import {
   mealEvent,
   mealOptions,
   partyLine,
+  passPeopleOf,
   passSteps,
   type EventAnswer,
   type GuestAnswers,
+  type PassPerson,
   type RsvpStatus,
 } from "@/lib/invites/rsvp";
 import type { InviteData, InviteEvent } from "@/lib/invites/schema";
@@ -22,7 +25,9 @@ import { eventIsComplete, formatDateLong, formatTimeRange, googleCalendarUrl, so
 // The RSVP form on the guest page, and the confirmation that replaces it.
 // Colors come from the template through CSS variables set on the page.
 
-type Saved = { token: string | null; addresses: Record<string, string>; late: boolean };
+type Saved = { token: string | null; addresses: Record<string, string>; late: boolean; passPeople: PassPerson[] };
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const input =
   "w-full rounded-xl border border-[var(--iv-line)] bg-[var(--iv-bg)] px-3 py-3 text-base text-[var(--iv-ink)] outline-none focus:border-[var(--iv-accent)] focus:ring-2 focus:ring-[var(--iv-accent)]/30 disabled:opacity-60";
@@ -84,6 +89,103 @@ function Choices<T extends string>({ name, value, options, onChange, disabled }:
   );
 }
 
+// One row per adult who needs a visitor pass: full legal name and their own
+// email, because the base sends each adult a link of their own.
+function PassPeopleFields({
+  people,
+  onChange,
+  self,
+  deadline,
+  disabled,
+}: {
+  people: PassPerson[];
+  onChange: (next: PassPerson[]) => void;
+  self: PassPerson | null;
+  deadline: string;
+  disabled?: boolean;
+}) {
+  const update = (index: number, patch: Partial<PassPerson>) => onChange(people.map((p, i) => (i === index ? { ...p, ...patch } : p)));
+  const remove = (index: number) => onChange(people.length === 1 ? [{ name: "", email: "" }] : people.filter((_, i) => i !== index));
+  const selfListed = !!self && people.some((p) => p.email.trim().toLowerCase() === self.email.toLowerCase());
+  const addSelf = () => {
+    if (!self) return;
+    const blank = people.findIndex((p) => !p.name.trim() && !p.email.trim());
+    onChange(blank >= 0 ? people.map((p, i) => (i === blank ? self : p)) : [...people, self]);
+  };
+
+  return (
+    <div className="grid gap-3">
+      <p className="rounded-xl border-l-4 border-[var(--iv-accent)] bg-[var(--iv-bg)] px-4 py-3 text-sm leading-relaxed">
+        List every adult who needs a pass, each with their own email address. The base sends each of them a link to enter their information, so use
+        addresses they check. Children do not need a pass.
+      </p>
+      {people.map((person, index) => (
+        <div key={index} className="grid gap-2 rounded-xl border border-[var(--iv-line)] bg-[var(--iv-bg)] p-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--iv-muted)]">Adult {index + 1}</p>
+            {(people.length > 1 || person.name || person.email) && (
+              <button
+                type="button"
+                onClick={() => remove(index)}
+                disabled={disabled}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--iv-line)]"
+                aria-label={`Remove adult ${index + 1}`}
+              >
+                <X size={16} aria-hidden="true" />
+              </button>
+            )}
+          </div>
+          <label className="grid gap-1">
+            <span className={labelText}>Full legal name</span>
+            <span className={hint}>Exactly as on their driver&apos;s license or passport.</span>
+            <input className={input} value={person.name} onChange={(e) => update(index, { name: e.target.value })} maxLength={80} autoComplete="off" disabled={disabled} />
+          </label>
+          <label className="grid gap-1">
+            <span className={labelText}>Their email</span>
+            <input
+              className={input}
+              type="email"
+              value={person.email}
+              onChange={(e) => update(index, { email: e.target.value })}
+              maxLength={120}
+              autoComplete="off"
+              autoCapitalize="none"
+              disabled={disabled}
+            />
+          </label>
+        </div>
+      ))}
+      <div className="flex flex-wrap gap-2">
+        {people.length < MAX_PASS_PEOPLE && (
+          <button
+            type="button"
+            onClick={() => onChange([...people, { name: "", email: "" }])}
+            disabled={disabled}
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--iv-line)] bg-[var(--iv-bg)] px-4 text-sm font-semibold"
+          >
+            <Plus size={16} aria-hidden="true" />
+            Add another adult
+          </button>
+        )}
+        {self && !selfListed && (
+          <button
+            type="button"
+            onClick={addSelf}
+            disabled={disabled}
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--iv-line)] bg-[var(--iv-bg)] px-4 text-sm font-semibold"
+          >
+            <Plus size={16} aria-hidden="true" />I need one too: add me
+          </button>
+        )}
+      </div>
+      <p className="text-xs text-[var(--iv-muted)]">
+        {deadline ? `Answer by ${formatDateLong(deadline)} so there is time to arrange passes. ` : ""}
+        {NO_SSN_NOTE}
+      </p>
+    </div>
+  );
+}
+
 export function RsvpForm({ data, slug, pageUrl, framed = false }: { data: InviteData; slug: string; pageUrl: string; framed?: boolean }) {
   const events = useMemo(() => sortEvents(data.events.filter(eventIsComplete)), [data.events]);
   const meal = mealEvent(data);
@@ -96,7 +198,7 @@ export function RsvpForm({ data, slug, pageUrl, framed = false }: { data: Invite
   const [mealCounts, setMealCounts] = useState<Record<string, number>>({});
   const [dietary, setDietary] = useState("");
   const [dodId, setDodId] = useState<"yes" | "no" | "">("");
-  const [passNames, setPassNames] = useState("");
+  const [passPeople, setPassPeople] = useState<PassPerson[]>([{ name: "", email: "" }]);
   const [message, setMessage] = useState("");
   const [website, setWebsite] = useState("");
   const [token, setToken] = useState<string | null>(null);
@@ -129,7 +231,8 @@ export function RsvpForm({ data, slug, pageUrl, framed = false }: { data: Invite
       setMealCounts(r.meals ?? {});
       setDietary(r.dietary ?? "");
       setDodId(r.dodId ?? "");
-      setPassNames(r.passNames ?? "");
+      const people = passPeopleOf({ pass_people: r.passPeople ?? null, pass_names: r.passNames ?? null });
+      setPassPeople(people.length ? people : [{ name: "", email: "" }]);
       setMessage(r.message ?? "");
       setNotice("Welcome back. Your answer is filled in below. Change anything and save it again.");
       document.getElementById("rsvp")?.scrollIntoView({ block: "start" });
@@ -160,9 +263,21 @@ export function RsvpForm({ data, slug, pageUrl, framed = false }: { data: Invite
       setError("Answer yes, maybe, or no for at least one event.");
       return;
     }
-    if (comingAboard && dodId === "no" && !passNames.trim()) {
-      setError("List the full legal name of everyone who needs a visitor pass.");
-      return;
+    const needsPass = comingAboard && dodId === "no";
+    const adults = passPeople.map((p) => ({ name: p.name.trim(), email: p.email.trim() })).filter((p) => p.name || p.email);
+    if (needsPass) {
+      if (adults.length === 0) {
+        setError("Add each adult who needs a visitor pass, with their own email address.");
+        return;
+      }
+      if (adults.some((p) => p.name.length < 2)) {
+        setError("Enter the full legal name of each adult who needs a pass.");
+        return;
+      }
+      if (adults.some((p) => !EMAIL_RE.test(p.email))) {
+        setError("Enter an email address for each adult who needs a pass. The base sends each of them a link.");
+        return;
+      }
     }
     setBusy(true);
     const res = await fetch(`/r/${slug}/rsvp`, {
@@ -177,7 +292,7 @@ export function RsvpForm({ data, slug, pageUrl, framed = false }: { data: Invite
         meals: atMeal ? mealCounts : {},
         dietary: data.rsvp.dietary && anyAttending ? dietary : "",
         dodId: comingAboard ? dodId : "",
-        passNames: comingAboard && dodId === "no" ? passNames : "",
+        passPeople: needsPass ? adults : [],
         message: data.rsvp.message ? message : "",
         website,
       }),
@@ -189,7 +304,7 @@ export function RsvpForm({ data, slug, pageUrl, framed = false }: { data: Invite
       return;
     }
     if (json.token) setToken(json.token);
-    setSaved({ token: json.token ?? token, addresses: json.addresses ?? {}, late: !!json.late });
+    setSaved({ token: json.token ?? token, addresses: json.addresses ?? {}, late: !!json.late, passPeople: needsPass ? adults : [] });
     setNotice("");
     document.getElementById("rsvp")?.scrollIntoView({ block: "start", behavior: "smooth" });
   }
@@ -307,21 +422,13 @@ export function RsvpForm({ data, slug, pageUrl, framed = false }: { data: Invite
             disabled={framed}
           />
           {dodId === "no" && (
-            <>
-              <p className="rounded-xl border-l-4 border-[var(--iv-accent)] bg-[var(--iv-bg)] px-4 py-3 text-sm leading-relaxed">
-                The base sends a link to {email.trim() ? <strong className="break-words">{email.trim()}</strong> : "the email address above"} where you enter
-                your information. Use an address you check, and fill in the base&apos;s form the day it arrives.
-              </p>
-              <label className="grid gap-1">
-                <span className={labelText}>Full legal names of every adult who needs a pass</span>
-                <span className={hint}>One per line, exactly as on their driver&apos;s license or passport. Children do not need a pass.</span>
-                <textarea className={`${input} min-h-24`} value={passNames} onChange={(e) => setPassNames(e.target.value)} maxLength={600} disabled={framed} />
-                <span className="mt-1 text-xs text-[var(--iv-muted)]">
-                  {data.base.passDeadline ? `Answer by ${formatDateLong(data.base.passDeadline)} so there is time to arrange passes. ` : ""}
-                  {NO_SSN_NOTE}
-                </span>
-              </label>
-            </>
+            <PassPeopleFields
+              people={passPeople}
+              onChange={setPassPeople}
+              self={name.trim().length >= 2 && EMAIL_RE.test(email.trim()) ? { name: name.trim(), email: email.trim() } : null}
+              deadline={data.base.passDeadline}
+              disabled={framed}
+            />
           )}
         </fieldset>
       )}
@@ -412,7 +519,7 @@ function Confirmation({
 }) {
   const [copied, setCopied] = useState(false);
   const personalUrl = saved.token ? `${pageUrl}?rsvp=${saved.token}#rsvp` : pageUrl;
-  const text = confirmationText({ data, name, answers, addresses: saved.addresses, dodId, pageUrl, personalUrl });
+  const text = confirmationText({ data, name, answers, addresses: saved.addresses, dodId, passPeople: saved.passPeople, pageUrl, personalUrl });
   const mailto = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(text.subject)}&body=${encodeURIComponent(text.body)}`;
   const needsPass = dodId === "no" && attendingBaseEvent(data, answers);
   const button = "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[var(--iv-line)] bg-[var(--iv-bg)] px-4 text-sm font-semibold";
@@ -481,8 +588,20 @@ function Confirmation({
 
       {needsPass && (
         <article className="rounded-2xl border-l-4 border-[var(--iv-accent)] bg-[var(--iv-surface)] p-5">
-          <p className="text-lg font-bold">About your visitor pass</p>
-          <ol className="mt-2 grid gap-2 text-sm">
+          <p className="text-lg font-bold">About your visitor passes</p>
+          {saved.passPeople.length > 0 && (
+            <>
+              <p className="mt-2 text-sm text-[var(--iv-muted)]">The base will email each of these adults a link:</p>
+              <ul className="mt-1 grid gap-1 text-sm">
+                {saved.passPeople.map((person) => (
+                  <li key={`${person.name}-${person.email}`}>
+                    <span className="font-semibold">{person.name}</span> <span className="break-words text-[var(--iv-muted)]">{person.email}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          <ol className="mt-3 grid gap-2 text-sm">
             {passSteps(data).map((step) => (
               <li key={step}>{step}</li>
             ))}
