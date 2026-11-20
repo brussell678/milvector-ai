@@ -164,7 +164,7 @@ Rules:
 - Figures: use them, they are what makes a bullet credible. Copy each one exactly from the cited evidence. Never round, convert, combine, or estimate.
 - Never attach a tool, system, software, regulation, or standard to a bullet unless the cited evidence names it. Appending a posting keyword ("using a CMMS", "DOT compliance", "in SAP") to a true accomplishment makes it false. If the posting wants something the record lacks, put it in gaps.
 - Order bullets within each role strongest-for-this-posting first. If the resume runs long, bullets are cut from the end.
-- 4 to 6 bullets for the most relevant roles, 2 to 3 for older or less relevant ones. Aim to fill two pages for a career of ten years or more.
+${fromMaster ? "- The record is the member's own refined master, already in their words. Use it fully: 5 to 7 bullets for the most relevant roles, 3 to 4 for the next most relevant, 2 for older ones. Keep each bullet close to the master's wording, tightened toward the posting's vocabulary. Target two full pages; under about 1.8 pages is too short. If it runs long, software trims bullets from the oldest roles." : "- 4 to 6 bullets for the most relevant roles, 2 to 3 for older or less relevant ones. Aim to fill two pages for a career of ten years or more."}
 ${fromMaster ? "- title: leave it empty. The title, organization, and dates come from the master resume as the member wrote them." : "- title: a civilian job title for that role that is honest about its level. The organization and dates are filled in from the record; do not write them."}
 - summary: 3 to 4 lines positioning the candidate for THIS posting, from the record only. A figure may appear only if it appears in the record. Do not state a clearance, degree, or certification unless it is in CREDENTIALS.
 - skills: 10 to 16 keywords the posting asks for that the record genuinely demonstrates. Never list a certification, license, clearance, tool, system, or regulation the record does not show. Skills entries naming something absent from the record are deleted.
@@ -218,6 +218,7 @@ What goes where:
 - summary: each paragraph of the profile or summary at the top.
 - competencies: each skill, area of expertise, or competency item. Split a list separated by "|" or bullets into its items.
 - roles: every job or billet, in the order the resume lists them. title, organization, start, and end are copied from the resume (end may be "Present"). lines: every bullet or sentence that belongs to that job.
+- A section with its own heading that describes work the person did, such as a project, program, or selected-work section, is a role too, even with no dates: its heading is the title, copy any organization it names, leave start and end empty, and put its bullets in lines.
 - A line from a highlights, impact, recognition, or evaluation excerpts section goes under a role only when the line itself, or the sentence that introduces it, names that role or its organization. Otherwise it goes in unassigned.
 - credentials: each degree, certification, course, or training item, and any security clearance, with its kind.
 - unassigned: every other line that states something about the person, such as awards and highlights that do not belong to one role.
@@ -236,5 +237,29 @@ Return strict JSON:
 
 RESUME:
 ${args.masterText}
+`.trim();
+}
+
+/**
+ * A targeted summary lost a sentence to a check (a figure, credential, or tool
+ * the master does not support). One rewrite, from the master's own words.
+ */
+export function promptSummaryRewrite(args: { jobTitle: string; company?: string | null; kept: string; removed: string[]; support: string }) {
+  return `
+Rewrite the summary at the top of a targeted resume for the posting below. A check removed sentences that stated something the candidate's master resume does not support. Write 3 to 4 sentences that position the candidate for this posting using only facts stated in MASTER TEXT. Copy any figure exactly as the master states it, or leave it out. Name no degree, certification, clearance, tool, or system the master text does not name. Plain civilian English. No em dashes. No filler such as "results-driven", "proven track record", or "team player".
+
+Return strict JSON: { "summary": "" }
+
+Job title: ${args.jobTitle}
+Company: ${args.company ?? ""}
+
+WHAT REMAINED:
+${args.kept || "(nothing)"}
+
+REMOVED, AND WHY IT FAILED: it stated something the master does not support:
+${args.removed.join("\n")}
+
+MASTER TEXT (summary, competencies, and highlights):
+${args.support}
 `.trim();
 }

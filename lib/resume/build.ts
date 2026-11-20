@@ -207,18 +207,20 @@ function honestSentences(paragraph: string, figureSupport: string, credentialSup
   // Split only where a sentence really ends, not at the decimal in "$1.2M".
   const sentences = paragraph.split(/(?<=[.!?])\s+(?=[A-Z])/).filter((s) => s.trim());
   const removed: string[] = [];
+  const removedForTools: string[] = [];
   const kept = sentences.filter((sentence) => {
     // A named tool is reported with the tools check, not the credentials one.
     const named = unsupportedTools(sentence, figureSupport);
     if (named.length > 0) {
       named.forEach((tool) => tools.push(tool));
+      removedForTools.push(sentence.trim());
       return false;
     }
     const bad = ungroundedNumbers(sentence, figureSupport, allowedNumbers).length > 0 || unsupportedCredentials(sentence, credentialSupport).length > 0;
     if (bad) removed.push(sentence.trim());
     return !bad;
   });
-  return { kept: kept.join(" ").replace(/\s+/g, " ").trim(), removed };
+  return { kept: kept.join(" ").replace(/\s+/g, " ").trim(), removed, removedForTools };
 }
 
 // ─── Fit map ──────────────────────────────────────────────────────────
@@ -303,7 +305,9 @@ export type TargetedResume = {
   estimatedPages: number;
 };
 
-export type GateResult = { resume: TargetedResume; findings: Finding[] };
+// summaryRemoved: summary sentences a check took out, so a caller can ask for
+// one rewrite instead of shipping a summary that starts mid-thought.
+export type GateResult = { resume: TargetedResume; findings: Finding[]; summaryRemoved: string[] };
 
 function layoutOf(resume: Omit<TargetedResume, "estimatedPages">, contactLines: number): LayoutInput {
   const groups = [resume.education, resume.certifications, resume.training].filter((g) => g.length > 0);
@@ -550,5 +554,5 @@ export function gateTargetedResume(args: {
     detail: filler.length > 0 ? `Found: ${filler.join(", ")}. Replace with something specific before sending.` : "No cliches or filler phrases, and no dashes.",
   });
 
-  return { resume: { ...draft, estimatedPages: pages }, findings };
+  return { resume: { ...draft, estimatedPages: pages }, findings, summaryRemoved: [...summaryCheck.removed, ...summaryCheck.removedForTools] };
 }

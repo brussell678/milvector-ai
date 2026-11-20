@@ -6,7 +6,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { getEnv } from "@/lib/env";
 import { redactPII } from "@/lib/redact";
 import { runLoggedJson } from "@/lib/tools/run";
-import { promptFitMap, promptMasterStructure, promptTargetedFromRecord } from "@/lib/llm/prompts-resume";
+import { promptFitMap, promptMasterStructure, promptSummaryRewrite, promptTargetedFromRecord } from "@/lib/llm/prompts-resume";
 import { buildFitMap, gateTargetedResume } from "@/lib/resume/build";
 import { summarize } from "@/lib/resume/gates";
 import { recordFromMaster } from "@/lib/resume/master-record";
@@ -135,15 +135,41 @@ export async function POST(req: Request) {
     security_clearance: profile?.security_clearance ?? null,
   };
   const contactLines = [contact.phone_number || contact.professional_email, contact.linkedin_url || contact.location || contact.security_clearance].filter(Boolean).length;
-  const { resume, findings } = gateTargetedResume({
-    raw: run.data,
-    record,
-    profileClearance: profile?.security_clearance ?? null,
-    yearsOfService,
-    contactLines,
-    titlesFromRecord: true,
-    extraSupport: input.support,
-  });
+  const gate = (raw: Record<string, unknown>) =>
+    gateTargetedResume({
+      raw,
+      record,
+      profileClearance: profile?.security_clearance ?? null,
+      yearsOfService,
+      contactLines,
+      titlesFromRecord: true,
+      extraSupport: input.support,
+    });
+  let { resume, findings, summaryRemoved } = gate(run.data);
+
+  // A check took sentences out of the summary: one rewrite from the master's
+  // own words, then the same checks again. Never a loosened check.
+  let summaryRewritten = false;
+  if (summaryRemoved.length > 0) {
+    const retry = await runLoggedJson<Record<string, unknown>>({
+      supabase,
+      userId,
+      toolName: TOOL,
+      inputJson: { ...meta, stage: "summary_rewrite" },
+      prompt: promptSummaryRewrite({ jobTitle: input.jobTitle, company: input.company, kept: resume.summary, removed: summaryRemoved, support: input.support }),
+      model: env.TARGETED_RESUME_MODEL,
+      timeoutMs: 60000,
+      temperature: 0.2,
+      storeOutput: () => null,
+    });
+    if (retry.ok && typeof retry.data.summary === "string" && retry.data.summary.trim()) {
+      const again = gate({ ...run.data, summary: retry.data.summary });
+      if (again.summaryRemoved.length === 0) {
+        ({ resume, findings, summaryRemoved } = again);
+        summaryRewritten = true;
+      }
+    }
+  }
   if (resume.experience.length === 0) {
     return NextResponse.json({ error: "No bullets survived the checks against your master resume.", findings }, { status: 422 });
   }
@@ -163,6 +189,7 @@ export async function POST(req: Request) {
     resume,
     findings,
     gateSummary: summarize(findings),
+    summaryRewritten,
     previewText: buildTargetedResumeText({ contact, resume: structured }),
     fileName: buildTargetedResumeFilename({ createdAt: new Date(), jobTitle: structured.target_title, company: input.company ?? null }),
     docxBase64: Buffer.from(docBuffer).toString("base64"),

@@ -11,7 +11,7 @@ import {
   credentialId,
   normalizeDate,
   roleId,
-  sortRoles,
+  dateValue,
   type CredentialKind,
   type EvidenceRecord,
   type EvidenceSource,
@@ -101,7 +101,12 @@ export function recordFromMaster(args: { raw: Record<string, unknown>; masterTex
     })
     .filter((role) => role.title && role.lines.length > 0);
 
-  const ordered = sortRoles(roles).map((role, r) => ({
+  // Newest first. A role with one date ("2025") sorts by that date; a section
+  // with no dates (a projects section) goes last, in the master's order.
+  const latest = (role: { start: string; end: string }) => dateValue(role.end || role.start);
+  const ordered = [...roles]
+    .sort((a, b) => latest(b) - latest(a) || dateValue(b.start) - dateValue(a.start))
+    .map((role, r) => ({
     id: roleId(r),
     title: role.title,
     militaryTitle: role.title,

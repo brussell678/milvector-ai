@@ -120,6 +120,39 @@ describe("a master resume becomes a record, word for word", () => {
   });
 });
 
+describe("ordering roles from a master", () => {
+  const master = `Founder | RIG
+Jan 2026 - Present
+Built a platform.
+Battalion Maintenance Officer | 2d LAR
+Oct 2023 - Present
+Led maintenance.
+Executive Officer | Multinational Task Force
+2025
+Planned operations across seven countries.
+Maintenance Officer | PM LAV
+Jun 2022 - Oct 2023
+Advised units.
+SELECTED PROJECTS
+MilVector
+Built a transition platform.
+Muster
+Built a records system.`;
+  const roles = [
+    { title: "MilVector", organization: "", start: "", end: "", lines: ["Built a transition platform."] },
+    { title: "Maintenance Officer", organization: "PM LAV", start: "Jun 2022", end: "Oct 2023", lines: ["Advised units."] },
+    { title: "Executive Officer", organization: "Multinational Task Force", start: "2025", end: "", lines: ["Planned operations across seven countries."] },
+    { title: "Founder", organization: "RIG", start: "Jan 2026", end: "Present", lines: ["Built a platform."] },
+    { title: "Muster", organization: "", start: "", end: "", lines: ["Built a records system."] },
+    { title: "Battalion Maintenance Officer", organization: "2d LAR", start: "Oct 2023", end: "Present", lines: ["Led maintenance."] },
+  ];
+  const { record } = recordFromMaster({ raw: { roles }, masterText: master, source, builtAt: "2026-11-20T00:00:00Z" });
+
+  it("sorts a one-date role by that date, and undated sections last in the master's order", () => {
+    expect(record.roles.map((r) => r.title)).toEqual(["Founder", "Battalion Maintenance Officer", "Executive Officer", "Maintenance Officer", "MilVector", "Muster"]);
+  });
+});
+
 describe("checking a targeted resume against the master", () => {
   const raw = {
     target_title: "Director of AI Transformation",
@@ -140,7 +173,14 @@ describe("checking a targeted resume against the master", () => {
     ],
     credential_ids: ["CRED-01"],
   };
-  const { resume, findings } = gateTargetedResume({ raw, record: built.record, titlesFromRecord: true, extraSupport: built.support });
+  const { resume, findings, summaryRemoved } = gateTargetedResume({ raw, record: built.record, titlesFromRecord: true, extraSupport: built.support });
+
+  it("reports the summary sentences it removed, so one rewrite can be asked for", () => {
+    expect(summaryRemoved).toEqual(["Builds executive dashboards in Tableau."]);
+    const wrongYears = gateTargetedResume({ raw: { ...raw, summary: "Leader with 18 years of service. Builds teams." }, record: built.record, titlesFromRecord: true, extraSupport: built.support });
+    expect(wrongYears.summaryRemoved).toEqual(["Leader with 18 years of service."]);
+    expect(wrongYears.resume.summary).toBe("Builds teams.");
+  });
 
   it("keeps the master's own title, not one the model invented", () => {
     expect(resume.experience[0].title).toBe("Battalion Maintenance Officer");
