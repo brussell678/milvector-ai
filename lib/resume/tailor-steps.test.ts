@@ -123,5 +123,7 @@ describe("model settings", () => {
     expect(samplingFor("gpt-4.1", 0.2)).toEqual({ temperature: 0.2 });
     expect(samplingFor("gpt-5.5", 0.2)).toEqual({});
     expect(samplingFor("o3", 0)).toEqual({});
+    expect(samplingFor("gpt-6.2-sol", 0.2, "medium")).toEqual({ reasoning: { effort: "medium" } });
+    expect(samplingFor("gpt-4.1", 0.2, "medium")).toEqual({ temperature: 0.2 });
   });
 });

@@ -146,7 +146,7 @@ async function repairJsonWithModel(args: {
     const response = await args.client.responses.create(
       {
         model: args.model,
-        ...samplingFor(args.model, 0),
+        ...samplingFor(args.model, 0, "low"),
         input: [
           {
             role: "system",
@@ -167,17 +167,22 @@ async function repairJsonWithModel(args: {
   }
 }
 
-// Reasoning models (GPT-5 and later, o-series) reject a temperature setting.
-export function samplingFor(model: string, temperature: number): { temperature?: number } {
-  // Default reasoning effort: in tailoring tests, low effort was faster but
-  // invented more and tailored less.
-  return /^(?:gpt-[5-9]|o[0-9])/.test(model) ? {} : { temperature };
+export type ReasoningEffort = "none" | "minimal" | "low" | "medium" | "high" | "xhigh";
+
+// Reasoning models (GPT-5 and later, o-series) reject a temperature setting
+// and take a reasoning effort instead; left out, the model's default applies.
+type Sampling = Partial<Pick<OpenAI.Responses.ResponseCreateParamsNonStreaming, "temperature" | "reasoning">>;
+export function samplingFor(model: string, temperature: number, effort?: ReasoningEffort): Sampling {
+  if (!/^(?:gpt-[5-9]|o[0-9])/.test(model)) return { temperature };
+  // The SDK's types predate the "none" and "xhigh" efforts the API accepts.
+  return effort ? { reasoning: { effort: effort as NonNullable<NonNullable<Sampling["reasoning"]>["effort"]> } } : {};
 }
 
 type GenerateOptions = {
   timeoutMs?: number;
   model?: string;
   temperature?: number;
+  reasoningEffort?: ReasoningEffort;
   // Extra task-specific system guidance appended after the shared guardrail.
   system?: string;
 };
@@ -200,7 +205,7 @@ export async function generateJson<T>(prompt: string, options?: GenerateOptions)
     const response = await client.responses.create(
       {
         model: options?.model ?? env.OPENAI_MODEL,
-        ...samplingFor(options?.model ?? env.OPENAI_MODEL, options?.temperature ?? 0.2),
+        ...samplingFor(options?.model ?? env.OPENAI_MODEL, options?.temperature ?? 0.2, options?.reasoningEffort ?? env.LLM_REASONING_EFFORT),
         input: [
           {
             role: "system",
@@ -268,7 +273,7 @@ export async function generateText(prompt: string): Promise<LlmJsonResult<string
     const response = await client.responses.create(
       {
         model: env.OPENAI_MODEL,
-        ...samplingFor(env.OPENAI_MODEL, 0.2),
+        ...samplingFor(env.OPENAI_MODEL, 0.2, env.LLM_REASONING_EFFORT),
         input: prompt,
       },
       { signal: controller.signal }

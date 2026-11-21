@@ -27,6 +27,16 @@ import { buildTargetedResumeFilename, buildTargetedResumeText, renderTargetedRes
 export const maxDuration = 300;
 
 const TOOL = "resume_targeter";
+
+// Rewrite and verification calls run side by side in batches, so a build
+// waits for its slowest batch instead of the sum of every line.
+const REWRITE_BATCH = 6;
+const VERIFY_BATCH = 10;
+async function inBatches<T, R>(items: T[], size: number, run: (batch: T[]) => Promise<R>): Promise<R[]> {
+  const batches: T[][] = [];
+  for (let i = 0; i < items.length; i += size) batches.push(items.slice(i, i + size));
+  return Promise.all(batches.map(run));
+}
 // Under this the draft gets one top-up from master lines it did not use.
 const FILL_BELOW_PAGES = 1.8;
 // No role, however relevant, crowds out the rest of the career.
@@ -102,6 +112,9 @@ export async function POST(req: Request) {
   const overLimit = await enforceAiUsageLimit({ supabase, userId, email });
   if (overLimit) return overLimit;
   const env = getEnv();
+  // The writing steps and the verification step can run on different models.
+  const writeModel = { model: env.TARGETED_RESUME_MODEL, reasoningEffort: env.TARGETED_RESUME_EFFORT };
+  const checkModel = { model: env.TARGETED_RESUME_VERIFY_MODEL ?? env.TARGETED_RESUME_MODEL, reasoningEffort: env.TARGETED_RESUME_VERIFY_EFFORT ?? env.TARGETED_RESUME_EFFORT };
 
   const structured = await structuredMaster({
     supabase,
@@ -125,7 +138,7 @@ export async function POST(req: Request) {
       toolName: TOOL,
       inputJson: meta,
       prompt: promptFitMap({ jobTitle: input.jobTitle, company: input.company, jobDescriptionText: input.jobDescriptionText, recordText }),
-      model: env.TARGETED_RESUME_MODEL,
+      ...writeModel,
       timeoutMs: 120000,
       temperature: 0.1,
     });
@@ -158,7 +171,7 @@ export async function POST(req: Request) {
     toolName: TOOL,
     inputJson: { ...meta, stage: "plan" },
     prompt: promptTailorPlan({ jobTitle: input.jobTitle, company: input.company, jobDescriptionText: input.jobDescriptionText, recordText, fitMapText, yearsOfService }),
-    model: env.TARGETED_RESUME_MODEL,
+    ...writeModel,
     timeoutMs: 200000,
     temperature: 0.2,
     storeOutput: () => null,
@@ -173,20 +186,20 @@ export async function POST(req: Request) {
   const skipped = timelineGaps(record, { experience: planned.experience.map((e) => ({ roleId: e.roleId, title: "", organization: "", dates: "", bullets: [] })) });
   const layout = addRoles(planned, record, skipped.map((role) => role.id));
   const keywords = (Array.isArray(plan.data.keywords) ? plan.data.keywords : []).map(String).slice(0, 25);
-  const rewrite = layout.slots.length
-    ? await runLoggedJson<Record<string, unknown>>({
-        supabase,
-        userId,
-        toolName: TOOL,
-        inputJson: { ...meta, stage: "rewrite", lines: layout.slots.length },
-        prompt: promptTailorLines({ jobTitle: input.jobTitle, company: input.company, jobDescriptionText: input.jobDescriptionText, keywords, lines: layout.slots }),
-        model: env.TARGETED_RESUME_MODEL,
-        timeoutMs: 200000,
-        temperature: 0.4,
-        storeOutput: () => null,
-      })
-    : null;
-  let rewrites = rewriteRows(rewrite?.ok ? rewrite.data : []);
+  const rewriteBatches = await inBatches(layout.slots, REWRITE_BATCH, (lines) =>
+    runLoggedJson<Record<string, unknown>>({
+      supabase,
+      userId,
+      toolName: TOOL,
+      inputJson: { ...meta, stage: "rewrite", lines: lines.length },
+      prompt: promptTailorLines({ jobTitle: input.jobTitle, company: input.company, jobDescriptionText: input.jobDescriptionText, keywords, lines }),
+      ...writeModel,
+      timeoutMs: 150000,
+      temperature: 0.4,
+      storeOutput: () => null,
+    }),
+  );
+  let rewrites = rewriteBatches.flatMap((batch) => rewriteRows(batch.ok ? batch.data : []));
 
   // Verification: a separate request reads each rewrite, and each summary
   // sentence, beside the member's own lines it came from and names any claim
@@ -195,19 +208,20 @@ export async function POST(req: Request) {
   // is flagged again; a flagged summary sentence is dropped and rewritten.
   const lineText = new Map(record.roles.flatMap((r) => r.accomplishments.map((a) => [a.id, a.text] as const)));
   const verify = async (items: { slot: string; lines: string[]; text: string }[], stage: string) => {
-    if (items.length === 0) return new Map<string, string>();
-    const check = await runLoggedJson<Record<string, unknown>>({
-      supabase,
-      userId,
-      toolName: TOOL,
-      inputJson: { ...meta, stage, items: items.length },
-      prompt: promptVerifyLines({ items }),
-      model: env.TARGETED_RESUME_MODEL,
-      timeoutMs: 120000,
-      temperature: 0,
-      storeOutput: () => null,
-    });
-    return check.ok ? verifyProblems(check.data) : new Map<string, string>();
+    const checks = await inBatches(items, VERIFY_BATCH, (batch) =>
+      runLoggedJson<Record<string, unknown>>({
+        supabase,
+        userId,
+        toolName: TOOL,
+        inputJson: { ...meta, stage, items: batch.length },
+        prompt: promptVerifyLines({ items: batch }),
+        ...checkModel,
+        timeoutMs: 120000,
+        temperature: 0,
+        storeOutput: () => null,
+      }),
+    );
+    return new Map(checks.flatMap((check) => (check.ok ? [...verifyProblems(check.data)] : [])));
   };
   const summaryItems = (sentences: unknown) =>
     (Array.isArray(sentences) ? sentences : [])
@@ -267,20 +281,23 @@ export async function POST(req: Request) {
   }
   for (const close of closeSlots(layout, rewrites)) if (!failedSlots.some((f) => f.slot === close.slot)) failedSlots.push(close);
   if (failedSlots.length > 0) {
-    const retry = await runLoggedJson<Record<string, unknown>>({
-      supabase,
-      userId,
-      toolName: TOOL,
-      inputJson: { ...meta, stage: "rewrite_again", lines: failedSlots.length },
-      prompt: promptTailorLines({ jobTitle: input.jobTitle, company: input.company, jobDescriptionText: input.jobDescriptionText, keywords, lines: failedSlots }),
-      model: env.TARGETED_RESUME_MODEL,
-      timeoutMs: 120000,
-      temperature: 0.3,
-      storeOutput: () => null,
-    });
-    const retried = new Set(rewriteRows(retry.ok ? retry.data : []).map((r) => r.slot));
+    const retryBatches = await inBatches(failedSlots, REWRITE_BATCH, (lines) =>
+      runLoggedJson<Record<string, unknown>>({
+        supabase,
+        userId,
+        toolName: TOOL,
+        inputJson: { ...meta, stage: "rewrite_again", lines: lines.length },
+        prompt: promptTailorLines({ jobTitle: input.jobTitle, company: input.company, jobDescriptionText: input.jobDescriptionText, keywords, lines }),
+        ...writeModel,
+        timeoutMs: 120000,
+        temperature: 0.3,
+        storeOutput: () => null,
+      }),
+    );
+    const retryRows = retryBatches.flatMap((batch) => rewriteRows(batch.ok ? batch.data : []));
+    const retried = new Set(retryRows.map((r) => r.slot));
     const firstFailed = new Set([...restoredSlots(result.resume, layout).map((s) => s.slot), ...flagged]);
-    let merged = retry.ok ? mergeRewrites(rewrites, retry.data) : rewrites;
+    let merged = mergeRewrites(rewrites, retryRows);
     const secondCheck = await verify(bulletItems(merged, retried), "verify_again");
     // Flagged twice, or flagged and not rewritten again: the master's own line.
     const masterOnly = new Set([...secondCheck.keys(), ...flagged.filter((slot) => !retried.has(slot))]);
@@ -310,7 +327,7 @@ export async function POST(req: Request) {
       toolName: TOOL,
       inputJson: { ...meta, stage: "summary_rewrite" },
       prompt: promptSummaryRewrite({ jobTitle: input.jobTitle, company: input.company, kept: result.resume.summary, removed: [...result.summaryRemoved, ...summaryFlagged], support, recordText }),
-      model: env.TARGETED_RESUME_MODEL,
+      ...writeModel,
       timeoutMs: 60000,
       temperature: 0.2,
       storeOutput: () => null,
@@ -352,7 +369,7 @@ export async function POST(req: Request) {
       toolName: TOOL,
       inputJson: { ...meta, stage: "fill", pages: result.resume.estimatedPages },
       prompt: promptFillFromMaster({ jobTitle: input.jobTitle, company: input.company, jobDescriptionText: input.jobDescriptionText, draftText, unusedText: unused, pages: result.resume.estimatedPages, missingRoles }),
-      model: env.TARGETED_RESUME_MODEL,
+      ...writeModel,
       timeoutMs: 120000,
       temperature: 0.2,
       storeOutput: () => null,

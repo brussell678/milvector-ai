@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { generateJson } from "@/lib/llm/client";
+import { generateJson, type ReasoningEffort } from "@/lib/llm/client";
 
 type RunArgs<T> = {
   supabase: SupabaseClient;
@@ -11,6 +11,8 @@ type RunArgs<T> = {
   model: string;
   timeoutMs?: number;
   temperature?: number;
+  // Reasoning models only; the model's default when left out.
+  reasoningEffort?: ReasoningEffort;
   // What to keep in tool_runs.output_json. Defaults to the full model output;
   // pass a reducer to store less (or null to store nothing).
   storeOutput?: (data: T) => Record<string, unknown> | null;
@@ -28,6 +30,7 @@ export async function runLoggedJson<T>(args: RunArgs<T>): Promise<RunResult<T>> 
     model: args.model,
     timeoutMs: args.timeoutMs,
     temperature: args.temperature,
+    reasoningEffort: args.reasoningEffort,
   });
 
   const baseRun = {
