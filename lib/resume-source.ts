@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { masterOptions, type MasterOption } from "@/lib/master-resume";
+import { applyCorrections, type MasterCorrection } from "@/lib/resume/corrections";
 import { redactPII } from "@/lib/redact";
 
 export { masterOptions, optionForDocument, parseMasterRef, type MasterOption } from "@/lib/master-resume";
@@ -60,22 +61,48 @@ async function masterText(supabase: SupabaseClient, userId: string, option: Mast
   return data?.text_extracted ? (data.extracted_text ?? "") : "";
 }
 
+// The member's corrections from the Targeted Resume Builder's review step:
+// still open (applied to the text), and already reflected in the master
+// they uploaded (resolved, safe to close).
+export type MasterCorrections = { open: MasterCorrection[]; resolved: string[] };
+
 export type ChosenMaster =
-  | { ok: true; text: string; option: MasterOption }
+  | { ok: true; text: string; option: MasterOption; corrections?: MasterCorrections }
   // unsaved: before migration 0037; none: nothing chosen; missing: the chosen
   // one was deleted; not_ready: still being read, or empty.
   | { ok: false; reason: "unsaved" | "none" | "missing" | "not_ready" };
 
-/** The member's chosen master resume, as text. Not PII-scrubbed. */
+/** The member's open "my master is out of date" corrections, oldest first. Empty before migration 0039. */
+export async function openCorrections(supabase: SupabaseClient, userId: string): Promise<MasterCorrection[]> {
+  const { data, error } = await supabase
+    .from("master_corrections")
+    .select("id,kind,old_line,new_line")
+    .eq("user_id", userId)
+    .eq("kind", "outdated")
+    .is("resolved_at", null)
+    .order("created_at", { ascending: true });
+  return error ? [] : ((data ?? []) as MasterCorrection[]);
+}
+
+/** A master's text with the member's open corrections applied, so every tool reads the corrected master. */
+async function corrected(supabase: SupabaseClient, userId: string, text: string): Promise<{ text: string; corrections: MasterCorrections }> {
+  const all = await openCorrections(supabase, userId);
+  if (all.length === 0) return { text, corrections: { open: [], resolved: [] } };
+  const result = applyCorrections(text, all);
+  return { text: result.text, corrections: { open: all.filter((c) => !result.resolved.includes(c.id)), resolved: result.resolved } };
+}
+
+/** The member's chosen master resume, as text, with their corrections applied. Not PII-scrubbed. */
 export async function loadChosenMaster(supabase: SupabaseClient, userId: string): Promise<ChosenMaster> {
   const choice = await readMasterChoice(supabase, userId);
   if (!choice.canSave) return { ok: false, reason: "unsaved" };
   if (!choice.ref) return { ok: false, reason: "none" };
   if (!choice.option) return { ok: false, reason: "missing" };
   if (!choice.option.ready) return { ok: false, reason: "not_ready" };
-  const text = await masterText(supabase, userId, choice.option);
-  if (text.trim().length < 100) return { ok: false, reason: "not_ready" };
-  return { ok: true, text, option: choice.option };
+  const raw = await masterText(supabase, userId, choice.option);
+  if (raw.trim().length < 100) return { ok: false, reason: "not_ready" };
+  const { text, corrections } = await corrected(supabase, userId, raw);
+  return { ok: true, text, option: choice.option, corrections };
 }
 
 /**
@@ -86,9 +113,10 @@ export async function loadMasterByRef(supabase: SupabaseClient, userId: string, 
   const option = (await listMasterOptions(supabase, userId)).find((item) => item.ref === ref);
   if (!option) return { ok: false, reason: "missing" };
   if (!option.ready) return { ok: false, reason: "not_ready" };
-  const text = await masterText(supabase, userId, option);
-  if (text.trim().length < 100) return { ok: false, reason: "not_ready" };
-  return { ok: true, text, option };
+  const raw = await masterText(supabase, userId, option);
+  if (raw.trim().length < 100) return { ok: false, reason: "not_ready" };
+  const { text, corrections } = await corrected(supabase, userId, raw);
+  return { ok: true, text, option, corrections };
 }
 
 export const MASTER_PROBLEM: Record<Exclude<ChosenMaster, { ok: true }>["reason"], string> = {

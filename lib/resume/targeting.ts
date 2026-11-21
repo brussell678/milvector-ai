@@ -106,6 +106,9 @@ export type FigureCheck = {
   figures: string[];
   // The master lines it came from, so the member can check them.
   sources: string[];
+  // Posting words the line uses that its master lines do not, for the member
+  // to confirm they still describe what they did.
+  added?: string[];
 };
 
 // Figures as a reader sees them: 92%, $120M, 4,200, 35.5 hours.
@@ -142,9 +145,11 @@ export function figureChecks(resume: TargetedResume, record: EvidenceRecord, sup
   const sections = [...(resume.highlights ?? []).map((group) => ({ place: group.heading, bullets: group.bullets })), ...resume.experience.map((role) => ({ place: role.title, bullets: role.bullets }))];
   for (const section of sections) {
     for (const bullet of section.bullets) {
+      // A line with a figure, or with wording its master does not use, is checked.
       const figures = figuresIn(bullet.text);
-      if (figures.length === 0) continue;
-      checks.push({ place: section.place, text: bullet.text, figures, sources: bullet.evidence.map((id) => lineById.get(id) ?? "").filter(Boolean) });
+      const added = bullet.added ?? [];
+      if (figures.length === 0 && added.length === 0) continue;
+      checks.push({ place: section.place, text: bullet.text, figures, sources: bullet.evidence.map((id) => lineById.get(id) ?? "").filter(Boolean), ...(added.length ? { added } : {}) });
     }
   }
   return checks;

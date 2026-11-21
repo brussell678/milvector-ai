@@ -9,14 +9,16 @@ import type { FitMap, TargetedResume, TargetedRole } from "@/lib/resume/build";
 import type { Finding } from "@/lib/resume/gates";
 import type { MasterOption } from "@/lib/master-resume";
 import type { FigureCheck } from "@/lib/resume/targeting";
+import { CorrectionsList, ReviewCard, type Correction, type ReviewState } from "@/components/tools/resume-review";
 import { PASTE_LIMIT, POSTING_LIMIT } from "@/lib/resume/limits";
 
 // The rebuilt Targeted Resume Builder. Works only from the member's own master
 // resume: the fit comes first, gaps send the member back to their master, and
-// every figure is confirmed before the Word file downloads.
+// every line with a figure, or with wording the master does not use, is
+// marked Correct or fixed before the Word file downloads.
 
 type MasterInfo = { name: string; origin: string; roles: number; lines: number; dropped: number; notes: string[] };
-type FitResult = { master: MasterInfo; fitMap: FitMap; cited: Record<string, string> };
+type FitResult = { master: MasterInfo; fitMap: FitMap; cited: Record<string, string>; corrections?: Correction[] };
 type BuildResult = {
   master: MasterInfo;
   resume: TargetedResume & { jobs: TargetedRole[]; projects: TargetedRole[] };
@@ -27,7 +29,22 @@ type BuildResult = {
   contactMissing?: boolean;
   fileName: string;
   documentId: string;
+  artifactId: string | null;
+  corrections?: Correction[];
 };
+
+/** The resume shown on screen with one line replaced, after a review fix. */
+function withLine(resume: BuildResult["resume"], oldText: string, newText: string): BuildResult["resume"] {
+  const same = (a: string) => a.replace(/\s+/g, " ").trim() === oldText.replace(/\s+/g, " ").trim();
+  const swap = <T extends { bullets: { text: string }[] }>(groups: T[]) => groups.map((g) => ({ ...g, bullets: g.bullets.map((b) => (same(b.text) ? { ...b, text: newText } : b)) }));
+  return {
+    ...resume,
+    summary: resume.summary.includes(oldText) ? resume.summary.replace(oldText, newText).replace(/\s{2,}/g, " ").trim() : resume.summary,
+    highlights: swap(resume.highlights ?? []),
+    jobs: swap(resume.jobs),
+    projects: swap(resume.projects),
+  };
+}
 
 const FRIENDLY_ERROR = "Something went wrong on our end. Your work is still here. Try again in a few seconds.";
 
@@ -62,25 +79,6 @@ async function post<T>(body: unknown): Promise<{ ok: true; data: T } | { ok: fal
 function masterDownload(master: MasterOption | null): string | null {
   if (!master) return null;
   return master.kind === "document" ? `/api/documents/${master.id}/download` : `/api/resume-artifacts/${master.id}/download?format=docx`;
-}
-
-/** A bullet with its figures in bold, so the eye lands on what to check. */
-function WithFigures({ text, figures }: { text: string; figures: string[] }) {
-  if (figures.length === 0) return <>{text}</>;
-  const pattern = new RegExp(`(${figures.map((f) => f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "g");
-  return (
-    <>
-      {text.split(pattern).map((part, i) =>
-        figures.includes(part) ? (
-          <strong key={i} className="font-bold text-[var(--foreground)]">
-            {part}
-          </strong>
-        ) : (
-          <span key={i}>{part}</span>
-        ),
-      )}
-    </>
-  );
 }
 
 /**
@@ -137,7 +135,9 @@ export function TargetedResumeBuilder() {
   const [error, setError] = useState<string | null>(null);
   const [fit, setFit] = useState<FitResult | null>(null);
   const [built, setBuilt] = useState<BuildResult | null>(null);
-  const [checked, setChecked] = useState<Set<number>>(() => new Set());
+  const [review, setReview] = useState<Record<number, ReviewState>>({});
+  // Corrections saved in this visit, shown in step 1 before the next build lists them.
+  const [savedCorrections, setSavedCorrections] = useState<Correction[]>([]);
 
   const source = pasting ? "paste" : "master";
   const haveSource = pasting ? pastedText.trim().length >= 100 && pastedText.trim().length <= PASTE_LIMIT : !!master;
@@ -149,7 +149,7 @@ export function TargetedResumeBuilder() {
   const reset = () => {
     setFit(null);
     setBuilt(null);
-    setChecked(new Set());
+    setReview({});
   };
 
   async function checkFit() {
@@ -165,7 +165,7 @@ export function TargetedResumeBuilder() {
   async function build() {
     setError(null);
     setBuilt(null);
-    setChecked(new Set());
+    setReview({});
     setBusy("Writing your resume from your master and checking every line...");
     const res = await post<BuildResult>({ stage: "build", ...body(), fitMap: fit?.fitMap });
     setBusy(null);
@@ -174,7 +174,9 @@ export function TargetedResumeBuilder() {
   }
 
   const figureCount = built?.figures.length ?? 0;
-  const allChecked = !!built && checked.size === figureCount;
+  const reviewedCount = Object.keys(review).length;
+  const allChecked = !!built && reviewedCount >= figureCount;
+  const corrections = [...(built?.corrections ?? fit?.corrections ?? []), ...savedCorrections].filter((c, i, all) => all.findIndex((x) => x.newLine === c.newLine) === i);
   const download = masterDownload(master);
 
   return (
@@ -195,6 +197,7 @@ export function TargetedResumeBuilder() {
             purpose="The posting is compared with this resume, and the targeted resume is written only from it."
           />
         )}
+        {!pasting && <CorrectionsList corrections={corrections} />}
         <label className="flex items-start gap-2 text-sm">
           <input
             type="checkbox"
@@ -354,67 +357,43 @@ export function TargetedResumeBuilder() {
             </p>
           </div>
 
-          {/* Check every figure before you send */}
+          {/* Check every line before you send */}
           <div className="grid gap-3 rounded-xl border-2 border-[var(--accent)] p-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--accent)]">Check every figure before you send</p>
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--accent)]">Check every line before you send</p>
               {figureCount > 0 ? (
                 <p className="mt-1 text-sm">
-                  <span className="font-semibold">Your Word file unlocks once every figure below is checked.</span> Each number came from your master, shown under it. A master can drift out of date, so tick a figure only if it is still true today. {checked.size} of {figureCount} checked.
+                  <span className="font-semibold">Your Word file unlocks once every line below is marked Correct or fixed.</span> Each one has a figure, or wording your master does not use; your master&apos;s line is under it. A master can drift out of date, so mark a line Correct only if it is true today. {reviewedCount} of {figureCount} done.
                 </p>
               ) : (
                 <p className="mt-1 text-sm">Your Word file is ready below.</p>
               )}
             </div>
             {figureCount === 0 ? (
-              <p className="text-sm text-[var(--muted)]">This resume states no figures.</p>
+              <p className="text-sm text-[var(--muted)]">No line in this resume needs a check.</p>
             ) : (
               <ul className="grid gap-2">
-                {built.figures.map((item, i) => {
-                  const on = checked.has(i);
-                  return (
-                    <li key={i}>
-                      <label className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 ${on ? "border-[var(--accent)] bg-[var(--surface)]" : "border-[var(--line)]"}`}>
-                        <input
-                          type="checkbox"
-                          className="mt-1 h-5 w-5 shrink-0"
-                          checked={on}
-                          onChange={(e) =>
-                            setChecked((prev) => {
-                              const next = new Set(prev);
-                              if (e.target.checked) next.add(i);
-                              else next.delete(i);
-                              return next;
-                            })
-                          }
-                        />
-                        <span className="min-w-0">
-                          <span className="block text-xs font-bold uppercase tracking-[0.08em] text-[var(--muted)]">{item.place}</span>
-                          <span className="block text-sm">
-                            <WithFigures text={item.text} figures={item.figures} />
-                          </span>
-                          {item.sources.length > 0 && <span className="mt-1 block border-l-2 border-[var(--line)] pl-2 text-xs text-[var(--muted)]">From your master: {item.sources.join(" ")}</span>}
-                        </span>
-                      </label>
-                    </li>
-                  );
-                })}
+                {built.figures.map((item, i) => (
+                  <ReviewCard
+                    key={`${i}-${item.text}`}
+                    item={item}
+                    state={review[i]}
+                    artifactId={built.artifactId}
+                    fromPaste={pasting}
+                    onCorrect={() => setReview((prev) => ({ ...prev, [i]: { status: "correct" } }))}
+                    onFixed={(fix) => {
+                      setBuilt((prev) =>
+                        prev
+                          ? { ...prev, resume: withLine(prev.resume, fix.oldText, fix.newText), figures: prev.figures.map((f, j) => (j === i ? (fix.item ?? { ...f, text: fix.newText }) : f)) }
+                          : prev,
+                      );
+                      setReview((prev) => ({ ...prev, [i]: { status: "fixed", note: fix.note } }));
+                      if (fix.correction) setSavedCorrections((prev) => [...prev, fix.correction!]);
+                    }}
+                  />
+                ))}
               </ul>
             )}
-            <p className="text-xs text-[var(--muted)]">
-              A figure wrong? Fix it in your master
-              {download && !pasting ? (
-                <>
-                  {" "}
-                  (
-                  <a className="font-semibold underline" href={download}>
-                    download it
-                  </a>
-                  )
-                </>
-              ) : null}
-              , upload it to My Files, choose it as your master, and build again.
-            </p>
             <div>
               {allChecked ? (
                 <a className="btn btn-primary text-sm" href={`/api/documents/${built.documentId}/download`}>
@@ -423,7 +402,7 @@ export function TargetedResumeBuilder() {
                 </a>
               ) : (
                 <button className="btn btn-primary text-sm" type="button" disabled>
-                  Check each figure to download ({checked.size} of {figureCount})
+                  Check each line to download ({reviewedCount} of {figureCount})
                 </button>
               )}
             </div>

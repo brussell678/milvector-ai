@@ -107,6 +107,9 @@ export async function POST(req: Request) {
     chosen = input.masterRef ? await loadMasterByRef(supabase, userId, input.masterRef) : await loadChosenMaster(supabase, userId);
     if (!chosen.ok) return NextResponse.json({ error: MASTER_PROBLEM[chosen.reason] }, { status: 400 });
     sourceRef = chosen.option.ref;
+    // Corrections the uploaded master now says itself are closed.
+    const resolved = chosen.corrections?.resolved ?? [];
+    if (resolved.length) await supabase.from("master_corrections").update({ resolved_at: new Date().toISOString() }).in("id", resolved).eq("user_id", userId);
   }
 
   const overLimit = await enforceAiUsageLimit({ supabase, userId, email });
@@ -128,6 +131,7 @@ export async function POST(req: Request) {
   if (!structured.ok) return NextResponse.json({ error: structured.error }, { status: structured.status });
   const { record, support, supportLines, dropped } = structured.master;
   const recordText = recordForPrompt(record);
+  const openList = (chosen.ok ? (chosen.corrections?.open ?? []) : []).map((c) => ({ id: c.id, oldLine: c.old_line, newLine: c.new_line ?? "" }));
   const master = { name: chosen.option.name, origin: chosen.option.origin, roles: record.roles.length, lines: record.stats.accomplishments, dropped: dropped.length, notes: record.openQuestions };
   const meta = { engine: "master-v2", stage: input.stage, jobTitle: input.jobTitle, company: input.company ?? null, jdLen: input.jobDescriptionText.length };
 
@@ -152,7 +156,7 @@ export async function POST(req: Request) {
     }
     for (const c of record.credentials) lines[c.id] = c.text;
     const cited = Object.fromEntries(fitMap.requirements.flatMap((r) => r.evidence).filter((id) => lines[id]).map((id) => [id, lines[id]]));
-    return NextResponse.json({ stage: input.stage, master, fitMap, cited });
+    return NextResponse.json({ stage: input.stage, master, fitMap, cited, corrections: openList });
   }
 
   // ── Build ──
@@ -470,6 +474,7 @@ export async function POST(req: Request) {
   return NextResponse.json({
     stage: input.stage,
     master,
+    corrections: openList,
     resume: { ...resume, jobs, projects },
     findings,
     gateSummary: summarize(findings),
