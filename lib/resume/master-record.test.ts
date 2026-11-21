@@ -186,9 +186,18 @@ describe("checking a targeted resume against the master", () => {
     expect(resume.experience[0].title).toBe("Battalion Maintenance Officer");
   });
 
-  it("removes a bullet with a figure the master does not have, or evidence from another role", () => {
-    expect(resume.experience[0].bullets.map((b) => b.text)).toEqual(["Raised equipment readiness from 71% to 92% in 14 months."]);
-    expect(findings.find((f) => f.gate === "figures")?.level).toBe("warn");
+  it("puts the master's own line back when a rewrite changes a figure, and removes evidence from another role", () => {
+    // "95% across 6 companies" and the Tableau line both cite ACC-02-01: each
+    // falls back to that master line word for word, and the second copy is a duplicate.
+    expect(resume.experience[0].bullets.map((b) => b.text)).toEqual([
+      "Raised equipment readiness from 71% to 92% in 14 months.",
+      "Led maintenance for a $120M fleet of 400 vehicles across 6 companies.",
+    ]);
+    expect(resume.experience[0].bullets[1].restored).toBe(true);
+    expect(resume.experience[0].bullets.some((b) => /AI platform/.test(b.text))).toBe(false);
+    const figures = findings.find((f) => f.gate === "figures");
+    expect(figures?.level).toBe("warn");
+    expect(figures?.detail).toMatch(/master's own line was used instead/);
   });
 
   it("lets the master's summary and highlights back the targeted summary", () => {

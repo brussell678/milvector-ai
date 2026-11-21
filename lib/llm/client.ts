@@ -146,7 +146,7 @@ async function repairJsonWithModel(args: {
     const response = await args.client.responses.create(
       {
         model: args.model,
-        temperature: 0,
+        ...samplingFor(args.model, 0),
         input: [
           {
             role: "system",
@@ -165,6 +165,13 @@ async function repairJsonWithModel(args: {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+// Reasoning models (GPT-5 and later, o-series) reject a temperature setting.
+export function samplingFor(model: string, temperature: number): { temperature?: number } {
+  // Default reasoning effort: in tailoring tests, low effort was faster but
+  // invented more and tailored less.
+  return /^(?:gpt-[5-9]|o[0-9])/.test(model) ? {} : { temperature };
 }
 
 type GenerateOptions = {
@@ -193,7 +200,7 @@ export async function generateJson<T>(prompt: string, options?: GenerateOptions)
     const response = await client.responses.create(
       {
         model: options?.model ?? env.OPENAI_MODEL,
-        temperature: options?.temperature ?? 0.2,
+        ...samplingFor(options?.model ?? env.OPENAI_MODEL, options?.temperature ?? 0.2),
         input: [
           {
             role: "system",
@@ -261,7 +268,7 @@ export async function generateText(prompt: string): Promise<LlmJsonResult<string
     const response = await client.responses.create(
       {
         model: env.OPENAI_MODEL,
-        temperature: 0.2,
+        ...samplingFor(env.OPENAI_MODEL, 0.2),
         input: prompt,
       },
       { signal: controller.signal }

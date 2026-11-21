@@ -7,14 +7,14 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { getEnv } from "@/lib/env";
 import { redactPII } from "@/lib/redact";
 import { runLoggedJson } from "@/lib/tools/run";
-import { promptFillFromMaster, promptFitMap, promptSummaryRewrite, promptTargetedFromRecord } from "@/lib/llm/prompts-resume";
+import { promptFillFromMaster, promptFitMap, promptSummaryRewrite, promptTailorLines, promptTailorPlan, promptVerifyLines } from "@/lib/llm/prompts-resume";
 import { buildFitMap, gateTargetedResume } from "@/lib/resume/build";
 import { summarize } from "@/lib/resume/gates";
 import { POSTING_LIMIT, PASTE_LIMIT } from "@/lib/resume/limits";
 import { recordForPrompt } from "@/lib/resume/record";
 import { targetedResumeV2Enabled } from "@/lib/resume/studio-access";
 import { structuredMaster } from "@/lib/resume/structured-master";
-import { figureChecks, mergeAdditions, splitProjects, timelineGaps, unusedLines } from "@/lib/resume/targeting";
+import { addRoles, assembleTailored, closeSlots, figureChecks, mergeAdditions, mergeRewrites, planSlots, restoredSlots, rewriteRows, splitProjects, timelineGaps, unusedLines, verifyProblems } from "@/lib/resume/targeting";
 import { loadChosenMaster, loadMasterByRef, MASTER_PROBLEM, type ChosenMaster } from "@/lib/resume-source";
 import { buildTargetedResumeFilename, buildTargetedResumeText, renderTargetedResumeDocx, type StructuredExperience, type StructuredTargetedResume } from "@/lib/resume-template";
 
@@ -151,18 +151,82 @@ export async function POST(req: Request) {
     .map((r) => `- [${r.type}/${r.assessment}] ${r.requirement} :: ${Array.isArray(r.evidence) ? r.evidence.join(", ") : ""}`)
     .join("\n");
 
-  const run = await runLoggedJson<Record<string, unknown>>({
+  // Tailoring, step one: the plan chooses what goes on the page, by line id.
+  const plan = await runLoggedJson<Record<string, unknown>>({
     supabase,
     userId,
     toolName: TOOL,
-    inputJson: meta,
-    prompt: promptTargetedFromRecord({ jobTitle: input.jobTitle, company: input.company, jobDescriptionText: input.jobDescriptionText, recordText, fitMapText, yearsOfService, source: "master" }),
+    inputJson: { ...meta, stage: "plan" },
+    prompt: promptTailorPlan({ jobTitle: input.jobTitle, company: input.company, jobDescriptionText: input.jobDescriptionText, recordText, fitMapText, yearsOfService }),
     model: env.TARGETED_RESUME_MODEL,
     timeoutMs: 200000,
     temperature: 0.2,
     storeOutput: () => null,
   });
-  if (!run.ok) return NextResponse.json({ error: run.error }, { status: 500 });
+  if (!plan.ok) return NextResponse.json({ error: plan.error }, { status: 500 });
+
+  // Step two: each chosen master line reworded for the posting. If this
+  // request fails, the master's own lines stand.
+  // A job the plan skipped that would read as a gap goes in now, so it is
+  // tailored with everything else instead of topped up afterwards.
+  const planned = planSlots(plan.data, record);
+  const skipped = timelineGaps(record, { experience: planned.experience.map((e) => ({ roleId: e.roleId, title: "", organization: "", dates: "", bullets: [] })) });
+  const layout = addRoles(planned, record, skipped.map((role) => role.id));
+  const keywords = (Array.isArray(plan.data.keywords) ? plan.data.keywords : []).map(String).slice(0, 25);
+  const rewrite = layout.slots.length
+    ? await runLoggedJson<Record<string, unknown>>({
+        supabase,
+        userId,
+        toolName: TOOL,
+        inputJson: { ...meta, stage: "rewrite", lines: layout.slots.length },
+        prompt: promptTailorLines({ jobTitle: input.jobTitle, company: input.company, jobDescriptionText: input.jobDescriptionText, keywords, lines: layout.slots }),
+        model: env.TARGETED_RESUME_MODEL,
+        timeoutMs: 200000,
+        temperature: 0.4,
+        storeOutput: () => null,
+      })
+    : null;
+  let rewrites = rewriteRows(rewrite?.ok ? rewrite.data : []);
+
+  // Verification: a separate request reads each rewrite, and each summary
+  // sentence, beside the member's own lines it came from and names any claim
+  // those lines do not state. Code decides what happens: a flagged bullet gets
+  // one more try, told what was wrong, and keeps the master's own line if it
+  // is flagged again; a flagged summary sentence is dropped and rewritten.
+  const lineText = new Map(record.roles.flatMap((r) => r.accomplishments.map((a) => [a.id, a.text] as const)));
+  const verify = async (items: { slot: string; lines: string[]; text: string }[], stage: string) => {
+    if (items.length === 0) return new Map<string, string>();
+    const check = await runLoggedJson<Record<string, unknown>>({
+      supabase,
+      userId,
+      toolName: TOOL,
+      inputJson: { ...meta, stage, items: items.length },
+      prompt: promptVerifyLines({ items }),
+      model: env.TARGETED_RESUME_MODEL,
+      timeoutMs: 120000,
+      temperature: 0,
+      storeOutput: () => null,
+    });
+    return check.ok ? verifyProblems(check.data) : new Map<string, string>();
+  };
+  const summaryItems = (sentences: unknown) =>
+    (Array.isArray(sentences) ? sentences : [])
+      .map((sentence, i) => {
+        const row = (sentence ?? {}) as Record<string, unknown>;
+        const cited = (Array.isArray(row.evidence) ? row.evidence.map(String) : []).map((id) => lineText.get(id)).filter((t): t is string => !!t);
+        return { slot: `SUM${i + 1}`, lines: cited.length ? cited : [support], text: String(row.text ?? "").trim() };
+      })
+      .filter((item) => item.text);
+  const bulletItems = (texts: { slot: string; text: string }[], only?: Set<string>) => {
+    const byText = new Map(texts.map((r) => [r.slot, r.text]));
+    return layout.slots.filter((s) => byText.has(s.slot) && (!only || only.has(s.slot))).map((s) => ({ slot: s.slot, lines: s.lines, text: byText.get(s.slot)! }));
+  };
+  const isBulletSlot = (slot: string) => /^S\d+$/.test(slot);
+
+  const firstCheck = await verify([...bulletItems(rewrites), ...summaryItems(plan.data.summary)], "verify");
+  const plannedSummary = Array.isArray(plan.data.summary) ? (plan.data.summary as unknown[]) : null;
+  const summaryFlagged = plannedSummary ? plannedSummary.filter((_, i) => firstCheck.has(`SUM${i + 1}`)).map((s) => String((s as Record<string, unknown>)?.text ?? "")) : [];
+  const planUsed = plannedSummary ? { ...plan.data, summary: plannedSummary.filter((_, i) => !firstCheck.has(`SUM${i + 1}`)) } : plan.data;
 
   const contact = {
     full_name: profile?.full_name ?? null,
@@ -184,34 +248,92 @@ export async function POST(req: Request) {
       titlesFromRecord: true,
       extraSupport: support,
       maxBulletsPerRole: MAX_BULLETS_PER_ROLE,
+      postingText: input.jobDescriptionText,
     });
 
-  let raw = run.data;
+  let raw = assembleTailored(planUsed, layout, rewrites);
   let result = gate(raw);
 
-  // A check took sentences out of the summary: one rewrite from the master's
-  // own words, then every check again.
+  // One more try at the bullets a check put back, the verification flagged, or
+  // the rewrite barely changed, each told what was wrong; then the retried
+  // ones are verified and every check runs again. What still fails keeps the
+  // master's own line.
+  let repaired = 0;
+  const flagged = [...firstCheck.keys()].filter(isBulletSlot);
+  const failedSlots = [...restoredSlots(result.resume, layout)];
+  for (const slot of flagged) {
+    const s = layout.slots.find((x) => x.slot === slot);
+    if (s && !failedSlots.some((f) => f.slot === slot)) failedSlots.push({ ...s, previous: rewrites.find((r) => r.slot === slot)?.text ?? s.lines[0], problem: `states something its lines do not: ${firstCheck.get(slot)}` });
+  }
+  for (const close of closeSlots(layout, rewrites)) if (!failedSlots.some((f) => f.slot === close.slot)) failedSlots.push(close);
+  if (failedSlots.length > 0) {
+    const retry = await runLoggedJson<Record<string, unknown>>({
+      supabase,
+      userId,
+      toolName: TOOL,
+      inputJson: { ...meta, stage: "rewrite_again", lines: failedSlots.length },
+      prompt: promptTailorLines({ jobTitle: input.jobTitle, company: input.company, jobDescriptionText: input.jobDescriptionText, keywords, lines: failedSlots }),
+      model: env.TARGETED_RESUME_MODEL,
+      timeoutMs: 120000,
+      temperature: 0.3,
+      storeOutput: () => null,
+    });
+    const retried = new Set(rewriteRows(retry.ok ? retry.data : []).map((r) => r.slot));
+    const firstFailed = new Set([...restoredSlots(result.resume, layout).map((s) => s.slot), ...flagged]);
+    let merged = retry.ok ? mergeRewrites(rewrites, retry.data) : rewrites;
+    const secondCheck = await verify(bulletItems(merged, retried), "verify_again");
+    // Flagged twice, or flagged and not rewritten again: the master's own line.
+    const masterOnly = new Set([...secondCheck.keys(), ...flagged.filter((slot) => !retried.has(slot))]);
+    merged = merged.filter((r) => !masterOnly.has(r.slot));
+    let again = gate(assembleTailored(planUsed, layout, merged));
+    // A retry that broke a line which passed before keeps the earlier wording.
+    const broke = new Set(restoredSlots(again.resume, layout).map((s) => s.slot).filter((slot) => !firstFailed.has(slot)));
+    if (broke.size > 0) {
+      const earlier = new Map(rewrites.map((r) => [r.slot, r.text]));
+      merged = merged.flatMap((r) => (broke.has(r.slot) ? (earlier.has(r.slot) ? [{ slot: r.slot, text: earlier.get(r.slot)! }] : []) : [r]));
+      again = gate(assembleTailored(planUsed, layout, merged));
+    }
+    const stillFailed = new Set([...restoredSlots(again.resume, layout).map((s) => s.slot), ...masterOnly]);
+    repaired = [...firstFailed].filter((slot) => !stillFailed.has(slot)).length;
+    rewrites = merged;
+    raw = assembleTailored(planUsed, layout, rewrites);
+    result = again;
+  }
+
+  // A check or the verification took sentences out of the summary: one
+  // rewrite from the master's own lines, verified and checked again.
   let summaryRewritten = false;
-  if (result.summaryRemoved.length > 0) {
+  if (result.summaryRemoved.length > 0 || summaryFlagged.length > 0) {
     const retry = await runLoggedJson<Record<string, unknown>>({
       supabase,
       userId,
       toolName: TOOL,
       inputJson: { ...meta, stage: "summary_rewrite" },
-      prompt: promptSummaryRewrite({ jobTitle: input.jobTitle, company: input.company, kept: result.resume.summary, removed: result.summaryRemoved, support }),
+      prompt: promptSummaryRewrite({ jobTitle: input.jobTitle, company: input.company, kept: result.resume.summary, removed: [...result.summaryRemoved, ...summaryFlagged], support, recordText }),
       model: env.TARGETED_RESUME_MODEL,
       timeoutMs: 60000,
       temperature: 0.2,
       storeOutput: () => null,
     });
-    if (retry.ok && typeof retry.data.summary === "string" && retry.data.summary.trim()) {
-      const again = gate({ ...raw, summary: retry.data.summary });
-      if (again.summaryRemoved.length === 0) {
-        raw = { ...raw, summary: retry.data.summary };
+    // Cited sentences, checked like the plan's; a plain string is not accepted,
+    // since it could only be checked against the whole master.
+    const proposed = retry.ok && Array.isArray(retry.data.summary) && retry.data.summary.length > 0 ? (retry.data.summary as unknown[]) : null;
+    if (proposed) {
+      const summaryCheck = await verify(summaryItems(proposed), "verify_summary");
+      const next = proposed.filter((_, i) => !summaryCheck.has(`SUM${i + 1}`));
+      const again = next.length > 0 ? gate({ ...raw, summary: next }) : null;
+      if (again && again.summaryRemoved.length === 0) {
+        raw = { ...raw, summary: next };
         result = again;
         summaryRewritten = true;
       }
     }
+  }
+
+  // Never ship an empty summary: the master's own summary passes by definition.
+  if (!result.resume.summary.trim() && record.summary.trim()) {
+    raw = { ...raw, summary: record.summary };
+    result = gate(raw);
   }
 
   // Short of two pages, or skipping a job: one top-up from master lines not
@@ -273,10 +395,12 @@ export async function POST(req: Request) {
   const asSection = (role: (typeof jobs)[number]): StructuredExperience => ({ role_title: role.title, organization: role.organization, location: "", dates: role.dates, bullets: role.bullets.map((b) => b.text) });
   const structuredResume: StructuredTargetedResume = {
     target_title: resume.targetTitle || input.jobTitle,
+    tagline: resume.tagline,
     executive_summary: resume.summary,
     core_skills: resume.skills,
     experience: jobs.map(asSection),
     selected_projects: projects.map(asSection),
+    highlights: resume.highlights.map((group) => ({ heading: group.heading, bullets: group.bullets.map((b) => b.text) })),
     off_duty_education: resume.education,
     civilian_certifications: resume.certifications,
     additional_training: resume.training,
@@ -332,7 +456,7 @@ export async function POST(req: Request) {
     findings,
     gateSummary: summarize(findings),
     figures,
-    notes: { summaryRewritten, filled, closedGaps },
+    notes: { summaryRewritten, filled, closedGaps, repaired, flagged: flagged.length + summaryFlagged.length },
     // The Word file's header comes from the Profile; say so when it is empty.
     contactMissing: !contact.full_name?.trim(),
     previewText,

@@ -201,6 +201,126 @@ ${args.recordText}
 `.trim();
 }
 
+/**
+ * Step one of tailoring from the member's own refined master: the plan. The
+ * model chooses what goes on the page (title, themes, summary, keyword band,
+ * two themed highlight sections, and which master lines go under which job)
+ * by line id. It writes no bullet text; step two rewrites the chosen lines.
+ */
+export function promptTailorPlan(args: {
+  jobTitle: string;
+  company?: string | null;
+  jobDescriptionText: string;
+  recordText: string;
+  fitMapText: string;
+  yearsOfService?: number | null;
+}) {
+  return `
+You are a resume strategist planning a resume for a transitioning U.S. service member, tailored to one specific posting. The source is the master resume they wrote and refined themselves; every line in it is true. You choose what goes on the page. You do not write the bullets: a second step rewrites each line you choose for this posting.
+
+Plan, in page order:
+1. target_title: the posting's job title, exactly as the posting writes it, without location, remote status, or requisition number. Applicant tracking systems match on it.
+2. tagline: three short themes from this posting that the master proves, separated by " | ", for example "AI DEPLOYMENT | PRODUCT DEFINITION AND ENABLEMENT | MEASURED ADOPTION".
+3. summary: 3 to 4 sentences that describe what this person does and has done, not adjectives about them. Open with a noun phrase naming their practice in the posting's terms (for example "AI deployment practitioner who ..."), resting on the master's own summary. Then the two or three strongest proofs in the master for what this posting wants, concretely. Each sentence lists in "evidence" the line ids it rests on and states only what those lines say: no client type, scope, ownership, or result they do not state. A figure only exactly as the master states it. Never "positioned to", "proven", "demonstrated", "track record", "passionate", or "results-driven".
+4. skills: 14 to 16 terms in the posting's own words, each something the master genuinely shows, so a reader could point to the line that proves it. Prefer the posting's exact phrases. Never a tool, system, certification, methodology, or regulation the master does not name, and never a posting phrase the master gives no evidence for.
+5. highlights: exactly two groups, each named for one of the two things this posting most wants, as "Selected <theme> Outcomes". 3 bullets each: the strongest evidence for that theme from anywhere in the career.
+6. experience: the career by role id, with no unexplained gap in the last 10 to 15 years, best for this posting first: 5 bullets for the most relevant roles, 4 for the next, 2 for older ones. Plan about 24 bullets in all, highlights included; software trims the oldest to fit two pages. Roles with no dates are project sections: at most 2, only when they matter for this posting, never in place of a job.
+- Each bullet is a list of 1 to 3 line ids that a second step writes into one bullet. Combine lines only when they are the same piece of work in the same role (a system and the result it produced, a program and what it changed); otherwise one line per bullet. Never use a line id twice.
+7. keywords: 15 to 25 words and phrases from the posting the rewrite should use where a chosen line genuinely supports them, most important first.
+
+Also:
+- credential_ids: the CRED ids worth listing, most relevant first. Never state a clearance, degree, or certification that is not in CREDENTIALS.
+- gaps: posting requirements the master does not meet, stated plainly so the candidate can prepare for them.
+- Plain civilian English. No em dashes or en dashes.
+- ${OPSEC}
+
+Return strict JSON:
+{
+  "target_title": "",
+  "tagline": "",
+  "summary": [ { "text": "", "evidence": [] }, { "text": "", "evidence": ["ACC-01-02"] } ],
+  "skills": [],
+  "highlights": [ { "heading": "Selected ... Outcomes", "bullets": [["ACC-01-02", "ACC-01-04"], ["ACC-03-01"]] } ],
+  "experience": [ { "role_id": "ROLE-01", "bullets": [["ACC-01-01"], ["ACC-01-03", "ACC-01-05"]] } ],
+  "keywords": [],
+  "credential_ids": [],
+  "gaps": [],
+  "what_was_emphasized": []
+}
+
+Job title: ${args.jobTitle}
+Company: ${args.company ?? ""}
+Years of service: ${args.yearsOfService ?? ""}
+
+JOB POSTING:
+${args.jobDescriptionText}
+
+FIT MAP (requirements and the master lines that support each):
+${args.fitMapText || "(not run)"}
+
+MASTER RESUME (ids first):
+${args.recordText}
+`.trim();
+}
+
+/**
+ * Step two of tailoring: rewrites each chosen master line for the posting.
+ * Wording only; code checks every rewrite against its line afterwards and
+ * puts the master's own line back wherever a fact changed.
+ */
+export function promptTailorLines(args: {
+  jobTitle: string;
+  company?: string | null;
+  jobDescriptionText: string;
+  keywords: string[];
+  // previous and problem: a second try at a bullet a check put back.
+  lines: { slot: string; section: string; lines: string[]; previous?: string; problem?: string }[];
+}) {
+  return `
+You are rewriting lines from a candidate's own master resume so each one speaks to one job posting. The candidate wrote every line, and every fact in it is true. Your only job is the wording. Each slot holds one to three lines from the same piece of work; write each slot as one bullet.
+
+For each bullet:
+- Reframe it, do not just edit it. Open with what this posting values, which is often the result, and say it in the posting's words and phrases, especially the POSTING KEYWORDS, wherever they mean the same thing as words in the lines. That is how applicant tracking systems and recruiters match a resume to a job. Expect most of the words to change while every fact stays.
+- When a slot has more than one line, join them into one bullet. Say that one thing caused or produced another only when a line says so.
+- Lead with a fact the lines state. Never open with an outcome or purpose they do not state: "Delivered transformation initiatives for customers by ...", "Drove innovation by ...", and "Facilitated executive engagement by ..." are false framing when the lines do not say so.
+- Put military terms in the civilian terms this posting uses: a battalion or unit is an organization, Marines are personnel or team members, a commander is a senior leader, a billet is a role, materiel is equipment. Readiness may become availability or uptime, and logistics or sustainment may become supply chain, where the posting uses those words.
+- Action, then scope, then result. One to two lines for a JOB bullet, up to three for a HIGHLIGHT; cut words this posting does not need.
+- Every bullet comes back rewritten. A line returned unchanged, or with only a tense or a word swapped, fails the task.
+
+Keep the facts exactly:
+- Every figure, exactly as written. Never round, convert, or combine.
+- The candidate's level, both ways. Contributed stays contributed, supported stays supported, advised stays advised: never write led, directed, managed, owned, oversaw, built, designed, created, founded, or established unless the line already uses that word. And led stays led: never weaken what a line says the candidate led, built, or designed to contributed, supported, or helped.
+- Every named tool, product, system, method, and program, by its name (for example ChatGPT, Power BI, Lean Six Sigma). Never swap a name for a generic phrase like "AI tools".
+- No new activity, purpose, audience, scope, or result. Do not add "for AI adoption", "to support engineering teams", "enterprise-wide", "global", "first", or "best" unless the line says it. One stays one: a platform does not become platforms.
+
+Examples:
+- Line: "Supervised 12 Marines performing preventive maintenance on 40 tactical vehicles, raising readiness from 78 percent to 94 percent."
+  For a fleet operations posting that stresses uptime: "Raised fleet uptime from 78 percent to 94 percent across 40 vehicles by supervising a 12-person team through preventive maintenance."
+- Line: "Contributed to the battalion's transition to a new logistics information system by training 30 Marines on it."
+  For a systems implementation posting: "Trained 30 personnel on a new logistics information system, contributing to the organization's transition to it."
+- Lines: "Designed a readiness dashboard in Power BI for battalion leadership." and "The dashboard cut weekly briefing preparation from 6 hours to 2."
+  For a business intelligence posting: "Cut weekly briefing preparation from 6 hours to 2 by designing a Power BI readiness dashboard for senior leaders."
+
+Plain civilian English. No em dashes or en dashes. No filler such as "results-driven", "proven track record", or "thought leader".
+
+A slot that shows YOUR LAST TRY was checked and put back for the reason given. Write it again without that problem, keeping the rest of the reframing.
+
+Return strict JSON, one bullet per slot:
+{ "bullets": [ { "slot": "S1", "text": "" } ] }
+
+Job title: ${args.jobTitle}
+Company: ${args.company ?? ""}
+
+POSTING KEYWORDS: ${args.keywords.join(" | ") || "(none given; use the posting)"}
+
+JOB POSTING:
+${args.jobDescriptionText}
+
+SLOTS TO WRITE (slot | section | line, or lines joined by ||):
+${args.lines.map((l) => `${l.slot} | ${l.section} | ${l.lines.join(" || ")}${l.previous ? ` | YOUR LAST TRY: "${l.previous}" | PUT BACK BECAUSE IT ${l.problem}` : ""}`).join("\n")}
+`.trim();
+}
+
 // ─── Master resume: structure ──────────────────────────────────────────
 
 /**
@@ -244,11 +364,14 @@ ${args.masterText}
  * A targeted summary lost a sentence to a check (a figure, credential, or tool
  * the master does not support). One rewrite, from the master's own words.
  */
-export function promptSummaryRewrite(args: { jobTitle: string; company?: string | null; kept: string; removed: string[]; support: string }) {
+export function promptSummaryRewrite(args: { jobTitle: string; company?: string | null; kept: string; removed: string[]; support: string; recordText?: string }) {
+  // With the master's lines by id, each sentence cites what it rests on and is
+  // checked against exactly those lines.
+  const cited = !!args.recordText;
   return `
-Rewrite the summary at the top of a targeted resume for the posting below. A check removed sentences that stated something the candidate's master resume does not support. Write 3 to 4 sentences that position the candidate for this posting using only facts stated in MASTER TEXT. Copy any figure exactly as the master states it, or leave it out. Name no degree, certification, clearance, tool, or system the master text does not name. Plain civilian English. No em dashes. No filler such as "results-driven", "proven track record", or "team player".
+Rewrite the summary at the top of a targeted resume for the posting below. A check removed sentences that stated something the candidate's master resume does not support. Write 3 to 4 sentences that position the candidate for this posting using only facts stated in MASTER TEXT${cited ? " and MASTER RESUME" : ""}. ${cited ? `Each sentence lists in "evidence" the line ids it rests on (an opening sentence resting on MASTER TEXT alone may list none) and states only what those lines say: no client type, scope, ownership, or result they do not state. ` : ""}Copy any figure exactly as the master states it, or leave it out. Name no degree, certification, clearance, tool, or system the master text does not name. Plain civilian English. No em dashes. No filler such as "results-driven", "proven track record", or "team player".
 
-Return strict JSON: { "summary": "" }
+Return strict JSON: ${cited ? `{ "summary": [ { "text": "", "evidence": [] } ] }` : `{ "summary": "" }`}
 
 Job title: ${args.jobTitle}
 Company: ${args.company ?? ""}
@@ -261,6 +384,9 @@ ${args.removed.join("\n")}
 
 MASTER TEXT (summary, competencies, and highlights):
 ${args.support}
+${cited ? `
+MASTER RESUME (ids first):
+${args.recordText}` : ""}
 `.trim();
 }
 
@@ -276,7 +402,8 @@ Every added bullet is checked by software. It is deleted if it cites no id, cite
 
 Rules:
 ${args.missingRoles ? `- Give each job listed under TIMELINE GAPS 1 to 2 bullets, so the resume has no unexplained gap.\n` : ""}- Add 4 to 8 bullets in total, most to the roles that matter for this posting and have the fewest bullets now. No role may end up with more than 8 bullets in total.
-- Write each bullet close to the master's wording, tightened toward the posting's vocabulary. One achievement per bullet.
+- Tailor each bullet to the posting: lead with what it cares about, in its words where the cited line supports them, with military terms put in civilian ones. Action, then scope, then result. One achievement per bullet.
+- Keep the facts of the cited line exactly: its figures, its verb for what the candidate did (contributed stays contributed; never upgrade to led, managed, built, or designed), and its reach (never add enterprise, global, first, only, or best). Software puts the master's own line back wherever a rewrite changes one.
 - Cite in "evidence" the line ids (ACC-...) it was written from, all from the same role.
 - Copy figures exactly. Never round, combine, or estimate.
 - Do not repeat anything already in the draft.
@@ -297,5 +424,34 @@ ${args.draftText}
 UNUSED MASTER LINES (role, then ids first):
 ${args.unusedText}
 ${args.missingRoles ? `\nTIMELINE GAPS (jobs the draft skips):\n${args.missingRoles}` : ""}
+`.trim();
+}
+
+/**
+ * Tailoring check: each rewritten bullet or summary sentence beside the
+ * candidate's own lines it was written from. Names any claim the lines do not
+ * state; code decides what happens to it.
+ */
+export function promptVerifyLines(args: { items: { slot: string; lines: string[]; text: string }[] }) {
+  return `
+You are checking a tailored resume against the candidate's own master resume. Each item below is a rewritten bullet or summary sentence, with the candidate's own lines it was written from. The candidate wrote those lines and they are true. The rewrite may change every word; it may not change the facts.
+
+For each item, decide whether the rewrite states anything its lines do not:
+- an activity, purpose, audience, client or customer type, sector, or deliverable the lines do not state
+- more ownership or seniority than the lines state (for example led, directed, managed, or owned where the lines say contributed, helped, supported, or advised), or less (contributed where the lines say led)
+- more scope or reach (enterprise, global, organization-wide, all, multiple) or a different count than the lines state
+- a result, outcome, or cause-and-effect link the lines do not state
+- a tool, system, method, or credential the lines do not name
+
+Fine, and not a problem: reordering; tense; leaving details out; abbreviations (IT for information technology); civilian words for military ones (personnel or teams for Marines, organization for battalion, senior leaders or executives for commanders, executive-level for command-level, equipment availability for materiel readiness); and plain synonyms for the same thing (insights for perspectives, domains for specialties, staff for technicians, designed for architected). Flag only a change a hiring manager would read as a different fact.
+
+Examples that ARE problems: "Led end-to-end delivery" where the line says lead discovery and implementation planning (adds delivery and ownership of implementation); "supporting enterprise-wide AI education" (adds reach); "NARA-compliant" where the line says NARA-aligned (a compliance claim); "ensuring transparency" (adds an outcome); "for commercial clients" (adds a client type); "optimized" where the line says adjusted (claims a result).
+
+Return strict JSON, one check per item, same slots:
+{ "checks": [ { "slot": "S1", "ok": true, "problem": "" } ] }
+When ok is false, "problem" names the unsupported claim in a few words, quoting the rewrite.
+
+ITEMS:
+${args.items.map((item) => `${item.slot}\nLINES: ${item.lines.join(" || ")}\nREWRITE: ${item.text}`).join("\n\n")}
 `.trim();
 }

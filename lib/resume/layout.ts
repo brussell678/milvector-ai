@@ -17,9 +17,13 @@ const PAGE_PT = 720;
 
 export type LayoutInput = {
   hasTitleLine: boolean;
+  // The themes line under the title: "A | B | C".
+  hasTagline?: boolean;
   contactLines: number;
   summary: string;
   skillsLine: string;
+  // Themed sections near the top, each a heading and its bullets.
+  highlights?: { bullets: string[] }[];
   roles: { bullets: string[] }[];
   educationItems: number;
   educationGroups: number;
@@ -30,11 +34,18 @@ const wrap = (text: string, perLine: number) => Math.max(1, Math.ceil(text.trim(
 export function estimatePoints(input: LayoutInput): number {
   let pt = 0;
   // Name (22pt), optional title line (13pt), contact lines, rule
-  pt += 27 + (input.hasTitleLine ? 16 : 0) + input.contactLines * LINE_PT + 8;
+  pt += 27 + (input.hasTitleLine ? 16 : 0) + (input.hasTagline ? 14 : 0) + input.contactLines * LINE_PT + 8;
 
   const section = () => 17 + 6; // heading plus rule
   if (input.summary) pt += section() + wrap(input.summary, CHARS_PER_LINE) * LINE_PT + 2;
   if (input.skillsLine) pt += section() + wrap(input.skillsLine, CHARS_PER_LINE) * LINE_PT + 2;
+
+  for (const group of input.highlights ?? []) {
+    if (group.bullets.length === 0) continue;
+    pt += section();
+    for (const bullet of group.bullets) pt += wrap(bullet, BULLET_CHARS_PER_LINE) * LINE_PT + 1;
+    pt += 2;
+  }
 
   if (input.roles.length) pt += section();
   for (const role of input.roles) {

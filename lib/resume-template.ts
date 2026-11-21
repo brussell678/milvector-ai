@@ -17,12 +17,17 @@ export type StructuredExperience = {
 
 export type StructuredTargetedResume = {
   target_title: string;
+  // Themes under the title, "A | B | C". Optional: the classic builder has none.
+  tagline?: string;
   executive_summary: string;
   core_skills: string[];
   experience: StructuredExperience[];
   // Sections of a master resume without dates (projects, selected work),
   // printed under their own heading instead of as jobs with no dates.
   selected_projects?: StructuredExperience[];
+  // Themed sections after the core expertise, named for what the posting most
+  // wants, each with the strongest evidence for it from anywhere in the career.
+  highlights?: { heading: string; bullets: string[] }[];
   off_duty_education: string[];
   civilian_certifications: string[];
   additional_training: string[];
@@ -222,6 +227,13 @@ function pushEducationSection(paragraphs: Paragraph[], resume: StructuredTargete
   }
 }
 
+/** Highlight groups worth printing, with their headings in capitals. */
+function highlightGroups(resume: StructuredTargetedResume) {
+  return (resume.highlights ?? [])
+    .map((group) => ({ heading: clean(group.heading).toUpperCase(), bullets: uniqueItems((group.bullets ?? []).map((item) => item.trim()).filter(Boolean)) }))
+    .filter((group) => group.heading && group.bullets.length > 0);
+}
+
 export function buildTargetedResumeText(args: {
   contact: ResumeContactInfo;
   resume: StructuredTargetedResume;
@@ -231,6 +243,7 @@ export function buildTargetedResumeText(args: {
 
   if (clean(contact.full_name)) lines.push(clean(contact.full_name));
   if (clean(resume.target_title)) lines.push(clean(resume.target_title));
+  if (clean(resume.tagline)) lines.push(clean(resume.tagline).toUpperCase());
 
   const contactLines = buildContactLines(contact);
   if (contactLines.primary) lines.push(contactLines.primary);
@@ -248,6 +261,12 @@ export function buildTargetedResumeText(args: {
   if (coreSkills.length > 0) {
     lines.push("CORE EXPERTISE");
     lines.push(coreSkills.join(" | "));
+    lines.push("");
+  }
+
+  for (const group of highlightGroups(resume)) {
+    lines.push(group.heading);
+    for (const bullet of group.bullets) lines.push(`- ${bullet}`);
     lines.push("");
   }
 
@@ -350,6 +369,16 @@ export async function renderTargetedResumeDocx(args: {
     );
   }
 
+  if (clean(args.resume.tagline)) {
+    paragraphs.push(
+      new Paragraph({
+        children: [new TextRun({ text: clean(args.resume.tagline).toUpperCase(), bold: true, font: "Aptos", size: 19 })],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 20 },
+      })
+    );
+  }
+
   const contactLines = buildContactLines(args.contact);
   if (contactLines.primary) {
     paragraphs.push(
@@ -383,6 +412,12 @@ export async function renderTargetedResumeDocx(args: {
     paragraphs.push(sectionRule());
     paragraphs.push(sectionHeading("CORE EXPERTISE"));
     paragraphs.push(bodyParagraph(compactCoreSkills(coreSkills)));
+  }
+
+  for (const group of highlightGroups(args.resume)) {
+    paragraphs.push(sectionRule());
+    paragraphs.push(sectionHeading(group.heading));
+    for (const bullet of group.bullets) paragraphs.push(bulletParagraph(bullet));
   }
 
   const experienceRows = (args.resume.experience ?? []).filter(

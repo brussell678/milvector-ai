@@ -450,8 +450,21 @@ export function TargetedResumeBuilder() {
 
           <div className="tool-resume-preview">
             {built.resume.targetTitle && <p className="font-bold">{built.resume.targetTitle}</p>}
+            {built.resume.tagline && <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--muted)]">{built.resume.tagline}</p>}
             {built.resume.summary && <p className="mt-2 text-sm">{built.resume.summary}</p>}
             {built.resume.skills.length > 0 && <p className="mt-2 text-sm text-[var(--muted)]">{built.resume.skills.join(" | ")}</p>}
+            {(built.resume.highlights ?? []).map((group) => (
+              <div key={group.heading} className="mt-4">
+                <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">{group.heading}</p>
+                <ul className="mt-1.5 grid gap-1.5">
+                  {group.bullets.map((b, i) => (
+                    <li key={i} className="text-sm">
+                      • {b.text}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
             {built.resume.jobs.map((role) => (
               <RoleBlock key={role.roleId} role={role} />
             ))}

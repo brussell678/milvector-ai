@@ -5,7 +5,7 @@
 export type GateLevel = "pass" | "warn" | "fail";
 
 export type Finding = {
-  gate: "evidence" | "figures" | "credentials" | "terms" | "language" | "structure" | "length";
+  gate: "evidence" | "figures" | "credentials" | "terms" | "claims" | "language" | "structure" | "length";
   level: GateLevel;
   check: string;
   detail: string;
@@ -169,6 +169,158 @@ export function unsupportedTools(text: string, support: string): string[] {
   return NAMED_TOOLS.filter(([, pattern]) => pattern.test(text) && !pattern.test(support)).map(([name]) => name);
 }
 
+// ─── Claim level (C9) ─────────────────────────────────────────────────
+// A tailored bullet may change every word of a master line except the facts.
+// Figures, tools, and credentials are checked above. These are the other ways
+// a rewrite inflates a true line: who owned the work, how far it reached, and
+// whether it was the first or the best. Each word family must already be in
+// the line the bullet cites.
+
+const OWNERSHIP: [string, RegExp][] = [
+  ["led", /\b(?:lead|leads|leading|led|leader|leaders|leadership)\b/i],
+  ["directed", /\b(?:direct|directs|directing|directed|director)\b/i],
+  ["managed", /\b(?:manage|manages|managing|managed|manager|management)\b/i],
+  ["owned", /\b(?:own|owns|owning|owned|owner|ownership)\b/i],
+  ["headed", /\b(?:head|heads|heading|headed)\b/i],
+  ["oversaw", /\b(?:oversee|oversees|overseeing|oversaw|overseen|oversight)\b/i],
+  ["spearheaded", /\bspearhead(?:s|ed|ing)?\b/i],
+  ["commanded", /\b(?:command|commands|commanding|commanded|commander)\b/i],
+  ["founded", /\b(?:found|founded|founding|founder)\b/i],
+  ["established", /\bestablish(?:es|ed|ing)?\b/i],
+  ["launched", /\blaunch(?:es|ed|ing)?\b/i],
+  ["chaired", /\bchair(?:s|ed|ing)?\b/i],
+  ["built", /\b(?:build|builds|building|built|builder)\b/i],
+  ["designed", /\b(?:design|designs|designing|designed|designer)\b/i],
+  ["created", /\b(?:create|creates|creating|created|creator)\b/i],
+  ["authored", /\b(?:author|authors|authoring|authored)\b/i],
+  ["architected", /\barchitect(?:s|ed|ing)?\b/i],
+];
+
+// Scope and rank a line can claim. Synonyms count as the same claim.
+const REACH: [string, RegExp][] = [
+  ["enterprise", /\benterprise(?:-wide)?\b/i],
+  ["organization-wide", /\b(?:organization|company|firm|agency|department|service|corps)[- ]?wide\b/i],
+  ["global", /\b(?:global|globally|worldwide)\b/i],
+  ["international", /\b(?:international|multinational)\b/i],
+  ["C-suite", /\bc-suite\b/i],
+  ["Fortune 500", /\bfortune\s?(?:50|100|500)\b/i],
+  ["first", /\b(?:first|first-ever|inaugural|pioneer(?:ed|ing)?)\b/i],
+  ["only", /\b(?:only|sole|solely)\b/i],
+  ["best", /\b(?:best|top|award-winning|unprecedented|record-setting|record-breaking)\b/i],
+  ["largest", /\b(?:largest|highest|biggest|greatest|most)\b/i],
+  ["large-scale", /\b(?:large-scale|high-impact|mission-critical)\b/i],
+  ["commercial", /\b(?:commercial|private-sector|for-profit)\b/i],
+];
+
+/**
+ * Words in a tailored line that claim more than the line it cites: an
+ * ownership verb, a reach, or a rank that the cited support never states.
+ * "Contributed to" stays "contributed to"; it never becomes "led".
+ */
+export function inflatedClaims(text: string, support: string, only: "all" | "reach" = "all"): string[] {
+  const out: string[] = [];
+  // A heading or theme ("Selected Build Outcomes") names work, not who owned it.
+  for (const [name, pattern] of only === "reach" ? REACH : [...OWNERSHIP, ...REACH]) {
+    if (pattern.test(text) && !pattern.test(support)) out.push(name);
+  }
+  return out;
+}
+
+// ─── Added terms ──────────────────────────────────────────────────────
+// Tailoring puts a line in the posting's words. That is fair when the word
+// replaces one that means the same thing ("uptime" for "readiness") and false
+// when it adds an activity, purpose, or audience the line never states ("for
+// AI adoption", "to support engineering teams"). Code cannot tell the two
+// apart, so it counts them: a line that adds one or two is shown to the
+// member to check beside its master line, and one that adds more is put back.
+
+const ADDED_STOP = new Set(
+  `about above across after against along also among and any are around as at be been being both but by can could did do does each either for from had has have how
+if in into is it its more most much must new no not of on once one only or other our out over own per same she should so some such than that the their them then there these
+they this those through to too under until up upon very was we were what when where which while who whom why will with within without would you your
+ensure ensuring support supporting supported enable enabling enabled help helping helped using use used deliver delivering delivered drive driving provide providing
+including include key strong work working worked well make making made create able ability role roles`.split(/\s+/),
+);
+// Civilian words for what every military line already has, so translating to them adds nothing.
+const TRANSLATIONS = new Set(["stakeholder", "client", "customer", "team", "personnel", "people", "staff", "employee", "workforce", "organization", "leader", "executive", "partner", "member", "unit", "group"]);
+
+const stemWord = (word: string) => (word.length > 4 && word.endsWith("s") && !word.endsWith("ss") ? word.slice(0, -1) : word);
+// "business-intelligence" counts as itself and as "business" and "intelligence".
+const contentWords = (text: string) =>
+  new Set(
+    (text.toLowerCase().match(/[a-z][a-z0-9+-]*/g) ?? [])
+      .flatMap((token) => (token.includes("-") ? [token, ...token.split("-")] : [token]))
+      .map(stemWord)
+      .filter((w) => w.length > 2 && !ADDED_STOP.has(w)),
+  );
+
+// Word families: "adoption" is the line's "adopted", "training" its "trained".
+const ROOT_SUFFIXES = ["izations", "ization", "ations", "ation", "ities", "ity", "ments", "ment", "ings", "ing", "ions", "ion", "ers", "er", "ed", "es", "s"];
+function rootOf(word: string): string {
+  let w = word.toLowerCase();
+  for (const suffix of ROOT_SUFFIXES) {
+    if (w.endsWith(suffix) && w.length - suffix.length >= 4) {
+      w = w.slice(0, -suffix.length);
+      break;
+    }
+  }
+  return w.endsWith("e") && w.length > 4 ? w.slice(0, -1) : w;
+}
+
+// The civilian word a posting uses for what a military line already says.
+// A posting word on the left adds nothing when the line has a word on the right.
+const CIVILIAN: [RegExp, RegExp][] = [
+  [/^(?:supply|chain)$/, /\b(?:logistic|sustain|suppl|materiel|procure|inventor|distribut)/i],
+  [/^(?:uptime|availab)/, /\b(?:readi|availab|operational)/i],
+  [/^(?:senior|executive)/, /\b(?:command|general|senior|executive|flag|director)/i],
+  [/^(?:business|intelligence|analytic|insight|analysis|data-driven)/, /\b(?:power bi|bi\b|analy|dashboard|data|business|intelligence|metric)/i],
+  [/^(?:training|train|curricul|learning|learner|instruct|teach|educat|course|workshop|enablement|enabl)/, /\b(?:instruct|train|teach|course|curricul|educat|lesson|class|coach|mentor|workshop|enabl)/i],
+  [/^(?:deploy|rollout|implement|launch|deliver)/, /\b(?:field|deploy|roll|implement|launch|deliver|execut|transition)/i],
+  [/^(?:adopt)/, /\b(?:adopt|sustain|spread)/i],
+  [/^(?:challeng|problem|blocker|barrier|risk|obstacle|issue)/, /\b(?:problem|barrier|constraint|issue|challeng|risk|obstacle|disrupt|gap)/i],
+  [/^(?:impact|outcome|result|value|improv)/, /\b(?:result|outcome|effect|improv|impact|reduc|increas|cut|rais|saved|avoid)/i],
+  [/^(?:actionable|decision|recommend)/, /\b(?:decision|recommend|action)/i],
+  [/^(?:technolog|technical|tool|system|digital|solution|platform|software|application)/, /\b(?:system|tool|software|digital|technolog|technical|platform|application|solution|ai\b|model|automation)/i],
+  [/^(?:cross-functional|multidisciplinary|interdisciplinary)/, /\b(?:multidisciplin|cross|joint|interdisciplin|specialt|functions|engineering)/i],
+  [/^(?:scal)/, /\b(?:scal|beyond|across|expan|spread)/i],
+  [/^(?:program|project|initiative|effort)/, /\b(?:program|project|initiative|effort|campaign)/i],
+  [/^(?:strateg|roadmap|plan)/, /\b(?:strateg|plan|concept|roadmap)/i],
+  [/^(?:governance|compliance|control|policy|audit|regulat)/, /\b(?:govern|complian|polic|regulat|control|oversight|inspect|audit|standard)/i],
+  [/^(?:operation|operational|mission)/, /\b(?:operat|mission|readi)/i],
+  [/^(?:workflow|process|procedure)/, /\b(?:workflow|process|procedure|routine|practice)/i],
+  [/^(?:performance|metric|kpi|measure)/, /\b(?:perform|readi|metric|measure|kpi|indicator)/i],
+  [/^(?:time|hour|cycle|speed|faster)/, /\b(?:hour|day|week|month|cycle|time)/i],
+  [/^(?:organizational|enterprise)$/, /\b(?:organization|battalion|regiment|division|command|unit|enterprise)/i],
+  [/^(?:requirement|need)/, /\b(?:requirement|need)/i],
+  [/^(?:communicat|brief|present)/, /\b(?:communicat|brief|present|out-brief|report)/i],
+];
+
+/** Posting words in a tailored line that the line's own master text never uses. */
+export function addedTerms(text: string, support: string, posting: string): string[] {
+  if (!posting.trim()) return [];
+  const have = contentWords(support);
+  const haveRoots = new Set([...have].map(rootOf));
+  const wanted = new Set([...contentWords(posting)].map(rootOf));
+  return [...contentWords(text)].filter((w) => {
+    const root = rootOf(w);
+    if (!wanted.has(root) || have.has(w) || haveRoots.has(root) || TRANSLATIONS.has(w) || TRANSLATIONS.has(root)) return false;
+    return !CIVILIAN.some(([word, from]) => (word.test(w) || word.test(root)) && from.test(support));
+  });
+}
+
+// A line that adds this many posting words is rewriting the claim, not the
+// wording; it gets one more try with the words named, then the master's line.
+export const ADDED_TERMS_LIMIT = 3;
+
+// Understating is as wrong as inflating: "led" never becomes "contributed to".
+const WEAKER = /\b(?:contribut\w*|support(?:s|ed|ing)?|assist\w*|help(?:s|ed|ing)?|participat\w*|aided)\b/i;
+
+/** Ownership the cited line states that a tailored line weakens to contributed, supported, or helped. */
+export function understatedClaims(text: string, support: string): string[] {
+  if (!WEAKER.test(text) || WEAKER.test(support)) return [];
+  return OWNERSHIP.filter(([, pattern]) => pattern.test(support) && !pattern.test(text)).map(([name]) => name);
+}
+
 // ─── Language ─────────────────────────────────────────────────────────
 
 const BANNED_PHRASES = [
@@ -188,11 +340,20 @@ const BANNED_PHRASES = [
   "go-getter",
   "self-starter",
   "think outside the box",
+  "proven ability",
+  "track record",
+  "demonstrated success",
+  "demonstrated ability",
+  "positioned to",
+  "highly motivated",
+  "seasoned professional",
 ];
 
 export function bannedPhrases(text: string): string[] {
   const lower = text.toLowerCase();
-  return BANNED_PHRASES.filter((phrase) => lower.includes(phrase));
+  const found = BANNED_PHRASES.filter((phrase) => lower.includes(phrase));
+  // "track record" inside "proven track record" is one finding, not two.
+  return found.filter((phrase) => !found.some((other) => other !== phrase && other.includes(phrase)));
 }
 
 /** Dashes read as machine-written on sight. Replace them; never ship them. */
