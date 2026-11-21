@@ -1,13 +1,11 @@
 import { cardBuilderEnabled } from "@/lib/cards/access";
 import { inviteBuilderEnabled } from "@/lib/invites/access";
-import { resumeStudioEnabled } from "@/lib/resume/studio-access";
 
 // Tools with their own switch. A preview tool (isPreview in the registry) is
 // hidden until its switch opens it; an open tool with a switch here (the card
 // and invitation builders) shows unless its switch is turned off. Each one has
 // its own switch, so they can be released or closed separately.
 const PREVIEW_GATES: Record<string, (email?: string | null) => boolean> = {
-  "/app/tools/resume-studio": resumeStudioEnabled,
   "/app/tools/business-card": cardBuilderEnabled,
   "/app/tools/retirement-invitation": inviteBuilderEnabled,
 };

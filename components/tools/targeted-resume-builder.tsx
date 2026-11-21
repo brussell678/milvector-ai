@@ -123,13 +123,13 @@ function RoleBlock({ role }: { role: TargetedRole }) {
   );
 }
 
-export function TargetedResumeBuilder() {
+export function TargetedResumeBuilder({ initialTitle = "", initialPosting = "" }: { initialTitle?: string; initialPosting?: string } = {}) {
   const [master, setMaster] = useState<MasterOption | null>(null);
   const [pasting, setPasting] = useState(false);
   const [pastedText, setPastedText] = useState("");
-  const [jobTitle, setJobTitle] = useState("");
+  const [jobTitle, setJobTitle] = useState(initialTitle);
   const [company, setCompany] = useState("");
-  const [posting, setPosting] = useState("");
+  const [posting, setPosting] = useState(initialPosting);
 
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -233,6 +233,13 @@ export function TargetedResumeBuilder() {
         <div>
           <p className="tool-kicker">STEP 2: THE JOB</p>
           <p className="section-title mt-0.5">The posting you are applying to</p>
+          <p className="section-description">
+            Not sure this is the right job to aim at?{" "}
+            <a className="font-semibold underline" href="/app/tools/jd-decoder">
+              Decode the posting first
+            </a>
+            : what it really asks for, the level it implies, and how you fit.
+          </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block space-y-1">

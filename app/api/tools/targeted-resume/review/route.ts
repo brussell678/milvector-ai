@@ -16,7 +16,6 @@ import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { replaceLine } from "@/lib/resume/corrections";
 import { cleanPunctuation, pastTense } from "@/lib/resume/gates";
-import { targetedResumeV2Enabled } from "@/lib/resume/studio-access";
 import { figuresIn, type FigureCheck } from "@/lib/resume/targeting";
 import { buildTargetedResumeText, isStructuredTargetedResume, renderTargetedResumeDocx } from "@/lib/resume-template";
 
@@ -27,8 +26,7 @@ const InputSchema = z.discriminatedUnion("action", [
 ]);
 
 export async function POST(req: Request) {
-  const { userId, email } = await requireUser();
-  if (!targetedResumeV2Enabled(email)) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const { userId } = await requireUser();
   const parsed = InputSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     const field = parsed.error.issues[0]?.path[0];

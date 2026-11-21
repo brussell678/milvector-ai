@@ -12,7 +12,6 @@ import { buildFitMap, gateTargetedResume } from "@/lib/resume/build";
 import { summarize } from "@/lib/resume/gates";
 import { POSTING_LIMIT, PASTE_LIMIT } from "@/lib/resume/limits";
 import { recordForPrompt } from "@/lib/resume/record";
-import { targetedResumeV2Enabled } from "@/lib/resume/studio-access";
 import { structuredMaster } from "@/lib/resume/structured-master";
 import { addRoles, assembleTailored, closeSlots, figureChecks, mergeAdditions, mergeRewrites, planSlots, restoredSlots, rewriteRows, splitProjects, timelineGaps, unusedLines, verifyProblems } from "@/lib/resume/targeting";
 import { loadChosenMaster, loadMasterByRef, MASTER_PROBLEM, type ChosenMaster } from "@/lib/resume-source";
@@ -74,7 +73,6 @@ const InputSchema = z.discriminatedUnion("stage", [
 
 export async function POST(req: Request) {
   const { userId, email } = await requireUser();
-  if (!targetedResumeV2Enabled(email)) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const supabase = await supabaseServer();
 
   const parsed = InputSchema.safeParse(await req.json().catch(() => null));

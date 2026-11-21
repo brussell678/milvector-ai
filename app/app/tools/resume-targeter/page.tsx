@@ -1,17 +1,26 @@
-import { ResumeTargeterClassic } from "@/components/tools/resume-targeter-classic";
 import { TargetedResumeBuilder } from "@/components/tools/targeted-resume-builder";
-import { targetedResumeV2Enabled } from "@/lib/resume/studio-access";
 import { supabaseServer } from "@/lib/supabase/server";
 
-// The Targeted Resume Builder. The rebuilt version (docs/TARGETED_RESUME_PLAN.md)
-// shows to admins, or to everyone once TARGETED_RESUME_V2_PUBLIC=true; every
-// other member keeps the classic flow until then.
-export default async function ResumeTargeterPage() {
+// The Targeted Resume Builder (docs/TARGETED_RESUME_PLAN.md): a resume for one
+// job, written only from the member's own master and checked line by line.
+//
+// Links from other tools land here prefilled: ?title= from the MOS Translator
+// sets the job title; ?jd=<run id> from the JD Decoder sets the posting it
+// decoded (the member's own run only).
+export default async function ResumeTargeterPage({ searchParams }: { searchParams: Promise<{ title?: string; jd?: string }> }) {
+  const params = await searchParams;
   const supabase = await supabaseServer();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!targetedResumeV2Enabled(user?.email)) return <ResumeTargeterClassic />;
+
+  let initialPosting = "";
+  if (user && params.jd && /^[0-9a-f-]{36}$/i.test(params.jd)) {
+    const { data } = await supabase.from("tool_runs").select("output_json").eq("id", params.jd).eq("user_id", user.id).maybeSingle<{ output_json: Record<string, unknown> | null }>();
+    const text = data?.output_json?._jdText;
+    if (typeof text === "string") initialPosting = text;
+  }
+  const initialTitle = typeof params.title === "string" ? params.title.slice(0, 200) : "";
 
   return (
     <main className="page-shell">
@@ -39,7 +48,7 @@ export default async function ResumeTargeterPage() {
         </div>
       </section>
 
-      <TargetedResumeBuilder />
+      <TargetedResumeBuilder initialTitle={initialTitle} initialPosting={initialPosting} />
     </main>
   );
 }

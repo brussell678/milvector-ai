@@ -61,13 +61,6 @@ export const toolGroups: ToolGroupDef[] = [
         ],
       },
       {
-        href: "/app/tools/resume-studio",
-        title: "Resume Studio (Preview)",
-        desc: "The next version of the resume builders. Reads every record you uploaded, traces each accomplishment to its source, and checks every bullet and figure in your resume against it.",
-        requirements: [{ text: "Records uploaded (FITREPs, EVALs, awards, JST, or VMET)", check: "sources" }],
-        isPreview: true,
-      },
-      {
         href: "/app/tools/linkedin-builder",
         title: "LinkedIn Profile Builder",
         desc: "Turn your master resume into a complete LinkedIn profile — headline, sections, career suggestions, and a banner.",
@@ -93,7 +86,7 @@ export const toolGroups: ToolGroupDef[] = [
       {
         href: "/app/tools/resume-targeter",
         title: "Targeted Resume Builder",
-        desc: "Build a resume aimed at one specific job, using your master resume plus the real job posting.",
+        desc: "Build a resume aimed at one specific job, written only from your master resume. See how you fit first, then check every figure and new phrase before it downloads.",
         requirements: [
           { text: "Master resume saved", check: "master" },
           { text: "Profile saved — your contact info goes on the resume", check: "profile" },
