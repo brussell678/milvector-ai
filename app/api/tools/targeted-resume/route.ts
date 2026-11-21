@@ -208,6 +208,7 @@ export async function POST(req: Request) {
   // is flagged again; a flagged summary sentence is dropped and rewritten.
   const lineText = new Map(record.roles.flatMap((r) => r.accomplishments.map((a) => [a.id, a.text] as const)));
   const verify = async (items: { slot: string; lines: string[]; text: string }[], stage: string) => {
+    if (env.TARGETED_RESUME_VERIFY !== "on") return new Map<string, string>();
     const checks = await inBatches(items, VERIFY_BATCH, (batch) =>
       runLoggedJson<Record<string, unknown>>({
         supabase,

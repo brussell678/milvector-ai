@@ -18,7 +18,7 @@ import {
   type EvidenceSource,
   type Role,
 } from "@/lib/resume/record";
-import { addedTerms, ADDED_TERMS_LIMIT, understatedClaims, bannedPhrases, cleanPunctuation, duplicateIndexes, inflatedClaims, unsupportedAcronyms, unsupportedCredentials, unsupportedTools, ungroundedNumbers, extractNumbers, type Finding } from "@/lib/resume/gates";
+import { addedTerms, ADDED_TERMS_LIMIT, pastTense, understatedClaims, bannedPhrases, cleanPunctuation, duplicateIndexes, inflatedClaims, unsupportedAcronyms, unsupportedCredentials, unsupportedTools, ungroundedNumbers, extractNumbers, type Finding } from "@/lib/resume/gates";
 import { estimatePages, FIT_TARGET_PAGES, MAX_PAGES, type LayoutInput } from "@/lib/resume/layout";
 
 const text = (value: unknown) => String(value ?? "").trim();
@@ -441,7 +441,7 @@ export function gateTargetedResume(args: {
     failed[problem.reason] += 1;
     problem.detail.forEach((d) => failDetails[problem.reason].add(d));
     // The master's own line states exactly what the master does.
-    const original = cleanPunctuation(lineById.get(cited[0]) ?? "");
+    const original = pastTense(cleanPunctuation(lineById.get(cited[0]) ?? ""));
     if (original && !checkLine(original, lineById.get(cited[0]) ?? "", context)) {
       restored += 1;
       // What was tried and why it failed, so the rewrite can be asked to fix it.
@@ -456,7 +456,7 @@ export function gateTargetedResume(args: {
   for (const group of rows(args.raw.highlights).slice(0, MAX_HIGHLIGHT_GROUPS)) {
     const bullets: TargetedBullet[] = [];
     for (const b of rows(group.bullets).slice(0, MAX_HIGHLIGHT_BULLETS)) {
-      const body = cleanPunctuation(text(b.text));
+      const body = pastTense(cleanPunctuation(text(b.text)));
       if (!body) continue;
       const cited = list(b.evidence).filter((id) => lineById.has(id));
       if (cited.length === 0) {
@@ -484,7 +484,7 @@ export function gateTargetedResume(args: {
     }
     const bullets: TargetedBullet[] = [];
     for (const b of rows(entry.bullets)) {
-      const body = cleanPunctuation(text(b.text));
+      const body = pastTense(cleanPunctuation(text(b.text)));
       const cited = list(b.evidence);
       if (!body) continue;
       if (cited.length === 0) {

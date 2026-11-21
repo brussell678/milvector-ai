@@ -356,6 +356,30 @@ export function bannedPhrases(text: string): string[] {
   return found.filter((phrase) => !found.some((other) => other !== phrase && other.includes(phrase)));
 }
 
+// Bullets read in the past tense, including the current job (Brandon,
+// 2026-11-21). A master often writes its current role in the present; this
+// changes only the opening verb, never a fact.
+const PAST: Record<string, string> = {
+  lead: "Led", translate: "Translated", develop: "Developed", apply: "Applied", run: "Ran", build: "Built", author: "Authored",
+  design: "Designed", manage: "Managed", create: "Created", drive: "Drove", deliver: "Delivered", define: "Defined", direct: "Directed",
+  coach: "Coached", train: "Trained", advise: "Advised", write: "Wrote", use: "Used", turn: "Turned", partner: "Partnered",
+  facilitate: "Facilitated", coordinate: "Coordinated", serve: "Served", support: "Supported", help: "Helped", oversee: "Oversaw",
+  own: "Owned", plan: "Planned", prototype: "Prototyped", evaluate: "Evaluated", measure: "Measured", teach: "Taught", mentor: "Mentored",
+  establish: "Established", launch: "Launched", found: "Founded", architect: "Architected", implement: "Implemented", integrate: "Integrated",
+  automate: "Automated", analyze: "Analyzed", assess: "Assessed", map: "Mapped", conduct: "Conducted", present: "Presented", brief: "Briefed",
+  contribute: "Contributed", align: "Aligned", connect: "Connected", convert: "Converted", scale: "Scaled", shape: "Shaped", maintain: "Maintained",
+  operate: "Operated", produce: "Produced", provide: "Provided", reduce: "Reduced", improve: "Improved", streamline: "Streamlined",
+  standardize: "Standardized", guide: "Guided", enable: "Enabled", equip: "Equipped", spearhead: "Spearheaded", champion: "Championed",
+};
+
+/** A bullet whose opening verb is in the present tense, with that verb in the past tense. */
+export function pastTense(text: string): string {
+  const match = text.match(/^([A-Za-z]+)(\b[\s\S]*)$/);
+  if (!match) return text;
+  const past = PAST[match[1].toLowerCase()];
+  return past ? past + match[2] : text;
+}
+
 /** Dashes read as machine-written on sight. Replace them; never ship them. */
 export function cleanPunctuation(text: string): string {
   return text

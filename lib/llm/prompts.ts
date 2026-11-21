@@ -277,11 +277,12 @@ Return JSON:
 }
 
 Depth requirements:
-- hard_requirements: 10-20 items
-- soft_requirements: 8-14 items
+- hard_requirements: every qualification the posting states as required, one per item. Keep a requirement and the parts it lists together as one item (for example "Project management: planning, risk identification, stakeholder engagement, progress tracking"). Never merge two separate requirements, and never put a preferred qualification here. A posting that requires little gets a short list.
+- soft_requirements: every preferred or "nice to have" qualification the posting states, one per item, with the same rule (usually 8-14)
 - implied_expectations: 6-12 items
 - ats_keywords_priority: 12-25 items ranked highest first
-- likely_interview_questions: 8-15 role-relevant questions, framed as examples to prepare for (not predictions)
+- likely_interview_questions: 12-15 role-relevant questions, framed as examples to prepare for (not predictions)
+- A missed requirement costs the member more than a long list: be complete.
 - role_level_guess is an estimate from the posting; set role_level_confidence honestly and never overstate seniority.
 - Do not state specific salary figures unless they appear verbatim in the posting.
 - Use precise, actionable language. Avoid generic filler.

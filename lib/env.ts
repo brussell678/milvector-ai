@@ -21,6 +21,10 @@ const ServerEnvSchema = PublicEnvSchema.extend({
   // tools need). Empty means the model's default.
   LLM_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
   TARGETED_RESUME_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
+  // The model verification step: off by default. In the 2026-11-21 bake-off
+  // Brandon marked every bullet it flagged as supported, so its retries cost
+  // time and tailoring for no gain. The code checks always run.
+  TARGETED_RESUME_VERIFY: z.enum(["on", "off"]).default("off"),
   TARGETED_RESUME_VERIFY_MODEL: z.string().min(1).optional(),
   TARGETED_RESUME_VERIFY_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
   // JD Decoder fit, MOS Translator, and LinkedIn judgment stages.

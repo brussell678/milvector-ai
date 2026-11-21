@@ -285,6 +285,7 @@ For each bullet:
 - Lead with a fact the lines state. Never open with an outcome or purpose they do not state: "Delivered transformation initiatives for customers by ...", "Drove innovation by ...", and "Facilitated executive engagement by ..." are false framing when the lines do not say so.
 - Put military terms in the civilian terms this posting uses: a battalion or unit is an organization, Marines are personnel or team members, a commander is a senior leader, a billet is a role, materiel is equipment. Readiness may become availability or uptime, and logistics or sustainment may become supply chain, where the posting uses those words.
 - Action, then scope, then result. One to two lines for a JOB bullet, up to three for a HIGHLIGHT; cut words this posting does not need.
+- Past tense for every bullet, including the current job: Led, Built, Translated, not Lead, Build, Translate.
 - Every bullet comes back rewritten. A line returned unchanged, or with only a tense or a word swapped, fails the task.
 
 Keep the facts exactly:
@@ -402,6 +403,7 @@ Every added bullet is checked by software. It is deleted if it cites no id, cite
 
 Rules:
 ${args.missingRoles ? `- Give each job listed under TIMELINE GAPS 1 to 2 bullets, so the resume has no unexplained gap.\n` : ""}- Add 4 to 8 bullets in total, most to the roles that matter for this posting and have the fewest bullets now. No role may end up with more than 8 bullets in total.
+- Past tense for every bullet, including the current job.
 - Tailor each bullet to the posting: lead with what it cares about, in its words where the cited line supports them, with military terms put in civilian ones. Action, then scope, then result. One achievement per bullet.
 - Keep the facts of the cited line exactly: its figures, its verb for what the candidate did (contributed stays contributed; never upgrade to led, managed, built, or designed), and its reach (never add enterprise, global, first, only, or best). Software puts the master's own line back wherever a rewrite changes one.
 - Cite in "evidence" the line ids (ACC-...) it was written from, all from the same role.

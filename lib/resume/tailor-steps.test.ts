@@ -127,3 +127,13 @@ describe("model settings", () => {
     expect(samplingFor("gpt-4.1", 0.2, "medium")).toEqual({ temperature: 0.2 });
   });
 });
+
+describe("past tense", () => {
+  it("puts a bullet's opening verb in the past tense and leaves the rest alone", async () => {
+    const { pastTense } = await import("@/lib/resume/gates");
+    expect(pastTense("Lead discovery and requirements for AI initiatives.")).toBe("Led discovery and requirements for AI initiatives.");
+    expect(pastTense("Translate operational problems into AI-enabled workflows.")).toBe("Translated operational problems into AI-enabled workflows.");
+    expect(pastTense("Led 11 improvement projects.")).toBe("Led 11 improvement projects.");
+    expect(pastTense("Recurring briefings fell from 6 hours to 2.")).toBe("Recurring briefings fell from 6 hours to 2.");
+  });
+});

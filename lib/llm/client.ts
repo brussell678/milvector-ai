@@ -147,6 +147,7 @@ async function repairJsonWithModel(args: {
       {
         model: args.model,
         ...samplingFor(args.model, 0, "low"),
+        text: { format: { type: "json_object" } },
         input: [
           {
             role: "system",
@@ -206,6 +207,8 @@ export async function generateJson<T>(prompt: string, options?: GenerateOptions)
       {
         model: options?.model ?? env.OPENAI_MODEL,
         ...samplingFor(options?.model ?? env.OPENAI_MODEL, options?.temperature ?? 0.2, options?.reasoningEffort ?? env.LLM_REASONING_EFFORT),
+        // JSON mode: one JSON object, never a list or prose around it.
+        text: { format: { type: "json_object" } },
         input: [
           {
             role: "system",
