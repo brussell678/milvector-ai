@@ -10,6 +10,7 @@ import { runLoggedJson } from "@/lib/tools/run";
 import { promptFillFromMaster, promptFitMap, promptSummaryRewrite, promptTargetedFromRecord } from "@/lib/llm/prompts-resume";
 import { buildFitMap, gateTargetedResume } from "@/lib/resume/build";
 import { summarize } from "@/lib/resume/gates";
+import { POSTING_LIMIT, PASTE_LIMIT } from "@/lib/resume/limits";
 import { recordForPrompt } from "@/lib/resume/record";
 import { targetedResumeV2Enabled } from "@/lib/resume/studio-access";
 import { structuredMaster } from "@/lib/resume/structured-master";
@@ -50,10 +51,10 @@ function capProjects(raw: Record<string, unknown>, projectIds: Set<string>): Rec
 const base = {
   source: z.enum(["master", "paste"]).default("master"),
   masterRef: z.string().max(80).optional().nullable(),
-  pastedText: z.string().max(40000).optional().nullable(),
+  pastedText: z.string().max(PASTE_LIMIT).optional().nullable(),
   jobTitle: z.string().trim().min(2).max(200),
   company: z.string().trim().max(200).optional().nullable(),
-  jobDescriptionText: z.string().trim().min(100).max(30000),
+  jobDescriptionText: z.string().trim().min(100).max(POSTING_LIMIT),
 };
 
 const InputSchema = z.discriminatedUnion("stage", [
@@ -68,8 +69,18 @@ export async function POST(req: Request) {
 
   const parsed = InputSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
-    const field = parsed.error.issues[0]?.path[0];
-    const message = field === "jobDescriptionText" ? "Paste the full job posting." : field === "jobTitle" ? "Enter the job title." : "That request was not understood. Refresh the page and try again.";
+    const issue = parsed.error.issues[0];
+    const field = issue?.path[0];
+    const message =
+      field === "jobDescriptionText"
+        ? issue?.code === "too_big"
+          ? `That posting is over ${POSTING_LIMIT.toLocaleString("en-US")} characters. Cut the benefits and company boilerplate, keep the duties and requirements, and try again.`
+          : "Paste the full job posting."
+        : field === "pastedText" && issue?.code === "too_big"
+          ? `That resume is over ${PASTE_LIMIT.toLocaleString("en-US")} characters. Paste only the resume itself.`
+          : field === "jobTitle"
+            ? "Enter the job title."
+            : "That request was not understood. Refresh the page and try again.";
     return NextResponse.json({ error: message }, { status: 400 });
   }
   const input = parsed.data;
@@ -307,7 +318,8 @@ export async function POST(req: Request) {
       job_title_target: structuredResume.target_title,
       company_target: input.company ?? null,
       job_description: input.jobDescriptionText,
-      structured_output: { engine: "master-v2", sourceRef, resume, findings, figures } as unknown as Record<string, unknown>,
+      // The resume in the shape downloads render from, plus what the checks found.
+      structured_output: { ...structuredResume, engine: "master-v2", sourceRef, checked: { resume, findings, figures } } as unknown as Record<string, unknown>,
       rendered_document_id: documentId,
     })
     .select("id")
@@ -321,6 +333,8 @@ export async function POST(req: Request) {
     gateSummary: summarize(findings),
     figures,
     notes: { summaryRewritten, filled, closedGaps },
+    // The Word file's header comes from the Profile; say so when it is empty.
+    contactMissing: !contact.full_name?.trim(),
     previewText,
     fileName: filename,
     documentId,

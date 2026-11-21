@@ -9,6 +9,7 @@ import type { FitMap, TargetedResume, TargetedRole } from "@/lib/resume/build";
 import type { Finding } from "@/lib/resume/gates";
 import type { MasterOption } from "@/lib/master-resume";
 import type { FigureCheck } from "@/lib/resume/targeting";
+import { PASTE_LIMIT, POSTING_LIMIT } from "@/lib/resume/limits";
 
 // The rebuilt Targeted Resume Builder. Works only from the member's own master
 // resume: the fit comes first, gaps send the member back to their master, and
@@ -23,6 +24,7 @@ type BuildResult = {
   gateSummary: { pass: number; warn: number; fail: number };
   figures: FigureCheck[];
   notes: { summaryRewritten: boolean; filled: number; closedGaps: number };
+  contactMissing?: boolean;
   fileName: string;
   documentId: string;
 };
@@ -81,6 +83,32 @@ function WithFigures({ text, figures }: { text: string; figures: string[] }) {
   );
 }
 
+/**
+ * What the box holds, so a member can tell the whole paste went in: its size,
+ * and its last words to compare with the end of what they copied.
+ */
+function PasteCheck({ id, text, limit, what }: { id: string; text: string; limit: number; what: string }) {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  const words = trimmed.split(/\s+/).length;
+  const over = trimmed.length - limit;
+  const tail = trimmed.replace(/\s+/g, " ").slice(-70);
+  return (
+    <p id={id} className="text-xs text-[var(--muted)]" aria-live="polite">
+      {trimmed.length.toLocaleString("en-US")} characters, about {words.toLocaleString("en-US")} words.{" "}
+      {over > 0 ? (
+        <span className="tool-text-error font-semibold">
+          That is {over.toLocaleString("en-US")} over the {limit.toLocaleString("en-US")} limit for {what}. Cut the benefits and company boilerplate and keep the duties and requirements.
+        </span>
+      ) : (
+        <>
+          Ends with: <span className="text-[var(--foreground)]">{trimmed.length > 70 ? "..." : ""}{tail}</span>
+        </>
+      )}
+    </p>
+  );
+}
+
 function RoleBlock({ role }: { role: TargetedRole }) {
   return (
     <div className="mt-4">
@@ -112,8 +140,9 @@ export function TargetedResumeBuilder() {
   const [checked, setChecked] = useState<Set<number>>(() => new Set());
 
   const source = pasting ? "paste" : "master";
-  const haveSource = pasting ? pastedText.trim().length >= 100 : !!master;
-  const ready = haveSource && jobTitle.trim().length >= 2 && posting.trim().length >= 100 && !busy;
+  const haveSource = pasting ? pastedText.trim().length >= 100 && pastedText.trim().length <= PASTE_LIMIT : !!master;
+  const postingOk = posting.trim().length >= 100 && posting.trim().length <= POSTING_LIMIT;
+  const ready = haveSource && jobTitle.trim().length >= 2 && postingOk && !busy;
   const body = () => ({ source, masterRef: pasting ? null : master?.ref, pastedText: pasting ? pastedText : null, jobTitle, company: company || null, jobDescriptionText: posting });
 
   // A new master, paste, or posting makes earlier results stale.
@@ -179,16 +208,20 @@ export function TargetedResumeBuilder() {
           <span>Paste a resume for this one run instead</span>
         </label>
         {pasting && (
-          <textarea
-            className="input min-h-40"
-            value={pastedText}
-            onChange={(e) => {
-              setPastedText(e.target.value);
-              reset();
-            }}
-            aria-label="Resume to work from"
-            placeholder="Paste the whole resume you want this one built from."
-          />
+          <>
+            <textarea
+              className="input min-h-56 resize-y"
+              value={pastedText}
+              onChange={(e) => {
+                setPastedText(e.target.value);
+                reset();
+              }}
+              aria-label="Resume to work from"
+              aria-describedby="pasted-check"
+              placeholder="Paste the whole resume you want this one built from."
+            />
+            <PasteCheck id="pasted-check" text={pastedText} limit={PASTE_LIMIT} what="a resume" />
+          </>
         )}
       </section>
 
@@ -211,15 +244,17 @@ export function TargetedResumeBuilder() {
         <label className="block space-y-1">
           <span className="text-sm font-medium">Full job posting</span>
           <textarea
-            className="input min-h-40"
+            className="input min-h-72 resize-y"
             value={posting}
             onChange={(e) => {
               setPosting(e.target.value);
               if (fit) reset();
             }}
-            placeholder="Paste the whole posting: duties, requirements, and qualifications."
+            aria-describedby="posting-check"
+            placeholder="Paste the whole posting: duties, requirements, and qualifications. The box grows if you drag its corner."
           />
         </label>
+        <PasteCheck id="posting-check" text={posting} limit={POSTING_LIMIT} what="a posting" />
         <button className="btn btn-primary w-full text-sm sm:w-auto" type="button" disabled={!ready} onClick={() => void checkFit()}>
           {fit ? "Check My Fit Again" : "Check My Fit"}
         </button>
@@ -323,10 +358,13 @@ export function TargetedResumeBuilder() {
           <div className="grid gap-3 rounded-xl border-2 border-[var(--accent)] p-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--accent)]">Check every figure before you send</p>
-              <p className="mt-1 text-sm">
-                Each number below comes from your master. A master can drift out of date, so tick each one only if it is still true.
-                {figureCount > 0 ? ` ${checked.size} of ${figureCount} checked.` : ""}
-              </p>
+              {figureCount > 0 ? (
+                <p className="mt-1 text-sm">
+                  <span className="font-semibold">Your Word file unlocks once every figure below is checked.</span> Each number came from your master, shown under it. A master can drift out of date, so tick a figure only if it is still true today. {checked.size} of {figureCount} checked.
+                </p>
+              ) : (
+                <p className="mt-1 text-sm">Your Word file is ready below.</p>
+              )}
             </div>
             {figureCount === 0 ? (
               <p className="text-sm text-[var(--muted)]">This resume states no figures.</p>
@@ -444,6 +482,17 @@ export function TargetedResumeBuilder() {
                   <li key={i}>{g}</li>
                 ))}
               </ul>
+            </ToolAlert>
+          )}
+          {built.contactMissing && (
+            <ToolAlert variant="info" title="Your name is not on it yet">
+              <p className="text-sm">
+                The Word file&apos;s header (your name, phone, email, and LinkedIn) comes from your{" "}
+                <a className="font-semibold underline" href="/app/profile">
+                  Profile
+                </a>
+                , and it is empty. Add them there, then download again. The file picks them up.
+              </p>
             </ToolAlert>
           )}
           <p className="flex items-center gap-2 text-xs text-[var(--muted)]">

@@ -28,6 +28,17 @@ export type StructuredTargetedResume = {
   additional_training: string[];
 };
 
+/**
+ * True when a saved artifact's structured_output can be rendered as a resume.
+ * Downloads re-render from it to pick up the member's current contact details;
+ * anything else is served from the stored file instead of rendering blank.
+ */
+export function isStructuredTargetedResume(value: unknown): value is StructuredTargetedResume {
+  if (!value || typeof value !== "object") return false;
+  const resume = value as Partial<StructuredTargetedResume>;
+  return Array.isArray(resume.experience) && resume.experience.length > 0 && resume.experience.every((role) => !!role && Array.isArray(role.bullets));
+}
+
 export type ResumeContactInfo = {
   full_name?: string | null;
   phone_number?: string | null;

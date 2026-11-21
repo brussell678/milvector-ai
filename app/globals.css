@@ -262,9 +262,17 @@ body {
 
 /* ─── Form Inputs ────────────────────────────────────────────────── */
 
+/* The 44px touch-target minimum sits in the components layer so a box's own
+   min-h-* class (a tall textarea for a pasted posting) can raise it. Unlayered,
+   it outranked every min-h-* utility and held textareas to about two lines. */
+@layer components {
+  .input {
+    min-height: 44px;
+  }
+}
+
 .input {
   width: 100%;
-  min-height: 44px;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--surface);
@@ -1272,6 +1280,15 @@ details[open] .details-chevron {
 }
 
 :root[data-theme="dark"] .tool-badge-error {
+  color: #ff8f73;
+}
+
+/* Inline warning text, same reds as the error badge. */
+.tool-text-error {
+  color: #a3271a;
+}
+
+:root[data-theme="dark"] .tool-text-error {
   color: #ff8f73;
 }
 

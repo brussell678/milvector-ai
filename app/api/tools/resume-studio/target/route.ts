@@ -174,8 +174,9 @@ export async function POST(req: Request) {
       job_title_target: structured.target_title,
       company_target: input.company ?? null,
       job_description: input.jobDescriptionText,
-      // The gated resume with its evidence citations and the gate report
-      structured_output: { engine: "studio", recordArtifactId: input.recordArtifactId, resume, findings } as unknown as Record<string, unknown>,
+      // The resume in the shape downloads render from, plus the gated resume
+      // with its evidence citations and the gate report.
+      structured_output: { ...structured, engine: "studio", recordArtifactId: input.recordArtifactId, checked: { resume, findings } } as unknown as Record<string, unknown>,
       rendered_document_id: documentId,
     })
     .select("id")

@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
-import {
-  buildTargetedResumeFilename,
-  renderTargetedResumeDocx,
-  StructuredTargetedResume,
-} from "@/lib/resume-template";
+import { buildTargetedResumeFilename, isStructuredTargetedResume, renderTargetedResumeDocx } from "@/lib/resume-template";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 
 function slugify(value: string) {
@@ -46,7 +42,28 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   const baseName = slugify(data.title || `artifact-${data.id}`) || `artifact-${data.id}`;
 
   if (format === "docx") {
-    if (data.artifact_type === "targeted_resume" && data.structured_output) {
+    // A targeted resume whose record cannot be rendered is served as the Word
+    // file stored when it was built, instead of a blank one.
+    if (data.artifact_type === "targeted_resume" && !isStructuredTargetedResume(data.structured_output) && data.rendered_document_id) {
+      const { data: doc } = await supabase
+        .from("documents")
+        .select("filename,storage_path")
+        .eq("id", data.rendered_document_id)
+        .eq("user_id", userId)
+        .maybeSingle<{ filename: string; storage_path: string }>();
+      const { data: file } = doc ? await supabase.storage.from("documents").download(doc.storage_path) : { data: null };
+      if (doc && file) {
+        return new NextResponse(new Uint8Array(await file.arrayBuffer()), {
+          headers: {
+            "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "Content-Disposition": `attachment; filename="${doc.filename}"`,
+            "Cache-Control": "no-store",
+          },
+        });
+      }
+    }
+
+    if (data.artifact_type === "targeted_resume" && isStructuredTargetedResume(data.structured_output)) {
       const { data: profile } = await supabase
         .from("profiles")
         .select("full_name,phone_number,professional_email,linkedin_url,location,location_pref,security_clearance")
@@ -62,7 +79,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
           location: profile?.location ?? profile?.location_pref ?? null,
           security_clearance: profile?.security_clearance ?? null,
         },
-        resume: data.structured_output as StructuredTargetedResume,
+        resume: data.structured_output,
       });
       const bytes = new Uint8Array(buffer);
       const filename = buildTargetedResumeFilename({

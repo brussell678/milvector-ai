@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
-import {
-  buildTargetedResumeFilename,
-  renderTargetedResumeDocx,
-  StructuredTargetedResume,
-} from "@/lib/resume-template";
+import { buildTargetedResumeFilename, isStructuredTargetedResume, renderTargetedResumeDocx } from "@/lib/resume-template";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { userId } = await requireUser();
@@ -31,7 +27,9 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       .eq("user_id", userId)
       .maybeSingle();
 
-    if (artifact?.structured_output) {
+    // Re-render so the header carries the member's current contact details.
+    // A record in any other shape is served as the file stored at build time.
+    if (isStructuredTargetedResume(artifact?.structured_output)) {
       const { data: profile } = await supabase
         .from("profiles")
         .select("full_name,phone_number,professional_email,linkedin_url,location,location_pref,security_clearance")
@@ -47,7 +45,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
           location: profile?.location ?? profile?.location_pref ?? null,
           security_clearance: profile?.security_clearance ?? null,
         },
-        resume: artifact.structured_output as StructuredTargetedResume,
+        resume: artifact.structured_output,
       });
 
       const bytes = new Uint8Array(buffer);

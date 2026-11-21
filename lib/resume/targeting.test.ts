@@ -145,6 +145,16 @@ describe("the Word file and text preview", () => {
     const buffer = await renderTargetedResumeDocx({ contact: { full_name: "Jordan Reyes" }, resume });
     expect(buffer.byteLength).toBeGreaterThan(1000);
   });
+
+  it("downloads re-render only a record in the resume's shape", async () => {
+    const { isStructuredTargetedResume } = await import("@/lib/resume-template");
+    // The builder saves the resume with what the checks found beside it.
+    expect(isStructuredTargetedResume({ ...resume, engine: "master-v2", checked: { findings: [] } })).toBe(true);
+    // The first Phase 3 saves (and Resume Studio's) nested it, which rendered a blank file.
+    expect(isStructuredTargetedResume({ engine: "master-v2", sourceRef: "document:x", resume: { roles: [] }, findings: [] })).toBe(false);
+    expect(isStructuredTargetedResume({ ...resume, experience: [] })).toBe(false);
+    expect(isStructuredTargetedResume(null)).toBe(false);
+  });
 });
 
 describe("no unexplained gap in the timeline", () => {
