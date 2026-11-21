@@ -41,6 +41,8 @@ export async function structuredMaster(args: {
     userId: args.userId,
     toolName: args.toolName,
     inputJson: { engine: "master-v2", stage: "structure", chars: args.text.length },
+    // Part of the member's fit or build, not an action of its own.
+    step: true,
     prompt: promptMasterStructure({ masterText: args.text }),
     model: args.model,
     timeoutMs: 240000,

@@ -13,6 +13,9 @@ type RunArgs<T> = {
   temperature?: number;
   // Reasoning models only; the model's default when left out.
   reasoningEffort?: ReasoningEffort;
+  // An internal call inside one member action (a rewrite batch, a retry): it
+  // is logged like any other, but the daily limit counts the action once.
+  step?: boolean;
   // What to keep in tool_runs.output_json. Defaults to the full model output;
   // pass a reducer to store less (or null to store nothing).
   storeOutput?: (data: T) => Record<string, unknown> | null;
@@ -36,7 +39,7 @@ export async function runLoggedJson<T>(args: RunArgs<T>): Promise<RunResult<T>> 
   const baseRun = {
     user_id: args.userId,
     tool_name: args.toolName,
-    input_json: args.inputJson,
+    input_json: args.step ? { ...args.inputJson, _step: true } : args.inputJson,
     latency_ms: Date.now() - started,
   };
 

@@ -6,7 +6,9 @@ import { getEnv } from "@/lib/env";
 // Per-user ceiling on AI runs in a rolling 24 hours. MilVector is free and the
 // AI is paid for out of pocket, so one account must not be able to drain it.
 // Counted from tool_runs, which every AI route already writes, so there is no
-// separate counter to keep in sync.
+// separate counter to keep in sync. A run is one member action: the internal
+// calls inside it (logged with _step, such as the Targeted Resume Builder's
+// rewrite batches) are not counted again.
 
 const WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -49,7 +51,8 @@ export async function enforceAiUsageLimit(args: {
     .from("tool_runs")
     .select("id", { count: "exact", head: true })
     .eq("user_id", args.userId)
-    .gte("created_at", since);
+    .gte("created_at", since)
+    .is("input_json->>_step", null);
 
   if (error) return null;
 
