@@ -22,6 +22,9 @@ that reporter), use the admin composer at /app/admin/updates instead — it can
 link the case. This file is for the general changelog.
 -->
 
+## Targeted Resume Builder, rebuilt {improvement}
+It now shows how you fit a job before writing anything, then tailors your resume to the posting using only what your master resume says. Before the Word file downloads, you check every figure and any new wording, and a fix you make carries into every resume after.
+
 ## Master Resume Builder writes a fuller first draft {improvement}
 Your first master resume now pulls more from your evaluations: more roles, more accomplishments, and no filler phrases. It takes about two minutes to build.
 
