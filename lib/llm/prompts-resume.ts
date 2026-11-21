@@ -1,4 +1,5 @@
-// Prompts for the evidence-based resume engine (Resume Studio).
+// Prompts for the Targeted Resume Builder, plus the record batch reader kept
+// from the retired Resume Studio (docs/TARGETED_RESUME_PLAN.md 4.3).
 //
 // Division of labor: the model reads, translates, and selects. Code assigns
 // ids, checks every figure against its source, checks credentials against the
@@ -133,68 +134,6 @@ Company: ${args.company ?? ""}
 
 JOB POSTING:
 ${args.jobDescriptionText}
-
-CANDIDATE RECORD (ids first):
-${args.recordText}
-`.trim();
-}
-
-// ─── Targeting: generate ──────────────────────────────────────────────
-
-export function promptTargetedFromRecord(args: {
-  jobTitle: string;
-  company?: string | null;
-  jobDescriptionText: string;
-  recordText: string;
-  fitMapText: string;
-  yearsOfService?: number | null;
-  // "master": the record is the member's own refined master resume, so its
-  // role titles stand as written.
-  source?: "record" | "master";
-}) {
-  const fromMaster = args.source === "master";
-  return `
-You are a resume strategist writing a targeted resume for a transitioning U.S. service member, for one specific posting. You select and reword from ${fromMaster ? "the master resume they wrote and refined themselves" : "their verified record"}. You do not add to it.
-
-Every bullet is checked by software after you write it. A bullet is deleted if it cites no evidence id, cites an id that is not in the record, cites evidence from a different role, or contains a figure its cited evidence does not contain. Write bullets that survive.
-
-Rules:
-- experience: choose the roles that matter for this posting, by role id. Include enough of the timeline that there is no unexplained gap in the last 10 to 15 years.
-- Each bullet: one achievement, action then scope then result, in the posting's vocabulary where the record genuinely supports it. Cite in "evidence" the accomplishment ids (ACC-...) it was written from. All cited ids must belong to that same role.
-- Figures: use them, they are what makes a bullet credible. Copy each one exactly from the cited evidence. Never round, convert, combine, or estimate.
-- Never attach a tool, system, software, regulation, or standard to a bullet unless the cited evidence names it. Appending a posting keyword ("using a CMMS", "DOT compliance", "in SAP") to a true accomplishment makes it false. If the posting wants something the record lacks, put it in gaps.
-- Order bullets within each role strongest-for-this-posting first. If the resume runs long, bullets are cut from the end.
-${fromMaster ? "- The record is the member's own refined master, already in their words. Use it fully: 5 to 7 bullets for the most relevant roles, 3 to 4 for the next most relevant, 2 for older ones. Roles with no dates are project sections: include at most 2, only when they matter for this posting, and never in place of a job. Keep each bullet close to the master's wording, tightened toward the posting's vocabulary. Target two full pages; under about 1.8 pages is too short. If it runs long, software trims bullets from the oldest roles." : "- 4 to 6 bullets for the most relevant roles, 2 to 3 for older or less relevant ones. Aim to fill two pages for a career of ten years or more."}
-${fromMaster ? "- title: leave it empty. The title, organization, and dates come from the master resume as the member wrote them." : "- title: a civilian job title for that role that is honest about its level. The organization and dates are filled in from the record; do not write them."}
-- summary: 3 to 4 lines positioning the candidate for THIS posting, from the record only. A figure may appear only if it appears in the record. Do not state a clearance, degree, or certification unless it is in CREDENTIALS.
-- skills: 10 to 16 keywords the posting asks for that the record genuinely demonstrates. Never list a certification, license, clearance, tool, system, or regulation the record does not show. Skills entries naming something absent from the record are deleted.
-- credential_ids: the CRED ids worth listing for this posting, most relevant first.
-- gaps: posting requirements the record does not meet, stated plainly so the candidate can prepare for them. Do not hide a gap by implying coverage.
-- Plain civilian English. No em dashes. No filler such as "results-driven", "proven track record", or "team player".
-- ${OPSEC}
-
-Return strict JSON:
-{
-  "target_title": "",
-  "summary": "",
-  "skills": [],
-  "experience": [
-    { "role_id": "ROLE-01", "title": "", "bullets": [ { "text": "", "evidence": ["ACC-01-01"] } ] }
-  ],
-  "credential_ids": [],
-  "gaps": [],
-  "what_was_emphasized": []
-}
-
-Job title: ${args.jobTitle}
-Company: ${args.company ?? ""}
-Years of service: ${args.yearsOfService ?? ""}
-
-JOB POSTING:
-${args.jobDescriptionText}
-
-FIT MAP (requirements and the evidence that supports each):
-${args.fitMapText || "(not run)"}
 
 CANDIDATE RECORD (ids first):
 ${args.recordText}

@@ -7,37 +7,40 @@ const PublicEnvSchema = z.object({
 
 const ServerEnvSchema = PublicEnvSchema.extend({
   OPENAI_API_KEY: z.string().min(1).optional(),
-  // Base/cheap model. Judgment-heavy tools override via the *_MODEL vars below.
-  OPENAI_MODEL: z.string().min(1).default("gpt-4o-mini"),
-  // Quality models for judgment-heavy, career-affecting output. Default to gpt-4.1
-  // (quality over cost); override per environment if needed.
-  MASTER_RESUME_MODEL: z.string().min(1).default("gpt-4.1"),
+  // Model defaults chosen in the 2026-11-21 bake-off (docs/TARGETED_RESUME_PLAN.md,
+  // Phase 3). The code holds the choice; set a variable only to override one.
+  // Base model for every call that names no model of its own.
+  OPENAI_MODEL: z.string().min(1).default("gpt-6-luna"),
+  // Master Resume Builder: drafting a member's first master from their
+  // evaluations. gpt-6.2-sol gave the fullest draft with no filler.
+  MASTER_RESUME_MODEL: z.string().min(1).default("gpt-6.2-sol"),
   // Splitting a member's master into roles and lines for the Targeted Resume
   // Builder: a copying task verified word for word. A small model does it as
-  // well as a large one (2026-11-21: gpt-6-luna matched gpt-4.1 exactly; Sol
-  // dropped two roles). Falls back to MASTER_RESUME_MODEL.
-  MASTER_STRUCTURE_MODEL: z.string().min(1).optional(),
-  TARGETED_RESUME_MODEL: z.string().min(1).default("gpt-4.1"),
-  // Reasoning effort for every AI call on a reasoning model (gpt-6-luna and
-  // later default to medium, which is slower and costs more than most tools
-  // need). Empty means the model's default.
-  LLM_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
+  // well as a large one (gpt-6-luna matched gpt-4.1 exactly; Sol dropped two
+  // roles).
+  MASTER_STRUCTURE_MODEL: z.string().min(1).default("gpt-6-luna"),
+  // Targeted Resume Builder writing steps: plan, rewrite, summary, fill.
+  TARGETED_RESUME_MODEL: z.string().min(1).default("gpt-6.2-sol"),
+  // Reasoning effort for every AI call on a reasoning model (GPT-5 and later,
+  // which default to medium: slower and costlier than most tools need).
+  LLM_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).default("low"),
   // Reasoning effort for the Targeted Resume Builder's writing steps, and a
-  // separate model and effort for its verification step. Effort applies only
-  // to reasoning models (GPT-5 and later); empty means the model's default.
-  TARGETED_RESUME_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
+  // separate model and effort for its verification step.
+  TARGETED_RESUME_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).default("medium"),
   // The model verification step: off by default. In the 2026-11-21 bake-off
   // Brandon marked every bullet it flagged as supported, so its retries cost
   // time and tailoring for no gain. The code checks always run.
   TARGETED_RESUME_VERIFY: z.enum(["on", "off"]).default("off"),
   TARGETED_RESUME_VERIFY_MODEL: z.string().min(1).optional(),
   TARGETED_RESUME_VERIFY_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
-  // JD Decoder fit, MOS Translator, and LinkedIn judgment stages.
-  TOOLS_MODEL: z.string().min(1).default("gpt-4.1"),
+  // The lighter tools: JD Decoder, MOS Translator, LinkedIn, interview prep,
+  // SBP and VA advisors. gpt-6-luna won 6 of 9 blind picks against gpt-4.1.
+  TOOLS_MODEL: z.string().min(1).default("gpt-6-luna"),
   OPENAI_BASE_URL: z.string().url().optional(),
   LLM_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120000).default(30000),
   // AI runs allowed per user in a rolling 24 hours (see lib/usage-limit.ts).
-  // A full targeted resume is 3 runs and a full LinkedIn build is about 6.
+  // A run is a member action: a targeted resume's fit check and build are two,
+  // however many AI calls the build makes inside.
   AI_DAILY_RUN_LIMIT: z.coerce.number().int().min(1).max(10000).default(60),
 });
 

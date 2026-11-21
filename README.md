@@ -18,7 +18,7 @@ Create `.env.local` in project root:
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
 OPENAI_API_KEY=YOUR_OPENAI_API_KEY
-OPENAI_MODEL=gpt-4o-mini
+# Models default in lib/env.ts; set OPENAI_MODEL and the other *_MODEL vars only to override.
 LLM_TIMEOUT_MS=30000
 # Optional:
 # OPENAI_BASE_URL=https://api.openai.com/v1

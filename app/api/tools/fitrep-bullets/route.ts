@@ -424,7 +424,7 @@ export async function POST(req: Request) {
       // A full draft from every uploaded record: up to about two minutes on a
       // reasoning model, so the route and the call both allow more.
       timeoutMs: 240000,
-      model: env.MASTER_RESUME_MODEL ?? env.OPENAI_MODEL,
+      model: env.MASTER_RESUME_MODEL,
       temperature: 0.1,
     });
     const latency = Date.now() - started;
