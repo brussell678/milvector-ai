@@ -13,6 +13,10 @@ const ServerEnvSchema = PublicEnvSchema.extend({
   // (quality over cost); override per environment if needed.
   MASTER_RESUME_MODEL: z.string().min(1).default("gpt-4.1"),
   TARGETED_RESUME_MODEL: z.string().min(1).default("gpt-4.1"),
+  // Reasoning effort for AI calls on a reasoning model (gpt-6-luna and later
+  // default to medium, which is slower and costs more than these tools need).
+  // Empty means the model's default.
+  LLM_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
   // JD Decoder fit, MOS Translator, and LinkedIn judgment stages.
   TOOLS_MODEL: z.string().min(1).default("gpt-4.1"),
   OPENAI_BASE_URL: z.string().url().optional(),
