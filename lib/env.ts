@@ -12,6 +12,11 @@ const ServerEnvSchema = PublicEnvSchema.extend({
   // Quality models for judgment-heavy, career-affecting output. Default to gpt-4.1
   // (quality over cost); override per environment if needed.
   MASTER_RESUME_MODEL: z.string().min(1).default("gpt-4.1"),
+  // Splitting a member's master into roles and lines for the Targeted Resume
+  // Builder: a copying task verified word for word. A small model does it as
+  // well as a large one (2026-11-21: gpt-6-luna matched gpt-4.1 exactly; Sol
+  // dropped two roles). Falls back to MASTER_RESUME_MODEL.
+  MASTER_STRUCTURE_MODEL: z.string().min(1).optional(),
   TARGETED_RESUME_MODEL: z.string().min(1).default("gpt-4.1"),
   // Reasoning effort for the Targeted Resume Builder's writing steps, and a
   // separate model and effort for its verification step. Effort applies only

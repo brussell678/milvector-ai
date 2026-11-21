@@ -8,6 +8,9 @@ import { promptFitrepBullets, promptMasterResumeFromMilitaryDocs } from "@/lib/l
 import { getEnv } from "@/lib/env";
 import { redactPII } from "@/lib/redact";
 
+// Building a master resume from every record can take about two minutes.
+export const maxDuration = 300;
+
 type FitrepBulletsOutput = {
   bullets: { category: string; bullet: string; metrics_used: string[] }[];
   suggested_job_titles: string[];
@@ -418,7 +421,9 @@ export async function POST(req: Request) {
 
     const started = Date.now();
     const llm = await generateJson<MasterResumeOutput>(prompt, {
-      timeoutMs: 180000,
+      // A full draft from every uploaded record: up to about two minutes on a
+      // reasoning model, so the route and the call both allow more.
+      timeoutMs: 240000,
       model: env.MASTER_RESUME_MODEL ?? env.OPENAI_MODEL,
       temperature: 0.1,
     });

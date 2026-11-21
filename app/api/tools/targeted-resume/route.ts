@@ -122,7 +122,7 @@ export async function POST(req: Request) {
     text: redactPII(chosen.text).text,
     sourceRef,
     source: { documentId: chosen.option.id, filename: chosen.option.name, docType: chosen.option.kind === "document" ? "MASTER_RESUME" : "SAVED_MASTER" },
-    model: env.MASTER_RESUME_MODEL,
+    model: env.MASTER_STRUCTURE_MODEL ?? env.MASTER_RESUME_MODEL,
     toolName: TOOL,
   });
   if (!structured.ok) return NextResponse.json({ error: structured.error }, { status: structured.status });
