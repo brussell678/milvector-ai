@@ -22,6 +22,12 @@ that reporter), use the admin composer at /app/admin/updates instead — it can
 link the case. This file is for the general changelog.
 -->
 
+## Master Resume Builder writes a fuller first draft {improvement}
+Your first master resume now pulls more from your evaluations: more roles, more accomplishments, and no filler phrases. It takes about two minutes to build.
+
+## JD Decoder separates must-haves from nice-to-haves {improvement}
+The JD Decoder now lists exactly what a posting requires and keeps preferred qualifications apart, so you can tell what's truly needed before you decide to apply.
+
 ## Digital Business Card {new}
 Build a business card you never run out of. Share it with a link, a QR code, or a tap, keep it in Apple Wallet or Google Wallet, and let the people you meet send their details straight back to you. Find it under Tools.
 
