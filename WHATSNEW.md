@@ -22,6 +22,9 @@ that reporter), use the admin composer at /app/admin/updates instead — it can
 link the case. This file is for the general changelog.
 -->
 
+## Timeline tasks open the tool that does them {improvement}
+Eleven more Timeline tasks now have a button to the MilVector tool for that job, like the SBP Decision Advisor on your SBP election and the VA Rating Navigator on your VA claim. The VA claim task also moved to the 9-month phase, so you see it before its 180 to 90 day filing window opens.
+
 ## JD Decoder and the resume builder now agree on your fit {improvement}
 The JD Decoder now checks your fit the same way the Targeted Resume Builder does: each requirement in the posting, matched to the lines in your master resume that prove it. When you go on to build the resume, it starts from that same fit, so you skip a step and get one answer. Checking your fit adds up to a minute.
 
