@@ -5,7 +5,9 @@ import { Check, Download } from "lucide-react";
 import { LoadingBlock } from "@/components/tools/loading-block";
 import { MasterResumePicker } from "@/components/tools/master-resume-picker";
 import { ToolAlert } from "@/components/tools/tool-alert";
-import type { FitMap, TargetedResume, TargetedRole } from "@/lib/resume/build";
+import type { TargetedResume, TargetedRole } from "@/lib/resume/build";
+import type { FitResult, SavedFit } from "@/lib/resume/fit-check";
+import { FitMapView } from "@/components/tools/fit-map-view";
 import type { Finding } from "@/lib/resume/gates";
 import type { MasterOption } from "@/lib/master-resume";
 import type { FigureCheck } from "@/lib/resume/targeting";
@@ -18,7 +20,6 @@ import { PASTE_LIMIT, POSTING_LIMIT } from "@/lib/resume/limits";
 // marked Correct or fixed before the Word file downloads.
 
 type MasterInfo = { name: string; origin: string; roles: number; lines: number; dropped: number; notes: string[] };
-type FitResult = { master: MasterInfo; fitMap: FitMap; cited: Record<string, string>; corrections?: Correction[] };
 type BuildResult = {
   master: MasterInfo;
   resume: TargetedResume & { jobs: TargetedRole[]; projects: TargetedRole[] };
@@ -48,17 +49,6 @@ function withLine(resume: BuildResult["resume"], oldText: string, newText: strin
 
 const FRIENDLY_ERROR = "Something went wrong on our end. Your work is still here. Try again in a few seconds.";
 
-const VERDICT: Record<string, { label: string; badge: string }> = {
-  apply: { label: "Apply", badge: "tool-badge-success" },
-  stretch: { label: "A stretch worth weighing", badge: "tool-badge-warn" },
-  pass: { label: "Probably not this one", badge: "tool-badge-error" },
-};
-const ASSESSMENT: Record<string, { label: string; badge: string }> = {
-  strong: { label: "Strong", badge: "tool-badge-success" },
-  met: { label: "Met", badge: "tool-badge-success" },
-  partial: { label: "Partial", badge: "tool-badge-warn" },
-  gap: { label: "Gap", badge: "tool-badge-error" },
-};
 const LEVEL: Record<string, { label: string; badge: string }> = {
   pass: { label: "Pass", badge: "tool-badge-success" },
   warn: { label: "Fixed", badge: "tool-badge-warn" },
@@ -123,7 +113,9 @@ function RoleBlock({ role }: { role: TargetedRole }) {
   );
 }
 
-export function TargetedResumeBuilder({ initialTitle = "", initialPosting = "" }: { initialTitle?: string; initialPosting?: string } = {}) {
+// initialFit: the fit a JD Decoder run checked. It is shown, not checked again,
+// while the member keeps the same master and posting.
+export function TargetedResumeBuilder({ initialTitle = "", initialPosting = "", initialFit = null }: { initialTitle?: string; initialPosting?: string; initialFit?: SavedFit | null } = {}) {
   const [master, setMaster] = useState<MasterOption | null>(null);
   const [pasting, setPasting] = useState(false);
   const [pastedText, setPastedText] = useState("");
@@ -193,6 +185,7 @@ export function TargetedResumeBuilder({ initialTitle = "", initialPosting = "" }
             onSelect={(option) => {
               if (option?.ref !== master?.ref) reset();
               setMaster(option);
+              if (initialFit && option?.ref === initialFit.sourceRef && posting === initialPosting && !built) setFit(initialFit);
             }}
             purpose="The posting is compared with this resume, and the targeted resume is written only from it."
           />
@@ -280,63 +273,11 @@ export function TargetedResumeBuilder({ initialTitle = "", initialPosting = "" }
 
       {/* ── STEP 3: FIT ────────────────────────────────────────── */}
       {fit && !busy && (
-        <section className="tool-output-card">
-          <div>
-            <p className="tool-kicker">STEP 3: YOUR FIT</p>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              <span className={`tool-badge ${VERDICT[fit.fitMap.recommendation]?.badge ?? ""}`}>{VERDICT[fit.fitMap.recommendation]?.label ?? fit.fitMap.recommendation}</span>
-            </div>
-            <p className="mt-2 text-sm">{fit.fitMap.reason}</p>
-            <p className="mt-1 text-xs text-[var(--muted)]">
-              Required: {fit.fitMap.counts.mandatory.strong + fit.fitMap.counts.mandatory.met} covered, {fit.fitMap.counts.mandatory.partial} partial, {fit.fitMap.counts.mandatory.gap} gap.
-              Preferred: {fit.fitMap.counts.preferred.strong + fit.fitMap.counts.preferred.met} covered, {fit.fitMap.counts.preferred.partial} partial, {fit.fitMap.counts.preferred.gap} gap.
-              Read from {fit.master.name}: {fit.master.roles} roles, {fit.master.lines} lines.
-            </p>
-          </div>
-          {fit.master.notes.length > 0 && (
-            <ToolAlert variant="info" title="About your master">
-              <ul className="list-disc pl-5 text-sm">
-                {fit.master.notes.map((note, i) => (
-                  <li key={i}>{note}</li>
-                ))}
-              </ul>
-            </ToolAlert>
-          )}
-          <ul className="grid gap-2">
-            {fit.fitMap.requirements.map((r, i) => {
-              const a = ASSESSMENT[r.assessment] ?? ASSESSMENT.gap;
-              const short = r.assessment === "gap" || r.assessment === "partial";
-              return (
-                <li key={i} className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="min-w-0 text-sm font-medium">
-                      {r.requirement} <span className="text-xs font-normal text-[var(--muted)]">({r.type === "mandatory" ? "required" : "preferred"})</span>
-                    </p>
-                    <span className={`tool-badge ${a.badge} shrink-0`} style={{ fontSize: "0.62rem" }}>
-                      {a.label}
-                    </span>
-                  </div>
-                  {r.evidence.length > 0 && (
-                    <ul className="mt-2 grid gap-1 border-l-2 border-[var(--line)] pl-3">
-                      {r.evidence.map((id) =>
-                        fit.cited[id] ? (
-                          <li key={id} className="text-xs text-[var(--muted)]">
-                            {fit.cited[id]}
-                          </li>
-                        ) : null,
-                      )}
-                    </ul>
-                  )}
-                  {r.bridge && <p className="mt-2 text-sm">{r.bridge}</p>}
-                  {short && (
-                    <p className="mt-2 text-xs text-[var(--muted)]">
-                      Have you done this? Add it to your master in Word, upload it to My Files, choose it as your master, and check your fit again. If not, be ready to speak to it.
-                    </p>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+        <FitMapView
+          fit={fit}
+          kicker="STEP 3: YOUR FIT"
+          gapHint="Have you done this? Add it to your master in Word, upload it to My Files, choose it as your master, and check your fit again. If not, be ready to speak to it."
+        >
           <div className="flex flex-wrap gap-2">
             <button className="btn btn-primary text-sm" type="button" disabled={!ready} onClick={() => void build()}>
               {built ? "Build It Again" : "Build My Resume"}
@@ -348,7 +289,7 @@ export function TargetedResumeBuilder({ initialTitle = "", initialPosting = "" }
               </a>
             )}
           </div>
-        </section>
+        </FitMapView>
       )}
 
       {/* ── STEP 4: RESUME ─────────────────────────────────────── */}

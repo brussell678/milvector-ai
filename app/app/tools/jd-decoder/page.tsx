@@ -7,20 +7,14 @@ import { ToolAlert } from "@/components/tools/tool-alert";
 import { ActionBar } from "@/components/tools/action-bar";
 import { Term } from "@/components/ui/term";
 import { MasterResumePicker } from "@/components/tools/master-resume-picker";
+import { FitMapView } from "@/components/tools/fit-map-view";
+import type { FitResult } from "@/lib/resume/fit-check";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
-type PersonalizedFit = {
-  assessed_against_resume: boolean;
-  overall_fit: string;
-  fit_summary: string;
-  matched_strengths: string[];
-  gaps_to_address: string[];
-  honest_recommendation: string;
-};
-
 type Output = {
   runId: string | null;
+  job_title?: string;
   plain_english_summary: string;
   role_mission_summary: string;
   role_level_guess: string;
@@ -35,7 +29,9 @@ type Output = {
   clarifying_questions: string[];
   interview_focus_areas: string[];
   likely_interview_questions: string[];
-  personalized_fit?: PersonalizedFit;
+  // The same fit check the Targeted Resume Builder runs, or why there is none.
+  fit?: FitResult | null;
+  fitNote?: string | null;
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────
@@ -213,7 +209,7 @@ export default function JobDescriptionDecoderPage() {
                 </p>
               </div>
 
-              <MasterResumePicker purpose="Your fit read compares the posting with this resume. Without one, you still get the posting analysis." />
+              <MasterResumePicker purpose="Your fit compares the posting with this resume, the same way the Targeted Resume Builder does. Without one, you still get the posting analysis." />
 
               <label className="block space-y-1">
                 <span className="text-sm font-medium">Full Job Description</span>
@@ -243,7 +239,9 @@ export default function JobDescriptionDecoderPage() {
                 <p className="tool-kicker">NEXT STEP</p>
                 <p className="section-title mt-0.5">Ready to build the resume?</p>
                 <p className="section-description">
-                  Carry this analysis straight into the Targeted Resume Builder — the posting comes with you.
+                  {result.fit
+                    ? "Carry this straight into the Targeted Resume Builder. The posting and your fit come with you, so it goes straight to building."
+                    : "Carry this straight into the Targeted Resume Builder. The posting comes with you."}
                 </p>
               </div>
               <Link href={targeterHref} className="btn btn-primary w-full text-sm">
@@ -260,7 +258,7 @@ export default function JobDescriptionDecoderPage() {
           {loading && (
             <LoadingBlock
               task="Decoding job description…"
-              detail="Reading the posting for requirements, keywords, and interview prep. Usually takes 15–30 seconds."
+              detail="Reading the posting for requirements, keywords, and interview prep, and checking it against your master resume. Usually 15 to 30 seconds, or up to a minute when it checks your fit."
             />
           )}
 
@@ -278,69 +276,30 @@ export default function JobDescriptionDecoderPage() {
             </ToolAlert>
           )}
 
-          {/* ── Group 0: Your Fit ─────────────────────────────────── */}
-          {!loading && result?.personalized_fit && (
-            <div className="tool-output-card">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="tool-kicker">YOUR FIT</p>
-                  <p className="section-title mt-0.5">How You Match This Posting</p>
-                </div>
-                {result.personalized_fit.assessed_against_resume && result.personalized_fit.overall_fit && (
-                  <span
-                    className={`tool-badge shrink-0 mt-1 ${
-                      result.personalized_fit.overall_fit === "Strong" || result.personalized_fit.overall_fit === "Moderate"
-                        ? "tool-badge-success"
-                        : result.personalized_fit.overall_fit === "Stretch"
-                        ? "tool-badge-warn"
-                        : "tool-badge-error"
-                    }`}
-                  >
-                    {result.personalized_fit.overall_fit} Fit
-                  </span>
-                )}
-              </div>
-
-              {!result.personalized_fit.assessed_against_resume ? (
-                <ToolAlert variant="info" title="Fit isn't personalized yet">
-                  <p className="text-sm">
-                    {result.personalized_fit.fit_summary || "This analysis wasn't matched against your background because no master resume is chosen."}{" "}
+          {/* ── Group 0: Your Fit (the builder's fit check) ─────────── */}
+          {!loading && result?.fit && (
+            <FitMapView
+              fit={result.fit}
+              kicker="YOUR FIT"
+              gapHint="Have you done this? Add it to your master in Word, upload it to My Files, choose it as your master, and run this again. If not, be ready to speak to it."
+            />
+          )}
+          {!loading && result && !result.fit && (
+            <ToolAlert variant="info" title={result.fitNote === "no_master" ? "See how you fit" : "Your fit was not checked"}>
+              <p className="text-sm">
+                {result.fitNote === "no_master" ? (
+                  <>
                     Choose your master resume above, or{" "}
                     <Link href="/app/tools/fitrep-bullets" className="font-semibold underline">
                       build one from your records
                     </Link>
-                    , then run this again for a personalized fit assessment.
-                  </p>
-                </ToolAlert>
-              ) : (
-                <>
-                  {result.personalized_fit.fit_summary && (
-                    <p className="text-sm leading-relaxed">{result.personalized_fit.fit_summary}</p>
-                  )}
-                  <OutputList title="Where You Match" items={result.personalized_fit.matched_strengths} />
-                  {result.personalized_fit.gaps_to_address.length > 0 && (
-                    <div className="flex flex-col gap-2">
-                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
-                        Gaps to Address (honestly)
-                      </p>
-                      {result.personalized_fit.gaps_to_address.map((gap, idx) => (
-                        <ToolAlert key={idx} variant="warn">
-                          <p className="text-sm">{gap}</p>
-                        </ToolAlert>
-                      ))}
-                    </div>
-                  )}
-                  {result.personalized_fit.honest_recommendation && (
-                    <div className="flex flex-col gap-1">
-                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--accent)]">
-                        Straight Recommendation
-                      </p>
-                      <p className="text-sm leading-relaxed">{result.personalized_fit.honest_recommendation}</p>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+                    , then run this again to see each requirement matched to your own experience.
+                  </>
+                ) : (
+                  result.fitNote ?? "Your fit could not be checked this time. Run this again to see it."
+                )}
+              </p>
+            </ToolAlert>
           )}
 
           {/* ── Group 1: The Role ─────────────────────────────────── */}

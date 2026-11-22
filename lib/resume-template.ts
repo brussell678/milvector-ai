@@ -103,6 +103,12 @@ function buildOrgLine(experience: StructuredExperience) {
     .join(" | ");
 }
 
+// Type sizes for the targeted resume, in half points (Word's unit). 10 point is
+// the smallest anything on the page may be (Brandon, 2026-11-21): body text
+// fits about 22 to 25 bullets in two pages, where 11 point held 12 to 18.
+// Headings and the name keep Application Studio's proportions to the body.
+const SIZE = { body: 20, heading: 24, title: 24, name: 40 } as const;
+
 function blankParagraph() {
   return new Paragraph({ spacing: { after: 40 } });
 }
@@ -128,7 +134,7 @@ function sectionHeading(text: string) {
         text,
         bold: true,
         font: "Aptos",
-        size: 28,
+        size: SIZE.heading,
       }),
     ],
     spacing: { after: 20 },
@@ -143,7 +149,7 @@ function bodyParagraph(text: string, options?: { italics?: boolean; bold?: boole
         italics: options?.italics,
         bold: options?.bold,
         font: "Aptos",
-        size: 22,
+        size: SIZE.body,
       }),
     ],
     alignment: options?.centered ? AlignmentType.CENTER : undefined,
@@ -157,7 +163,7 @@ function bulletParagraph(text: string) {
       new TextRun({
         text: `${String.fromCodePoint(0x2022)} ${text}`,
         font: "Aptos",
-        size: 22,
+        size: SIZE.body,
       }),
     ],
     spacing: { after: 20 },
@@ -173,7 +179,7 @@ function experienceHeadingParagraph(entry: StructuredExperience) {
   if (role) {
     paragraphs.push(
       new Paragraph({
-        children: [new TextRun({ text: role, bold: true, font: "Aptos", size: 22 })],
+        children: [new TextRun({ text: role, bold: true, font: "Aptos", size: SIZE.body })],
         spacing: { after: 10 },
       })
     );
@@ -182,7 +188,7 @@ function experienceHeadingParagraph(entry: StructuredExperience) {
   if (orgLine) {
     paragraphs.push(
       new Paragraph({
-        children: [new TextRun({ text: orgLine, italics: true, font: "Aptos", size: 22 })],
+        children: [new TextRun({ text: orgLine, italics: true, font: "Aptos", size: SIZE.body })],
         spacing: { after: 20 },
       })
     );
@@ -197,7 +203,7 @@ function compactCoreSkills(skills: string[]) {
 
 function educationCategoryParagraph(label: string) {
   return new Paragraph({
-    children: [new TextRun({ text: label, bold: true, font: "Aptos", size: 22 })],
+    children: [new TextRun({ text: label, bold: true, font: "Aptos", size: SIZE.body })],
     spacing: { after: 10 },
   });
 }
@@ -352,7 +358,7 @@ export async function renderTargetedResumeDocx(args: {
   if (clean(args.contact.full_name)) {
     paragraphs.push(
       new Paragraph({
-        children: [new TextRun({ text: clean(args.contact.full_name), bold: true, font: "Aptos", size: 44 })],
+        children: [new TextRun({ text: clean(args.contact.full_name), bold: true, font: "Aptos", size: SIZE.name })],
         alignment: AlignmentType.CENTER,
         spacing: { after: 0 },
       })
@@ -362,7 +368,7 @@ export async function renderTargetedResumeDocx(args: {
   if (clean(args.resume.target_title)) {
     paragraphs.push(
       new Paragraph({
-        children: [new TextRun({ text: clean(args.resume.target_title), italics: true, font: "Aptos", size: 26 })],
+        children: [new TextRun({ text: clean(args.resume.target_title), italics: true, font: "Aptos", size: SIZE.title })],
         alignment: AlignmentType.CENTER,
         spacing: { after: 0 },
       })
@@ -372,7 +378,7 @@ export async function renderTargetedResumeDocx(args: {
   if (clean(args.resume.tagline)) {
     paragraphs.push(
       new Paragraph({
-        children: [new TextRun({ text: clean(args.resume.tagline).toUpperCase(), bold: true, font: "Aptos", size: 19 })],
+        children: [new TextRun({ text: clean(args.resume.tagline).toUpperCase(), bold: true, font: "Aptos", size: SIZE.body })],
         alignment: AlignmentType.CENTER,
         spacing: { after: 20 },
       })
@@ -383,7 +389,7 @@ export async function renderTargetedResumeDocx(args: {
   if (contactLines.primary) {
     paragraphs.push(
       new Paragraph({
-        children: [new TextRun({ text: contactLines.primary, font: "Aptos", size: 22 })],
+        children: [new TextRun({ text: contactLines.primary, font: "Aptos", size: SIZE.body })],
         alignment: AlignmentType.CENTER,
         spacing: { after: contactLines.secondary ? 10 : 60 },
       })
@@ -393,7 +399,7 @@ export async function renderTargetedResumeDocx(args: {
   if (contactLines.secondary) {
     paragraphs.push(
       new Paragraph({
-        children: [new TextRun({ text: contactLines.secondary, font: "Aptos", size: 22 })],
+        children: [new TextRun({ text: contactLines.secondary, font: "Aptos", size: SIZE.body })],
         alignment: AlignmentType.CENTER,
         spacing: { after: 60 },
       })
@@ -462,7 +468,7 @@ export async function renderTargetedResumeDocx(args: {
         document: {
           run: {
             font: "Aptos",
-            size: 22,
+            size: SIZE.body,
           },
           paragraph: {
             spacing: {
@@ -486,7 +492,7 @@ export async function renderTargetedResumeDocx(args: {
                 children: [
                   new Paragraph({
                     alignment: AlignmentType.RIGHT,
-                    children: [new TextRun({ text: footerText, size: 16, color: "262626", font: "Aptos" })],
+                    children: [new TextRun({ text: footerText, size: SIZE.body, color: "262626", font: "Aptos" })],
                   }),
                 ],
               }),

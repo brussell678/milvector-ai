@@ -1,12 +1,13 @@
 import { TargetedResumeBuilder } from "@/components/tools/targeted-resume-builder";
 import { supabaseServer } from "@/lib/supabase/server";
+import type { SavedFit } from "@/lib/resume/fit-check";
 
 // The Targeted Resume Builder (docs/TARGETED_RESUME_PLAN.md): a resume for one
 // job, written only from the member's own master and checked line by line.
 //
 // Links from other tools land here prefilled: ?title= from the MOS Translator
 // sets the job title; ?jd=<run id> from the JD Decoder sets the posting it
-// decoded (the member's own run only).
+// decoded, its job title, and its fit (the member's own run only).
 export default async function ResumeTargeterPage({ searchParams }: { searchParams: Promise<{ title?: string; jd?: string }> }) {
   const params = await searchParams;
   const supabase = await supabaseServer();
@@ -15,12 +16,18 @@ export default async function ResumeTargeterPage({ searchParams }: { searchParam
   } = await supabase.auth.getUser();
 
   let initialPosting = "";
+  let decodedTitle = "";
+  let initialFit: SavedFit | null = null;
   if (user && params.jd && /^[0-9a-f-]{36}$/i.test(params.jd)) {
     const { data } = await supabase.from("tool_runs").select("output_json").eq("id", params.jd).eq("user_id", user.id).maybeSingle<{ output_json: Record<string, unknown> | null }>();
-    const text = data?.output_json?._jdText;
-    if (typeof text === "string") initialPosting = text;
+    const out = data?.output_json;
+    if (typeof out?._jdText === "string") initialPosting = out._jdText;
+    if (typeof out?.job_title === "string") decodedTitle = out.job_title;
+    // The JD Decoder's fit, shown again rather than checked twice (one fit answer).
+    const fit = out?._fit as SavedFit | undefined;
+    if (initialPosting && fit && typeof fit.sourceRef === "string" && Array.isArray(fit.fitMap?.requirements)) initialFit = fit;
   }
-  const initialTitle = typeof params.title === "string" ? params.title.slice(0, 200) : "";
+  const initialTitle = (typeof params.title === "string" ? params.title : decodedTitle).slice(0, 200);
 
   return (
     <main className="page-shell">
@@ -48,7 +55,7 @@ export default async function ResumeTargeterPage({ searchParams }: { searchParam
         </div>
       </section>
 
-      <TargetedResumeBuilder initialTitle={initialTitle} initialPosting={initialPosting} />
+      <TargetedResumeBuilder initialTitle={initialTitle} initialPosting={initialPosting} initialFit={initialFit} />
     </main>
   );
 }

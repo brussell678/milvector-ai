@@ -21,6 +21,10 @@ const ServerEnvSchema = PublicEnvSchema.extend({
   MASTER_STRUCTURE_MODEL: z.string().min(1).default("gpt-6-luna"),
   // Targeted Resume Builder writing steps: plan, rewrite, summary, fill.
   TARGETED_RESUME_MODEL: z.string().min(1).default("gpt-6.2-sol"),
+  // The fit check the builder and the JD Decoder share (lib/resume/fit-check.ts).
+  // Falls back to the builder's model and effort.
+  FIT_CHECK_MODEL: z.string().min(1).optional(),
+  FIT_CHECK_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).optional(),
   // Reasoning effort for every AI call on a reasoning model (GPT-5 and later,
   // which default to medium: slower and costlier than most tools need).
   LLM_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).default("low"),

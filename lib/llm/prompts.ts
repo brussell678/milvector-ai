@@ -244,14 +244,17 @@ Interests=${(args.interests ?? []).join("; ")}
 `.trim();
 }
 
-export function promptJdDecoder(args: { jobDescriptionText: string; candidateResumeText?: string | null }) {
-  const hasResume = !!(args.candidateResumeText && args.candidateResumeText.trim().length >= 100);
+// The posting analysis only. How the member fits is the shared fit check
+// (lib/resume/fit-check.ts), run beside this, so the JD Decoder and the
+// Targeted Resume Builder give one fit answer.
+export function promptJdDecoder(args: { jobDescriptionText: string }) {
   return `
 You are a Senior Job Description Analyst and Career Transition Strategist.
 Analyze this job posting deeply for a military-to-civilian candidate.
 
 Return JSON:
 {
+  "job_title":"",
   "plain_english_summary":"",
   "role_mission_summary":"",
   "role_level_guess":"Entry|Mid|Senior|Lead|Manager|Director",
@@ -265,18 +268,11 @@ Return JSON:
   "fit_risks":[],
   "clarifying_questions":[],
   "interview_focus_areas":[],
-  "likely_interview_questions":[],
-  "personalized_fit":{
-    "assessed_against_resume": ${hasResume ? "true" : "false"},
-    "overall_fit":"Strong|Moderate|Stretch|Unlikely|",
-    "fit_summary":"",
-    "matched_strengths":[],
-    "gaps_to_address":[],
-    "honest_recommendation":""
-  }
+  "likely_interview_questions":[]
 }
 
 Depth requirements:
+- job_title: the job title exactly as the posting writes it, without location, remote status, or requisition number.
 - hard_requirements: every qualification the posting states as required, one per item. Keep a requirement and the parts it lists together as one item (for example "Project management: planning, risk identification, stakeholder engagement, progress tracking"). Never merge two separate requirements, and never put a preferred qualification here. A posting that requires little gets a short list.
 - soft_requirements: every preferred or "nice to have" qualification the posting states, one per item, with the same rule (usually 8-14)
 - implied_expectations: 6-12 items
@@ -287,24 +283,8 @@ Depth requirements:
 - Do not state specific salary figures unless they appear verbatim in the posting.
 - Use precise, actionable language. Avoid generic filler.
 
-${
-  hasResume
-    ? `Personalized fit (a candidate resume IS provided below):
-- Assess fit ONLY against the candidate resume — do not assume experience it does not show.
-- overall_fit: honest verdict. Do not inflate to be encouraging; a service member relies on this to decide whether to spend effort applying.
-- matched_strengths: 4-8 real strengths from the resume that map to this posting's must-haves, each tied to concrete evidence.
-- gaps_to_address: 3-8 real gaps between the resume and the posting, stated plainly with how the candidate might honestly offset or address each (never by fabricating).
-- honest_recommendation: a candid go / stretch / probably-not-worth-it recommendation with the reason.
-- Balance honesty with fairness: transitioning service members routinely under-sell themselves and get screened out on civilian terminology rather than true capability. When the candidate is a reasonable stretch, say so and encourage them to apply — do not discourage a capable person over wording gaps that a targeted resume and interview can close. Reserve "Unlikely" for genuine hard-requirement misses (e.g., a required licensure or degree they do not hold).`
-    : `Personalized fit (NO candidate resume was provided):
-- Set assessed_against_resume=false and overall_fit="".
-- Do NOT guess how well any specific person fits. In fit_summary, say fit was not personalized because no resume was provided, and that they can run this again after building a master resume.
-- Leave matched_strengths and gaps_to_address empty; honest_recommendation may give general application guidance only.`
-}
-
 JOB DESCRIPTION:
 ${args.jobDescriptionText}
-${hasResume ? `\nCANDIDATE MASTER RESUME:\n${args.candidateResumeText}` : ""}
 `.trim();
 }
 

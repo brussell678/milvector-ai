@@ -1,18 +1,17 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireUser } from "@/lib/auth";
+import { authReplies, requireUser } from "@/lib/auth";
 import { enforceAiUsageLimit } from "@/lib/usage-limit";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getEnv } from "@/lib/env";
-import { redactPII } from "@/lib/redact";
 import { runLoggedJson } from "@/lib/tools/run";
-import { promptFillFromMaster, promptFitMap, promptSummaryRewrite, promptTailorLines, promptTailorPlan, promptVerifyLines } from "@/lib/llm/prompts-resume";
-import { buildFitMap, gateTargetedResume } from "@/lib/resume/build";
+import { promptFillFromMaster, promptSummaryRewrite, promptTailorLines, promptTailorPlan, promptVerifyLines } from "@/lib/llm/prompts-resume";
+import { gateTargetedResume } from "@/lib/resume/build";
+import { citedLines, masterInfo, openCorrectionList, runFitCheck, structureChosen } from "@/lib/resume/fit-check";
 import { summarize } from "@/lib/resume/gates";
 import { POSTING_LIMIT, PASTE_LIMIT } from "@/lib/resume/limits";
 import { recordForPrompt } from "@/lib/resume/record";
-import { structuredMaster } from "@/lib/resume/structured-master";
 import { addRoles, assembleTailored, closeSlots, figureChecks, mergeAdditions, mergeRewrites, planSlots, restoredSlots, rewriteRows, splitProjects, timelineGaps, unusedLines, verifyProblems } from "@/lib/resume/targeting";
 import { loadChosenMaster, loadMasterByRef, MASTER_PROBLEM, type ChosenMaster } from "@/lib/resume-source";
 import { buildTargetedResumeFilename, buildTargetedResumeText, renderTargetedResumeDocx, type StructuredExperience, type StructuredTargetedResume } from "@/lib/resume-template";
@@ -71,7 +70,7 @@ const InputSchema = z.discriminatedUnion("stage", [
   z.object({ stage: z.literal("build"), ...base, fitMap: z.record(z.any()).optional() }),
 ]);
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const { userId, email } = await requireUser();
   const supabase = await supabaseServer();
 
@@ -117,44 +116,18 @@ export async function POST(req: Request) {
   const writeModel = { model: env.TARGETED_RESUME_MODEL, reasoningEffort: env.TARGETED_RESUME_EFFORT };
   const checkModel = { model: env.TARGETED_RESUME_VERIFY_MODEL ?? env.TARGETED_RESUME_MODEL, reasoningEffort: env.TARGETED_RESUME_VERIFY_EFFORT ?? env.TARGETED_RESUME_EFFORT };
 
-  const structured = await structuredMaster({
-    supabase,
-    userId,
-    text: redactPII(chosen.text).text,
-    sourceRef,
-    source: { documentId: chosen.option.id, filename: chosen.option.name, docType: chosen.option.kind === "document" ? "MASTER_RESUME" : "SAVED_MASTER" },
-    model: env.MASTER_STRUCTURE_MODEL,
-    toolName: TOOL,
-  });
+  const structured = await structureChosen({ supabase, userId, chosen, sourceRef, toolName: TOOL });
   if (!structured.ok) return NextResponse.json({ error: structured.error }, { status: structured.status });
-  const { record, support, supportLines, dropped } = structured.master;
+  const { record, support, supportLines } = structured.master;
   const recordText = recordForPrompt(record);
-  const openList = (chosen.ok ? (chosen.corrections?.open ?? []) : []).map((c) => ({ id: c.id, oldLine: c.old_line, newLine: c.new_line ?? "" }));
-  const master = { name: chosen.option.name, origin: chosen.option.origin, roles: record.roles.length, lines: record.stats.accomplishments, dropped: dropped.length, notes: record.openQuestions };
+  const openList = openCorrectionList(chosen);
+  const master = masterInfo(chosen, structured.master);
   const meta = { engine: "master-v2", stage: input.stage, jobTitle: input.jobTitle, company: input.company ?? null, jdLen: input.jobDescriptionText.length };
 
   if (input.stage === "fit") {
-    const run = await runLoggedJson<Record<string, unknown>>({
-      supabase,
-      userId,
-      toolName: TOOL,
-      inputJson: meta,
-      prompt: promptFitMap({ jobTitle: input.jobTitle, company: input.company, jobDescriptionText: input.jobDescriptionText, recordText }),
-      ...writeModel,
-      timeoutMs: 120000,
-      temperature: 0.1,
-    });
-    if (!run.ok) return NextResponse.json({ error: run.error }, { status: 500 });
-    const fitMap = buildFitMap(run.data, record);
-    // The master's own words for each cited line, so the member sees evidence, not ids.
-    const lines: Record<string, string> = {};
-    for (const role of record.roles) {
-      lines[role.id] = [role.title, role.organization, [role.start, role.end].filter(Boolean).join(" - ")].filter(Boolean).join(", ");
-      for (const a of role.accomplishments) lines[a.id] = a.text;
-    }
-    for (const c of record.credentials) lines[c.id] = c.text;
-    const cited = Object.fromEntries(fitMap.requirements.flatMap((r) => r.evidence).filter((id) => lines[id]).map((id) => [id, lines[id]]));
-    return NextResponse.json({ stage: input.stage, master, fitMap, cited, corrections: openList });
+    const fit = await runFitCheck({ supabase, userId, toolName: TOOL, inputJson: meta, record, jobTitle: input.jobTitle, company: input.company, jobDescriptionText: input.jobDescriptionText });
+    if (!fit.ok) return NextResponse.json({ error: fit.error }, { status: 500 });
+    return NextResponse.json({ stage: input.stage, master, fitMap: fit.fitMap, cited: citedLines(fit.fitMap, record), corrections: openList });
   }
 
   // ── Build ──
@@ -491,3 +464,5 @@ export async function POST(req: Request) {
     artifactId: saved?.id ?? null,
   });
 }
+
+export const POST = authReplies(handlePOST);

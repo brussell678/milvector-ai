@@ -22,6 +22,15 @@ that reporter), use the admin composer at /app/admin/updates instead — it can
 link the case. This file is for the general changelog.
 -->
 
+## JD Decoder and the resume builder now agree on your fit {improvement}
+The JD Decoder now checks your fit the same way the Targeted Resume Builder does: each requirement in the posting, matched to the lines in your master resume that prove it. When you go on to build the resume, it starts from that same fit, so you skip a step and get one answer. Checking your fit adds up to a minute.
+
+## Targeted resumes fit more of your experience {improvement}
+Your targeted resume now uses 10 point type, so two pages hold about 22 to 25 bullets instead of 12 to 18. More of your career makes it onto the page, tailored to the job.
+
+## A clear message when your session ends {fix}
+If your sign-in expired while you were using a tool, you got a vague error. Now it tells you to sign in again and try once more.
+
 ## Text boxes show what you paste {fix}
 Boxes for pasting a job posting, a resume, or notes showed only about two lines, so you could not tell whether everything went in. They now open at their full size, and you can drag the corner to make them bigger.
 
