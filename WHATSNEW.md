@@ -22,6 +22,15 @@ that reporter), use the admin composer at /app/admin/updates instead — it can
 link the case. This file is for the general changelog.
 -->
 
+## Delete your account any time {new}
+You can now delete your MilVector account yourself, from your Profile. It permanently removes your files, resumes, tool history, and everything else in your account. Download anything you want to keep from My Files first.
+
+## Every MilVector tool on one page {new}
+Anyone can now see all 11 tools and what each one does at milvector.org/tools, before making an account. Share it with a fellow service member getting ready to transition.
+
+## Sign in and pick up where you were {improvement}
+If you open a MilVector link while signed out, like a Timeline task or a job you decoded, you now land on that page after signing in instead of the home screen.
+
 ## Timeline tasks open the tool that does them {improvement}
 Eleven more Timeline tasks now have a button to the MilVector tool for that job, like the SBP Decision Advisor on your SBP election and the VA Rating Navigator on your VA claim. The VA claim task also moved to the 9-month phase, so you see it before its 180 to 90 day filing window opens.
 
