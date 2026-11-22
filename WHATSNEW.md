@@ -22,6 +22,12 @@ that reporter), use the admin composer at /app/admin/updates instead — it can
 link the case. This file is for the general changelog.
 -->
 
+## Travel and schedule no longer count against your fit {improvement}
+When the JD Decoder or the Targeted Resume Builder checks your fit, conditions of the job, like travel, relocation, schedule, or a background check, now show as things to confirm instead of gaps. They no longer turn a good fit into a pass.
+
+## Short postings no longer blank the page {fix}
+Pasting a job posting that was too short, or a form entry the tool couldn't use, could leave the page blank. Now it tells you what to fix.
+
 ## Your home screen flags your VA claim and SBP deadlines {improvement}
 As your date gets close, Do this next on your home screen now points you to your VA claim while its pre-discharge window is open, and to your SBP decision before you retire. Once one is done, check it off on your Timeline and the next step takes its place.
 
