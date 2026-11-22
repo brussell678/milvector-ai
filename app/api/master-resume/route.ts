@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { authReplies, requireUser } from "@/lib/auth";
 import { listMasterOptions, parseMasterRef, readMasterChoice } from "@/lib/resume-source";
 import { supabaseServer } from "@/lib/supabase/server";
 
 // The member's master resume: what they can choose from, and their choice.
-export async function GET() {
+async function handleGET() {
   const { userId } = await requireUser();
   const supabase = await supabaseServer();
   const choice = await readMasterChoice(supabase, userId);
@@ -15,7 +15,7 @@ export async function GET() {
 }
 
 // The member chooses their master resume: { ref: "document:<id>" | "artifact:<id>" }.
-export async function PUT(req: Request) {
+async function handlePUT(req: Request) {
   const { userId } = await requireUser();
   const supabase = await supabaseServer();
 
@@ -39,3 +39,6 @@ export async function PUT(req: Request) {
   if (!data) return NextResponse.json({ error: "Finish setting up your profile first." }, { status: 409 });
   return NextResponse.json({ chosen: ref, option });
 }
+
+export const GET = authReplies(handleGET);
+export const PUT = authReplies(handlePUT);

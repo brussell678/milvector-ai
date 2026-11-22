@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireUser } from "@/lib/auth";
+import { authReplies, requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { notifyAdminNewTicket } from "@/lib/email";
@@ -19,7 +19,7 @@ const FeedbackSchema = z.object({
   suggested_tool: z.string().max(200).optional().nullable(),
 });
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   try {
     const supabase = await supabaseServer();
     const {
@@ -112,7 +112,7 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET() {
+async function handleGET() {
   try {
     const { userId } = await requireUser();
     const supabase = await supabaseServer();
@@ -133,3 +133,6 @@ export async function GET() {
     return NextResponse.json({ error: "Unable to load feedback." }, { status: 500 });
   }
 }
+
+export const POST = authReplies(handlePOST);
+export const GET = authReplies(handleGET);

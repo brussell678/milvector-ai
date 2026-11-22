@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { authReplies, requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 
 type ParamsCtx = { params: Promise<{ id: string }> };
 
-export async function PATCH(req: Request, ctx: ParamsCtx) {
+async function handlePATCH(req: Request, ctx: ParamsCtx) {
   const { userId } = await requireUser();
   const { id } = await ctx.params;
   const supabase = await supabaseServer();
@@ -27,7 +27,7 @@ export async function PATCH(req: Request, ctx: ParamsCtx) {
   return NextResponse.json({ artifact: data });
 }
 
-export async function DELETE(_req: Request, ctx: ParamsCtx) {
+async function handleDELETE(_req: Request, ctx: ParamsCtx) {
   const { userId } = await requireUser();
   const { id } = await ctx.params;
   const supabase = await supabaseServer();
@@ -42,3 +42,5 @@ export async function DELETE(_req: Request, ctx: ParamsCtx) {
   return NextResponse.json({ ok: true });
 }
 
+export const PATCH = authReplies(handlePATCH);
+export const DELETE = authReplies(handleDELETE);

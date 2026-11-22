@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { authReplies, requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 
 type BulkPayload = {
@@ -7,7 +7,7 @@ type BulkPayload = {
   ids?: string[];
 };
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const { userId } = await requireUser();
   const supabase = await supabaseServer();
   const body = (await req.json().catch(() => ({}))) as BulkPayload;
@@ -63,3 +63,4 @@ export async function POST(req: Request) {
   return NextResponse.json({ ok: true, action, count: inserted?.length ?? 0 });
 }
 
+export const POST = authReplies(handlePOST);

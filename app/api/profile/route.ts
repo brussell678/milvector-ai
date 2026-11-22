@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { authReplies, requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { ProfileUpsertSchema } from "@/lib/validators/profile";
 
-export async function GET() {
+async function handleGET() {
   const { userId } = await requireUser();
   const supabase = await supabaseServer();
 
@@ -17,7 +17,7 @@ export async function GET() {
   return NextResponse.json({ profile: data ?? null });
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const { userId } = await requireUser();
   const supabase = await supabaseServer();
 
@@ -54,3 +54,6 @@ export async function POST(req: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ profile: data });
 }
+
+export const GET = authReplies(handleGET);
+export const POST = authReplies(handlePOST);

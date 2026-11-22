@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { authReplies, requireAdmin } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 
-export async function POST(_: Request, { params }: { params: Promise<{ id: string }> }) {
+async function handlePOST(_: Request, { params }: { params: Promise<{ id: string }> }) {
   await requireAdmin();
   const supabase = await supabaseServer();
   const { id } = await params;
@@ -36,3 +36,5 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
 
   return NextResponse.json({ ok: true });
 }
+
+export const POST = authReplies(handlePOST);

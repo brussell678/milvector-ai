@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { authReplies, requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { extractTextFromDocumentBuffer } from "@/lib/documents";
 import { redactPII } from "@/lib/redact";
 
-export async function POST(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+async function handlePOST(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { userId } = await requireUser();
   const supabase = await supabaseServer();
   const { id: documentId } = await ctx.params;
@@ -74,3 +74,5 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
 
   return NextResponse.json({ ok: true, redactions: redaction.counts, redactionTotal: redaction.total });
 }
+
+export const POST = authReplies(handlePOST);

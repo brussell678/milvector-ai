@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { authReplies, requireAdmin } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 
-export async function DELETE(_req: Request, context: { params: Promise<{ userId: string }> }) {
+async function handleDELETE(_req: Request, context: { params: Promise<{ userId: string }> }) {
   try {
     await requireAdmin();
     const { userId } = await context.params;
@@ -20,3 +20,5 @@ export async function DELETE(_req: Request, context: { params: Promise<{ userId:
     return NextResponse.json({ error: "Unable to remove posting block." }, { status: 500 });
   }
 }
+
+export const DELETE = authReplies(handleDELETE);

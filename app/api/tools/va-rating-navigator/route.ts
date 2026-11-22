@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { authReplies, requireUser } from "@/lib/auth";
 import { enforceAiUsageLimit } from "@/lib/usage-limit";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getEnv } from "@/lib/env";
@@ -20,7 +20,7 @@ type IdentifyOutput = {
   conditions: { input: string; plain_language: string; candidate_codes: { code: string; why: string }[]; dbq_numbers: number[]; note: string }[];
 };
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const { userId, email } = await requireUser();
   const supabase = await supabaseServer();
 
@@ -180,3 +180,5 @@ export async function POST(req: Request) {
     },
   });
 }
+
+export const POST = authReplies(handlePOST);

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { authReplies, requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 
-export async function GET() {
+async function handleGET() {
   const { userId } = await requireUser();
   const supabase = await supabaseServer();
 
@@ -70,3 +70,5 @@ export async function GET() {
       typeof timeToFirstValueMinutes === "number" ? timeToFirstValueMinutes <= 10 : null,
   });
 }
+
+export const GET = authReplies(handleGET);

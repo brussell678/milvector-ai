@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { authReplies, requireUser } from "@/lib/auth";
 import { enforceAiUsageLimit } from "@/lib/usage-limit";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getEnv } from "@/lib/env";
@@ -31,7 +31,7 @@ function briefingJson(briefing: Record<string, unknown>) {
   return JSON.stringify({ battle_card, likely_questions: questions, risk_areas, interview_style }).slice(0, 9000);
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const { userId, email } = await requireUser();
   const supabase = await supabaseServer();
 
@@ -149,3 +149,5 @@ export async function POST(req: Request) {
   if (!run.ok) return NextResponse.json({ error: run.error }, { status: 500 });
   return NextResponse.json({ stage: input.stage, review: run.data });
 }
+
+export const POST = authReplies(handlePOST);

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireUser } from "@/lib/auth";
+import { authReplies, requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 
 const UpdateDocumentSchema = z.object({
@@ -8,7 +8,7 @@ const UpdateDocumentSchema = z.object({
   doc_type: z.enum(["FITREP", "EVAL", "VMET", "JST", "MASTER_RESUME", "RESUME_TEMPLATE", "TARGETED_RESUME", "LINKEDIN_PROFILE", "OTHER"]).optional(),
 });
 
-export async function PATCH(req: Request, context: { params: Promise<{ id: string }> }) {
+async function handlePATCH(req: Request, context: { params: Promise<{ id: string }> }) {
   const { userId } = await requireUser();
   const { id } = await context.params;
   const supabase = await supabaseServer();
@@ -40,7 +40,7 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
   return NextResponse.json({ ok: true });
 }
 
-export async function DELETE(_req: Request, context: { params: Promise<{ id: string }> }) {
+async function handleDELETE(_req: Request, context: { params: Promise<{ id: string }> }) {
   const { userId } = await requireUser();
   const { id } = await context.params;
   const supabase = await supabaseServer();
@@ -68,3 +68,6 @@ export async function DELETE(_req: Request, context: { params: Promise<{ id: str
 
   return NextResponse.json({ ok: true });
 }
+
+export const PATCH = authReplies(handlePATCH);
+export const DELETE = authReplies(handleDELETE);

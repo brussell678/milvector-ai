@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { authReplies, requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 
-export async function GET(req: Request) {
+async function handleGET(req: Request) {
   const { userId } = await requireUser();
   const supabase = await supabaseServer();
   const url = new URL(req.url);
@@ -23,3 +23,5 @@ export async function GET(req: Request) {
 
   return NextResponse.json({ artifacts: data ?? [] });
 }
+
+export const GET = authReplies(handleGET);

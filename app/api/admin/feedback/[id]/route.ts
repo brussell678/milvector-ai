@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth";
+import { authReplies, requireAdmin } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { notifyUserAdminResponse } from "@/lib/email";
 
@@ -9,7 +9,7 @@ const UpdateFeedbackSchema = z.object({
   adminResponse: z.string().trim().max(4000).optional().nullable(),
 });
 
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+async function handlePATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   await requireAdmin();
   const supabase = await supabaseServer();
   const { id } = await params;
@@ -57,3 +57,5 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   return NextResponse.json({ ok: true });
 }
+
+export const PATCH = authReplies(handlePATCH);

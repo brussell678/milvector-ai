@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { authReplies, requireUser } from "@/lib/auth";
 import { enforceAiUsageLimit } from "@/lib/usage-limit";
 import { supabaseServer } from "@/lib/supabase/server";
 import { MosTranslatorInputSchema } from "@/lib/validators/tools";
@@ -12,7 +12,7 @@ type MosTranslatorOutput = {
   recommended_certs: { name: string; why: string; time_to_get: string }[];
 };
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const { userId, email } = await requireUser();
   const supabase = await supabaseServer();
   const overLimit = await enforceAiUsageLimit({ supabase, userId, email });
@@ -56,3 +56,5 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ ...(llm.data as object), runId: runData?.id ?? null });
 }
+
+export const POST = authReplies(handlePOST);

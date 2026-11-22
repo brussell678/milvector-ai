@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth";
+import { authReplies, requireAdmin } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 
 const CreateBlockSchema = z.object({
@@ -8,7 +8,7 @@ const CreateBlockSchema = z.object({
   reason: z.string().trim().max(500).optional().nullable(),
 });
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   try {
     const admin = await requireAdmin();
     const supabase = await supabaseServer();
@@ -35,3 +35,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unable to block this user." }, { status: 500 });
   }
 }
+
+export const POST = authReplies(handlePOST);

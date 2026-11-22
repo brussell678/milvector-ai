@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { authReplies, requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { buildTargetedResumeFilename, isStructuredTargetedResume, renderTargetedResumeDocx } from "@/lib/resume-template";
 import { Document, Packer, Paragraph, TextRun } from "docx";
@@ -12,7 +12,7 @@ function slugify(value: string) {
     .slice(0, 80);
 }
 
-export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+async function handleGET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const reqUrl = new URL(_req.url);
   const format = reqUrl.searchParams.get("format") === "docx" ? "docx" : "txt";
   const { userId } = await requireUser();
@@ -119,3 +119,5 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     },
   });
 }
+
+export const GET = authReplies(handleGET);

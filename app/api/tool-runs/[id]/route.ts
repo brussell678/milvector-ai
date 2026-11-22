@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { authReplies, requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 
 type ParamsCtx = { params: Promise<{ id: string }> };
 
-export async function GET(_req: Request, ctx: ParamsCtx) {
+async function handleGET(_req: Request, ctx: ParamsCtx) {
   const { userId } = await requireUser();
   const { id } = await ctx.params;
   const supabase = await supabaseServer();
@@ -22,3 +22,5 @@ export async function GET(_req: Request, ctx: ParamsCtx) {
 
   return NextResponse.json(data);
 }
+
+export const GET = authReplies(handleGET);

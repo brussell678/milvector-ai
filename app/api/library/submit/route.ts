@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { authReplies, requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 
 const MAX_MB = Number(process.env.MAX_UPLOAD_MB ?? "10");
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const { userId } = await requireUser();
   const supabase = await supabaseServer();
 
@@ -46,3 +46,5 @@ export async function POST(req: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true, submissionId });
 }
+
+export const POST = authReplies(handlePOST);

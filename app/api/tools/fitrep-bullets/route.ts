@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { enforceAiUsageLimit } from "@/lib/usage-limit";
-import { requireUser } from "@/lib/auth";
+import { authReplies, requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { FitrepBulletsSchema } from "@/lib/validators/documents";
 import { generateJson } from "@/lib/llm/client";
@@ -255,7 +255,7 @@ function mergeProfessionalExperience(masterResume: string) {
   return [...before, ...rebuilt, ...after].join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const env = getEnv();
   const { userId, email } = await requireUser();
   const supabase = await supabaseServer();
@@ -594,3 +594,5 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ artifactId: artifact.id, ...llm.data });
 }
+
+export const POST = authReplies(handlePOST);

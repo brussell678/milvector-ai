@@ -12,7 +12,7 @@
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireUser } from "@/lib/auth";
+import { authReplies, requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { replaceLine } from "@/lib/resume/corrections";
 import { cleanPunctuation, pastTense } from "@/lib/resume/gates";
@@ -25,7 +25,7 @@ const InputSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("remove"), artifactId: z.string().uuid(), text: z.string().min(1).max(2000) }),
 ]);
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const { userId } = await requireUser();
   const parsed = InputSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
@@ -110,3 +110,5 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ ok: true, text: replacement, item, kept });
 }
+
+export const POST = authReplies(handlePOST);

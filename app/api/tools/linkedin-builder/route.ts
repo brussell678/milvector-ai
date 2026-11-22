@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { enforceAiUsageLimit } from "@/lib/usage-limit";
 import sharp from "sharp";
-import { requireUser } from "@/lib/auth";
+import { authReplies, requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { generateImage, generateJson } from "@/lib/llm/client";
 import {
@@ -409,7 +409,7 @@ async function formatLinkedinBannerImage(sourcePng: Buffer) {
   } as const;
 }
 
-export async function GET() {
+async function handleGET() {
   const { userId } = await requireUser();
   const supabase = await supabaseServer();
 
@@ -450,7 +450,7 @@ export async function GET() {
   return NextResponse.json({ profiles });
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const { userId, email } = await requireUser();
   const supabase = await supabaseServer();
   const body = await req.json();
@@ -843,3 +843,6 @@ export async function POST(req: Request) {
     sizeBytes: formattedBanner.sizeBytes,
   });
 }
+
+export const GET = authReplies(handleGET);
+export const POST = authReplies(handlePOST);

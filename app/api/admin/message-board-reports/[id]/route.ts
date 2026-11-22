@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth";
+import { authReplies, requireAdmin } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 
 const UpdateReportSchema = z.object({
@@ -8,7 +8,7 @@ const UpdateReportSchema = z.object({
   moderatorNotes: z.string().trim().max(1000).optional().nullable(),
 });
 
-export async function PATCH(req: Request, context: { params: Promise<{ id: string }> }) {
+async function handlePATCH(req: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params;
     const admin = await requireAdmin();
@@ -40,3 +40,5 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
     return NextResponse.json({ error: "Unable to update report." }, { status: 500 });
   }
 }
+
+export const PATCH = authReplies(handlePATCH);

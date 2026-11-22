@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { authReplies, requireUser } from "@/lib/auth";
 import { enforceAiUsageLimit } from "@/lib/usage-limit";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getEnv } from "@/lib/env";
@@ -24,7 +24,7 @@ type SbpAssessment = {
 const text = (value: unknown) => String(value ?? "").trim();
 const list = (value: unknown) => (Array.isArray(value) ? value.map((item) => text(item)).filter(Boolean) : []);
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   const { userId, email } = await requireUser();
   const supabase = await supabaseServer();
 
@@ -88,3 +88,5 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ analysis, assessment, runId: run.runId });
 }
+
+export const POST = authReplies(handlePOST);

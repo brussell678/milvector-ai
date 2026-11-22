@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/auth";
+import { authReplies, requireAdmin } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { notifyUserRequestShipped } from "@/lib/email";
 
@@ -13,7 +13,7 @@ const CreateUpdateSchema = z.object({
   published: z.boolean().optional().default(true),
 });
 
-export async function GET() {
+async function handleGET() {
   await requireAdmin();
   const supabase = await supabaseServer();
 
@@ -27,7 +27,7 @@ export async function GET() {
   return NextResponse.json({ updates: data ?? [] });
 }
 
-export async function POST(req: Request) {
+async function handlePOST(req: Request) {
   await requireAdmin();
   const supabase = await supabaseServer();
 
@@ -76,3 +76,6 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ id: created.id, ok: true });
 }
+
+export const GET = authReplies(handleGET);
+export const POST = authReplies(handlePOST);
