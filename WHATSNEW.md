@@ -22,6 +22,15 @@ that reporter), use the admin composer at /app/admin/updates instead — it can
 link the case. This file is for the general changelog.
 -->
 
+## Text boxes show what you paste {fix}
+Boxes for pasting a job posting, a resume, or notes showed only about two lines, so you could not tell whether everything went in. They now open at their full size, and you can drag the corner to make them bigger.
+
+## Error messages are easy to read again {fix}
+In the light theme, error messages across MilVector, from sign-in to the tools, showed pale pink text on a pale pink box. They now use the same dark text as everything else, so you can read what went wrong.
+
+## Timeline documents open again {fix}
+The ceremony checklist, planning checklist, and Appendix J buttons on Timeline tasks led to a page not found. They now open the document, and the button says which one it is.
+
 ## Targeted Resume Builder, rebuilt {improvement}
 It now shows how you fit a job before writing anything, then tailors your resume to the posting using only what your master resume says. Before the Word file downloads, you check every figure and any new wording, and a fix you make carries into every resume after.
 
