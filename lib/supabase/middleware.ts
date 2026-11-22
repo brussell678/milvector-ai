@@ -23,7 +23,21 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // A signed-out visit to the workspace goes to sign-in, carrying where it was
+  // headed so the member lands there afterwards (a Timeline link, a ?jd= link).
+  const { pathname, search } = request.nextUrl;
+  if (!user && (pathname === "/app" || pathname.startsWith("/app/"))) {
+    const target = request.nextUrl.clone();
+    target.pathname = "/auth";
+    target.search = `?next=${encodeURIComponent(pathname + search)}`;
+    const redirect = NextResponse.redirect(target);
+    response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+    return redirect;
+  }
 
   return response;
 }

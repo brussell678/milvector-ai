@@ -52,6 +52,11 @@ const privacyPoints = [
     detail:
       "Support cases, community moderation, and library submissions can be reviewed by the MilVector admin account so issues can be resolved and unsafe content can be managed inside the workspace.",
   },
+  {
+    title: "Deleting Your Account",
+    detail:
+      "You can delete your account yourself, at any time, from your Profile. That permanently deletes your profile, uploaded records, every resume and file MilVector made for you, your tool history and Timeline progress, your support tickets, and your business card and retirement invitation along with the answers guests sent. Your Community replies and any thread nobody answered are deleted; a thread other members replied to stays, shown as from a former member, so their replies are not lost.",
+  },
 ];
 
 const commitments = [
@@ -60,7 +65,7 @@ const commitments = [
   "We do not sell your information.",
   "Site analytics run on public pages only, never inside your workspace.",
   "Guests who answer a retirement invitation are seen only by the host, and their answers are deleted 180 days after the ceremony.",
-  "You control what you upload into your workspace.",
+  "You control what you upload into your workspace, and you can delete your account and everything in it from your Profile.",
   "Community and support content may be reviewed when moderation or resolution is required.",
 ];
 

@@ -10,6 +10,8 @@ type AuthMode = "password" | "signup" | "magic" | "forgot" | "update-password";
 type AuthFormProps = {
   initialError?: string;
   initialMode?: string;
+  // Where to land once signed in; already checked to be a path on this site.
+  next?: string;
 };
 
 type SignupFields = {
@@ -50,7 +52,8 @@ async function syncProfile(fields?: Record<string, string | null>) {
   if (!res.ok) throw new Error(data.error ?? "Profile sync failed");
 }
 
-export function AuthForm({ initialError, initialMode }: AuthFormProps) {
+export function AuthForm({ initialError, initialMode, next = "/app" }: AuthFormProps) {
+  const confirmNext = encodeURIComponent(next);
   const [mode, setMode] = useState<AuthMode>(() => normalizeMode(initialMode));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -106,7 +109,7 @@ export function AuthForm({ initialError, initialMode }: AuthFormProps) {
         return;
       }
       await syncProfile();
-      window.location.assign("/app");
+      window.location.assign(next);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to sign in.");
     } finally {
@@ -127,7 +130,7 @@ export function AuthForm({ initialError, initialMode }: AuthFormProps) {
         return;
       }
 
-      const redirectTo = `${origin}/auth/confirm?next=/app`;
+      const redirectTo = `${origin}/auth/confirm?next=${confirmNext}`;
       const supabase = supabaseBrowser();
       const { data, error: authError } = await supabase.auth.signUp({
         email: signup.email,
@@ -167,7 +170,7 @@ export function AuthForm({ initialError, initialMode }: AuthFormProps) {
       const supabase = supabaseBrowser();
       const { error: authError } = await supabase.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: `${origin}/auth/confirm?next=/app` },
+        options: { emailRedirectTo: `${origin}/auth/confirm?next=${confirmNext}` },
       });
 
       if (authError) {
@@ -364,10 +367,21 @@ export function AuthForm({ initialError, initialMode }: AuthFormProps) {
         {/* On a phone the form comes first; the pitch sits below it. */}
         <div className="order-1 p-6 sm:p-8 md:order-2 md:p-10">
           <p className="text-xs font-semibold tracking-[0.22em] text-[var(--accent)]">SECURE ACCESS</p>
-          <h2 className="mt-3 text-3xl font-extrabold tracking-tight">Open your workspace</h2>
-          <p className="mt-2 text-sm text-[var(--muted)]">
-            Use email and password by default. Magic links remain available if you prefer passwordless access.
-          </p>
+          {mode === "signup" ? (
+            <>
+              <h2 className="mt-3 text-3xl font-extrabold tracking-tight">Create your free account</h2>
+              <p className="mt-2 text-sm text-[var(--muted)]">
+                Free for service members. All you need is an email and a password.
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="mt-3 text-3xl font-extrabold tracking-tight">Open your workspace</h2>
+              <p className="mt-2 text-sm text-[var(--muted)]">
+                Use email and password by default. Magic links remain available if you prefer passwordless access.
+              </p>
+            </>
+          )}
 
           {mode !== "update-password" ? (
             <div className="mt-6 grid grid-cols-2 gap-2 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-1 sm:grid-cols-4">

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, ReactNode, useEffect, useRef, useState } from "react";
+import { DeleteAccount } from "@/components/account/delete-account";
 import { ChipInput } from "@/components/ui/chip-input";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
@@ -593,6 +594,8 @@ export default function ProfilePage() {
           </div>
         ) : null}
       </section>
+
+      <DeleteAccount />
     </main>
   );
 }

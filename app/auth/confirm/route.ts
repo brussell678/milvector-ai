@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { syncAuthenticatedProfile } from "@/lib/auth-profile";
+import { safeNext } from "@/lib/safe-next";
 import { supabaseServer } from "@/lib/supabase/server";
 
 function formatAuthErrorMessage(message: string) {
@@ -17,7 +18,8 @@ export async function GET(req: Request) {
   const code = url.searchParams.get("code");
   const tokenHash = url.searchParams.get("token_hash");
   const type = url.searchParams.get("type");
-  const next = url.searchParams.get("next") ?? "/app";
+  // A path on this site only: the link is emailed, so its query can be crafted.
+  const next = safeNext(url.searchParams.get("next"));
   const origin = url.origin;
 
   const supabase = await supabaseServer();

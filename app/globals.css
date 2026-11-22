@@ -247,6 +247,22 @@ body {
   border-color: var(--line);
 }
 
+/* Destructive action (delete account). Outlined, so it never reads as the
+   page's main button. Same reds as .tool-badge-error. */
+.btn-danger {
+  background: var(--surface);
+  color: #a3271a;
+  border: 1px solid color-mix(in oklab, #c13e2a 55%, var(--line) 45%);
+}
+
+.btn-danger:hover {
+  background: color-mix(in oklab, var(--panel) 80%, #8b2000 20%);
+}
+
+:root[data-theme="dark"] .btn-danger {
+  color: #ff8f73;
+}
+
 /* Ghost button for dark hero backgrounds */
 .btn-hero-ghost {
   background: rgba(255, 255, 255, 0.07);

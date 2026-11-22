@@ -7,7 +7,7 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
       // The signed-in product, API, and routes that only redirect into it.
-      disallow: ["/app/", "/api/", "/auth", "/login", "/dashboard", "/tools", "/welcome", "/message-board"],
+      disallow: ["/app/", "/api/", "/auth", "/login", "/dashboard", "/account-deleted", "/welcome", "/message-board"],
     },
     sitemap: `${siteUrl}/sitemap.xml`,
   };

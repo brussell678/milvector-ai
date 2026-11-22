@@ -15,7 +15,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 // tightest width in each band.
 const navLinks = [
   { href: "/platform", label: "Why MilVector" },
-  { href: "/app/tools", label: "Tools" },
+  { href: "/tools", label: "Tools" },
   { href: "/retirement-calculator", label: "Pay Calculator" },
   { href: "/knowledge-base", label: "Knowledge Base" },
   { href: "/library", label: "Library", wideOnly: true },

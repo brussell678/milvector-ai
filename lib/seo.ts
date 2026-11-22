@@ -11,7 +11,7 @@ export const shareImage = {
 };
 
 // Public, indexable pages. Everything under /app is the signed-in product.
-export const publicRoutes = ["/", "/retirement-calculator", "/platform", "/knowledge-base", "/library", "/donate", "/feedback", "/privacy", "/whats-new"];
+export const publicRoutes = ["/", "/tools", "/retirement-calculator", "/platform", "/knowledge-base", "/library", "/donate", "/feedback", "/privacy", "/whats-new"];
 
 export function pageMetadata({
   title,

@@ -49,6 +49,7 @@ export const metadata: Metadata = {
 const footerNav = [
   { href: "/", label: "Home" },
   { href: "/platform", label: "Why MilVector" },
+  { href: "/tools", label: "Tools" },
   { href: "/knowledge-base", label: "Knowledge Base" },
   { href: "/library", label: "Resource Library" },
   { href: "/message-board", label: "Community" },

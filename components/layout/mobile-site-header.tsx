@@ -10,7 +10,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const navLinks = [
   { href: "/", label: "Home" },
   { href: "/platform", label: "Why MilVector" },
-  { href: "/app/tools", label: "Tools" },
+  { href: "/tools", label: "Tools" },
   { href: "/retirement-calculator", label: "Retirement Pay Calculator" },
   { href: "/knowledge-base", label: "Knowledge Base" },
   { href: "/library", label: "Resource Library" },

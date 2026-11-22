@@ -1,10 +1,11 @@
 export const GA_MEASUREMENT_ID = "G-NH8RKDGNC2";
 
 // Analytics covers the public pages only. The signed-in workspace, auth flow, and
-// redirect-only routes are never measured.
+// redirect-only routes are never measured, nor is the page shown after an account
+// is deleted.
 // Digital business cards (/c/) and retirement invitations (/r/) are members'
 // personal pages, so their visitors are not measured either.
-const PRIVATE_PATH = /^\/(app|auth|login|welcome|dashboard|tools|api|message-board|c|r)(\/|$)/;
+const PRIVATE_PATH = /^\/(app|auth|login|welcome|dashboard|account-deleted|api|message-board|c|r)(\/|$)/;
 
 // Sign-in links land with one-time codes in the query string; never send those to Google.
 const AUTH_PARAMS = /[?&](code|token_hash|token|access_token|refresh_token|error_description)=/;
