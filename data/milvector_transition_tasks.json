@@ -1765,8 +1765,8 @@
                   },
                   {
                       "external_id":  "mv-0104",
-                      "title":  "FSGLI conversion (\u003c120 days from EAS) if desired",
-                      "description":  "Decide whether family coverage needs conversion before the eligibility window closes.",
+                      "title":  "Spouse FSGLI: convert within 120 days after EAS, if desired",
+                      "description":  "Your spouse\u0027s FSGLI coverage ends 120 days after you separate. Within that window it can be converted to a permanent policy, such as whole life, with a participating insurer and no health review. It cannot be converted to VGLI.",
                       "category":  "Post-Retirement",
                       "anchor_event":  "EAS",
                       "days_before_event":  1,
@@ -1786,8 +1786,8 @@
                   },
                   {
                       "external_id":  "mv-0105",
-                      "title":  "Convert SGLI to VGLI (\u003c120 days from EAS) if desired",
-                      "description":  "$500K whole life",
+                      "title":  "Decide on VGLI: apply within 240 days after EAS to skip the health review",
+                      "description":  "VGLI is renewable term life insurance for up to the amount of SGLI you had when you separate. Apply within 240 days after separation and you don\u0027t have to prove good health. You can still apply up to 1 year and 120 days after separation, but then health questions apply.",
                       "category":  "Post-Retirement",
                       "anchor_event":  "EAS",
                       "days_before_event":  90,

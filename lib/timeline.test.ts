@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { PHASE_LABEL, TIMELINE_MARKERS, phaseFromDays, phaseSentence } from "@/lib/timeline";
+import { PHASE_LABEL, TIMELINE_MARKERS, daysUntilDate, phaseFromDays, phaseSentence, signedDaysUntil } from "@/lib/timeline";
+
+describe("days until a date", () => {
+  const now = new Date("2026-11-22T15:00:00Z");
+  it("goes negative after the date, while daysUntilDate stops at 0", () => {
+    expect(signedDaysUntil("2026-12-02", now)).toBe(10);
+    expect(signedDaysUntil("2026-11-22", now)).toBe(0);
+    expect(signedDaysUntil("2026-11-12", now)).toBe(-10);
+    expect(daysUntilDate("2026-11-12", now)).toBe(0);
+    expect(signedDaysUntil(null, now)).toBeNull();
+  });
+});
 
 describe("timeline phase names", () => {
   it("names every Timeline marker", () => {

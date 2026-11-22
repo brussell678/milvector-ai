@@ -124,6 +124,19 @@ describe("Timeline tasks link to the tool that does them", () => {
     expect(merged.assistance_notes).toBe("");
   });
 
+  it("states the current VGLI and FSGLI windows (va.gov, checked 2026-11-22)", () => {
+    const vgli = byId.get("mv-0105");
+    expect(vgli?.title).toContain("240 days");
+    expect(vgli?.description).toContain("1 year and 120 days");
+    expect(vgli?.description).not.toMatch(/whole life/i);
+    expect(byId.get("mv-0104")?.title).toContain("within 120 days after EAS");
+  });
+
+  it("shows the curated title over an older one in the database", () => {
+    const [merged] = mergeDashboardTasks([row({ external_id: "mv-0105", title: "Convert SGLI to VGLI (<120 days from EAS) if desired" })], data.tasks);
+    expect(merged.title).toBe("Decide on VGLI: apply within 240 days after EAS to skip the health review");
+  });
+
   it("files the VA claim inside the BDD window, 180 to 90 days before EAS", () => {
     const bdd = byId.get("mv-0014");
     expect(bdd?.days_before_event).toBeLessThanOrEqual(180);

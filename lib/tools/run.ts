@@ -39,7 +39,8 @@ export async function runLoggedJson<T>(args: RunArgs<T>): Promise<RunResult<T>> 
   const baseRun = {
     user_id: args.userId,
     tool_name: args.toolName,
-    input_json: args.step ? { ...args.inputJson, _step: true } : args.inputJson,
+    // _model lets the admin usage view price each call (lib/admin/usage.ts).
+    input_json: { ...args.inputJson, _model: args.model, ...(args.step ? { _step: true } : {}) },
     latency_ms: Date.now() - started,
   };
 

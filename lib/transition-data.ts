@@ -174,6 +174,8 @@ export function mergeDashboardTasks<T extends DashboardTaskLike>(tasks: T[], fal
 
     return finish({
       ...task,
+      // The curated title wins, so a corrected title shows without a reseed.
+      title: fallback.title ?? task.title,
       description: fallback.description ?? task.description,
       category: fallback.category ?? task.category,
       phase_month: fallback.phase_month ?? task.phase_month,

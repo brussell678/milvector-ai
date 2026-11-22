@@ -1,19 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
-import { daysUntilDate, phaseFromDays, phaseMonthFromDays, phaseSentence } from "@/lib/timeline";
+import { deadlineStep, pipelineStep } from "@/lib/next-step";
+import { daysUntilDate, phaseFromDays, phaseMonthFromDays, phaseSentence, signedDaysUntil } from "@/lib/timeline";
 import { getLibraryLinkFallbacks, getTransitionTaskFallbacks, mergeDashboardTasks, mergeLibraryLinks } from "@/lib/transition-data";
 import { toolLinkVisible } from "@/lib/tools/preview";
 import { PhaseObjectives } from "@/components/dashboard/PhaseObjectives";
 import type { DashboardLink, DashboardTask } from "@/components/dashboard/types";
-
-function nextStep(profileExists: boolean, hasSourceDocuments: boolean, hasMasterResume: boolean, hasTargetedResume: boolean) {
-  if (!profileExists) return { href: "/app/profile", label: "Complete your profile" };
-  if (!hasSourceDocuments) return { href: "/app/documents", label: "Upload your military records" };
-  if (!hasMasterResume) return { href: "/app/tools/fitrep-bullets", label: "Build your master resume" };
-  if (!hasTargetedResume) return { href: "/app/tools/resume-targeter", label: "Build a resume for a real job" };
-  return { href: "/app/library", label: "Review your saved work" };
-}
 
 export default async function DashboardPage() {
   const supabase = await supabaseServer();
@@ -75,7 +68,13 @@ export default async function DashboardPage() {
   const hasTargetedResume = artifactTypes.has("targeted_resume");
   const sourceDocumentsCount = sourceDocsCountRes.count ?? 0;
   const hasSourceDocuments = sourceDocumentsCount > 0;
-  const step = nextStep(!!profileRes.data, hasSourceDocuments, hasMasterResume, hasTargetedResume);
+  // Time-critical retirement steps (VA claim window, SBP) come first until
+  // they are checked off on the Timeline; then the resume path.
+  const doneExternalIds = new Set(
+    allMilestoneTasks.filter((task) => completedTaskIds.includes(task.id) && task.external_id).map((task) => task.external_id as string)
+  );
+  const deadline = deadlineStep(signedDaysUntil(easDate), doneExternalIds);
+  const step = deadline ?? pipelineStep(!!profileRes.data, hasSourceDocuments, hasMasterResume, hasTargetedResume);
   const educationProfileSignals =
     (profileRes.data?.off_duty_education?.length ?? 0) +
     (profileRes.data?.civilian_certifications?.length ?? 0) +
@@ -168,6 +167,22 @@ export default async function DashboardPage() {
           </div>
         </section>
 
+        {deadline ? (
+          <section className="section-card border-[var(--accent)]">
+            <p className="section-kicker">TIME-SENSITIVE</p>
+            <h2 className="section-title mt-1">{deadline.label}</h2>
+            <p className="section-description">{deadline.detail}</p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link href={deadline.href} className="btn btn-primary w-full sm:w-auto">
+                {deadline.label}
+              </Link>
+              <Link href="/app/timeline" className="btn btn-secondary w-full sm:w-auto">
+                Already done? Check it off on your Timeline
+              </Link>
+            </div>
+          </section>
+        ) : null}
+
         <section className="section-card">
           <h2 className="section-title">The path, start to finish</h2>
           <p className="section-description">Four steps. Do them in order, because each one makes the next one better.</p>
@@ -256,15 +271,23 @@ export default async function DashboardPage() {
               Do this next: <span className="gradient-text">{step.label}</span>
             </h1>
             <p className="page-description">
-              {[phaseSentence(daysUntilEas), "One step at a time: this is the one that moves you forward right now."].filter(Boolean).join(" ")}
+              {deadline
+                ? deadline.detail
+                : [phaseSentence(daysUntilEas), "One step at a time: this is the one that moves you forward right now."].filter(Boolean).join(" ")}
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <Link href={step.href} className="btn btn-primary">
                 {step.label}
               </Link>
-              <Link href="/app/tools" className="btn btn-hero-ghost">
-                Open the tools
-              </Link>
+              {deadline ? (
+                <Link href="/app/timeline" className="btn btn-hero-ghost">
+                  Already done? Check it off on your Timeline
+                </Link>
+              ) : (
+                <Link href="/app/tools" className="btn btn-hero-ghost">
+                  Open the tools
+                </Link>
+              )}
             </div>
           </div>
           <aside className="page-hero-aside relative z-10">

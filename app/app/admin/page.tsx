@@ -1,8 +1,65 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { AdminPortal } from "@/components/admin/admin-portal";
+import { UsagePanel } from "@/components/admin/usage-panel";
+import { summarizeUsage, type ProfileRow, type RunRow, type UsageSummary } from "@/lib/admin/usage";
 import { isAdminEmail } from "@/lib/auth";
+import { getEnv } from "@/lib/env";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseServer } from "@/lib/supabase/server";
+import { toolLabels } from "@/lib/tools/registry";
+
+const PAGE = 1000;
+const MAX_ROWS = 50_000;
+
+// Every row of a query, a page at a time (Supabase returns at most 1000 per request).
+async function allRows<T>(page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>): Promise<T[]> {
+  const out: T[] = [];
+  for (let from = 0; from < MAX_ROWS; from += PAGE) {
+    const { data, error } = await page(from, from + PAGE - 1);
+    if (error) throw new Error(error.message);
+    out.push(...(data ?? []));
+    if (!data || data.length < PAGE) break;
+  }
+  return out;
+}
+
+// Usage across every member needs the service role: tool_runs and profiles
+// are each member's own rows otherwise.
+async function loadUsage(adminUserId: string): Promise<{ summary: UsageSummary | null; note?: string }> {
+  const admin = supabaseAdmin();
+  if (!admin) return { summary: null, note: "Usage needs SUPABASE_SERVICE_ROLE_KEY on the server." };
+  const now = new Date();
+  const since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  try {
+    const [runs, profiles] = await Promise.all([
+      allRows<RunRow>((from, to) =>
+        admin
+          .from("tool_runs")
+          .select("user_id,tool_name,status,latency_ms,tokens_in,tokens_out,created_at,input_json")
+          .gte("created_at", since)
+          .order("created_at", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to)
+      ),
+      allRows<ProfileRow>((from, to) => admin.from("profiles").select("id,created_at").order("id", { ascending: true }).range(from, to)),
+    ]);
+    const env = getEnv();
+    return {
+      summary: summarizeUsage({
+        runs,
+        profiles,
+        now,
+        excludeUserId: adminUserId,
+        labels: toolLabels,
+        models: { tools: env.TOOLS_MODEL, masterResume: env.MASTER_RESUME_MODEL, targetedResume: env.TARGETED_RESUME_MODEL },
+      }),
+    };
+  } catch (error) {
+    console.error("[admin] usage could not be loaded:", error);
+    return { summary: null, note: "Usage could not be loaded. The server log has the reason." };
+  }
+}
 
 type FeedbackRow = {
   id: string;
@@ -74,6 +131,7 @@ export default async function AdminPage() {
 
   if (!user) redirect("/auth");
   if (!isAdminEmail(user.email)) redirect("/app");
+  const usage = await loadUsage(user.id);
 
   const [{ data: feedback }, { data: submissions }, { data: reports }, { data: blockedUsers }] = await Promise.all([
     supabase
@@ -149,6 +207,8 @@ export default async function AdminPage() {
           </aside>
         </div>
       </section>
+
+      <UsagePanel summary={usage.summary} note={usage.note} />
 
       <AdminPortal
         initialFeedback={feedbackWithUrls}

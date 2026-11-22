@@ -14,15 +14,19 @@ export function monthsUntilDate(dateValue: string | null | undefined, now = new 
 }
 
 export function daysUntilDate(dateValue: string | null | undefined, now = new Date()): number | null {
+  const days = signedDaysUntil(dateValue, now);
+  return days === null ? null : Math.max(0, days);
+}
+
+/** Days until a date, negative once it has passed (daysUntilDate stops at 0). */
+export function signedDaysUntil(dateValue: string | null | undefined, now = new Date()): number | null {
   if (!dateValue) return null;
   const target = new Date(`${dateValue}T00:00:00`);
   if (Number.isNaN(target.getTime())) return null;
 
   const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   const end = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth(), target.getUTCDate()));
-  const diffMs = end.getTime() - start.getTime();
-  const days = Math.ceil(diffMs / 86400000);
-  return Math.max(0, days);
+  return Math.ceil((end.getTime() - start.getTime()) / 86400000);
 }
 
 // Phase names, shared by the workspace home and the Timeline so both say the
