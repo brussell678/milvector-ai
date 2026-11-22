@@ -141,11 +141,18 @@ function toFallbackDashboardTasks<T extends DashboardTaskLike>(fallbackTasks: Fa
   );
 }
 
+// Timeline order: the earliest phase first (24 months), then the task due
+// earliest within it, then title. Sorting after the overlay lets the curated
+// data decide where a task sits, even when its database row says otherwise.
+function byTimeline(a: DashboardTaskLike, b: DashboardTaskLike) {
+  return b.phase_month - a.phase_month || (b.days_before_event ?? -1) - (a.days_before_event ?? -1) || a.title.localeCompare(b.title);
+}
+
 /**
  * The tasks a member sees: database rows overlaid with the curated task data
- * (matched by external id, then title). Library file links are pointed at the
- * route that serves them. `canOpen` drops a tool link the member cannot use
- * yet, such as a tool still in preview.
+ * (matched by external id, then title), in Timeline order. Library file links
+ * are pointed at the route that serves them. `canOpen` drops a tool link the
+ * member cannot use yet, such as a tool still in preview.
  */
 export function mergeDashboardTasks<T extends DashboardTaskLike>(tasks: T[], fallbackTasks: FallbackTask[], canOpen: (href: string) => boolean = () => true) {
   const finish = (task: T): T => ({
@@ -155,7 +162,7 @@ export function mergeDashboardTasks<T extends DashboardTaskLike>(tasks: T[], fal
   });
 
   if (shouldUseFallbackTasks(tasks)) {
-    return toFallbackDashboardTasks<T>(fallbackTasks).map(finish);
+    return toFallbackDashboardTasks<T>(fallbackTasks).map(finish).sort(byTimeline);
   }
 
   const byExternalId = new Map(fallbackTasks.map((task) => [task.external_id, task]));
@@ -178,7 +185,7 @@ export function mergeDashboardTasks<T extends DashboardTaskLike>(tasks: T[], fal
       transition_supporting_tasks:
         fallback.supporting_tasks.length > 0 ? fallback.supporting_tasks : task.transition_supporting_tasks,
     });
-  });
+  }).sort(byTimeline);
 }
 
 export function mergeLibraryLinks<T extends LibraryLinkLike>(primary: T[], fallback: FallbackLink[]) {

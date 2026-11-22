@@ -129,7 +129,7 @@ function mapAssistance(taskTitle) {
   return {
     assistance_type: "none",
     assistance_ref: null,
-    assistance_notes: "No direct MilVector tool or public template currently mapped for this task.",
+    assistance_notes: "",
   };
 }
 

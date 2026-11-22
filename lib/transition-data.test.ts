@@ -86,6 +86,65 @@ describe("ceremony tasks link to the Retirement Invitation Builder", () => {
   });
 });
 
+describe("Timeline tasks link to the tool that does them", () => {
+  const byId = new Map(data.tasks.map((task) => [task.external_id, task]));
+
+  it("every tool link opens a tool in the Tools hub", () => {
+    const linked = data.tasks.filter((task) => task.tool_link);
+    expect(linked.length).toBeGreaterThanOrEqual(16);
+    for (const task of linked) expect(toolTitleFor(task.tool_link as string), `${task.external_id} ${task.tool_link}`).not.toBeNull();
+  });
+
+  it("links the tasks MilVector has a tool for", () => {
+    const expected: Record<string, string> = {
+      "mv-0014": "/app/tools/va-rating-navigator",
+      "mv-0084": "/app/tools/sbp-advisor",
+      "mv-0064": "/retirement-calculator",
+      "mv-0062": "/app/tools/fitrep-bullets",
+      "mv-0067": "/app/tools/linkedin-builder",
+      "mv-0069": "/app/tools/mos-translator",
+      "mv-0070": "/app/tools/business-card",
+      "mv-0071": "/app/tools/business-card",
+      "mv-0074": "/app/tools/resume-targeter",
+      "mv-0075": "/app/tools/interview-strategist",
+      "mv-0092": "/app/tools/retirement-invitation?tab=share",
+    };
+    for (const [id, href] of Object.entries(expected)) expect(byId.get(id)?.tool_link, id).toBe(href);
+  });
+
+  it("never tells a member there is no MilVector tool", () => {
+    for (const task of data.tasks) expect(task.assistance_notes ?? "", task.external_id).not.toMatch(/No direct MilVector tool/i);
+  });
+
+  it("an empty guidance note hides an old note stored in the database", () => {
+    const [merged] = mergeDashboardTasks(
+      [row({ external_id: "mv-0031", title: "Obtain ACP mentor to assist with transition", assistance_notes: "No direct MilVector tool or public template currently mapped for this task." })],
+      data.tasks
+    );
+    expect(merged.assistance_notes).toBe("");
+  });
+
+  it("files the VA claim inside the BDD window, 180 to 90 days before EAS", () => {
+    const bdd = byId.get("mv-0014");
+    expect(bdd?.days_before_event).toBeLessThanOrEqual(180);
+    expect(bdd?.days_before_event).toBeGreaterThanOrEqual(90);
+    expect(bdd?.phase_month).toBe(9);
+  });
+
+  it("orders tasks by the curated phase and due date, not the database row", () => {
+    const merged = mergeDashboardTasks(
+      [
+        row({ id: "db-bdd", external_id: "mv-0014", title: "Complete VA Disability Claim for BDD (180-90 days from EAS)", phase_month: 18, days_before_event: 450 }),
+        row({ id: "db-card", external_id: "mv-0070", title: "Make transition business card with skills", phase_month: 9, days_before_event: 240 }),
+        row({ id: "db-trs", external_id: "mv-0001", title: "Complete TRS", phase_month: 24, days_before_event: 540 }),
+      ],
+      data.tasks
+    );
+    expect(merged.map((task) => task.id)).toEqual(["db-trs", "db-card", "db-bdd"]);
+    expect(merged[2].phase_month).toBe(9);
+  });
+});
+
 describe("toolLinkVisible: switched tools follow their own switch", () => {
   const before = process.env.RETIREMENT_INVITE_PUBLIC;
   afterEach(() => {
