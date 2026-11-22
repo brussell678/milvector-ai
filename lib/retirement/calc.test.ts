@@ -1,28 +1,41 @@
 import { describe, expect, it } from "vitest";
 import { calculateIncome, grossRetiredPay, projectIncome, reserveYearsOfService, type IncomeInputs } from "@/lib/retirement/calc";
-import { basicPay, estimateHigh3, payInYear } from "@/lib/retirement/pay";
+import { basicPay, estimatedYears, estimateHigh3, monthlyPay, PAY_TABLE_YEARS, payInYear } from "@/lib/retirement/pay";
 import { federalTax, federalTaxOnAddedIncome } from "@/lib/retirement/tax";
 import { monthlyCompensation, NO_DEPENDENTS } from "@/lib/va/compensation";
 
 describe("basic pay table (2026)", () => {
   it("returns the step reached, not the next one", () => {
-    expect(basicPay("E-7", 20)).toBe(6245);
-    expect(basicPay("E-7", 21.9)).toBe(6245);
-    expect(basicPay("E-7", 22)).toBe(6475);
-    expect(basicPay("O-5", 20)).toBe(12033);
-    expect(basicPay("W-3", 20)).toBe(8477);
+    expect(basicPay("E-7", 20)).toBe(6245.7);
+    expect(basicPay("E-7", 21.9)).toBe(6245.7);
+    expect(basicPay("E-7", 22)).toBe(6475.2);
+    expect(basicPay("O-5", 20)).toBe(12032.7);
+    expect(basicPay("W-3", 20)).toBe(8476.5);
   });
 
   it("holds at the top step and handles grades that start late", () => {
-    expect(basicPay("E-7", 35)).toBe(7067);
-    expect(basicPay("W-5", 20)).toBe(10170);
-    expect(basicPay("O-3E", 4)).toBe(7383);
+    expect(basicPay("E-7", 35)).toBe(7067.4);
+    expect(basicPay("W-5", 20)).toBe(10169.7);
+    expect(basicPay("O-3E", 4)).toBe(7382.7);
     expect(basicPay("X-1", 10)).toBeNull();
   });
 
   it("carries the corrected O-8 over 18 figure and the general officer cap", () => {
-    expect(basicPay("O-8", 18)).toBe(17912);
-    expect(basicPay("O-10", 30)).toBe(18999);
+    expect(basicPay("O-8", 18)).toBe(17911.8);
+    expect(basicPay("O-10", 30)).toBe(18999.9);
+  });
+
+  it("holds O-6 and below to Executive Schedule Level V ($184,900 a year in 2026)", () => {
+    // Uncapped, O-6 over 30 would be 2025's 14,925.00 plus 3.8 percent: 15,492.15.
+    expect(basicPay("O-6", 26)).toBe(15188.7);
+    expect(basicPay("O-6", 30)).toBe(15408.3);
+    expect(basicPay("O-6", 38)).toBe(15408.3);
+  });
+
+  it("carries the cells two of three published copies agree on, to the cent", () => {
+    expect(basicPay("W-3", 4)).toBe(5736.9);
+    expect(basicPay("O-5", 14)).toBe(10715.1);
+    expect(monthlyPay("W-3", 4, 2025, 0)).toBe(5526.9);
   });
 
   it("moves an amount between years by the across-the-board raises", () => {
@@ -49,6 +62,67 @@ describe("estimateHigh3", () => {
 
   it("returns null for an unknown grade", () => {
     expect(estimateHigh3({ grade: "Z-9", yearsOfService: 20, retirementDate: retire })).toBeNull();
+  });
+});
+
+describe("one official table per year in the High-3 window", () => {
+  it("holds the 2023, 2024, 2025, and 2026 tables", () => {
+    expect(PAY_TABLE_YEARS).toEqual([2023, 2024, 2025, 2026]);
+  });
+
+  it("reads each year's own table, not the newest one with raises backed out", () => {
+    expect(monthlyPay("E-7", 20, 2023, 3.6)).toBe(5473.2);
+    expect(monthlyPay("E-7", 20, 2024, 3.6)).toBe(5757.9);
+    expect(monthlyPay("E-7", 20, 2025, 3.6)).toBe(6017.1);
+    expect(monthlyPay("E-7", 20, 2026, 3.6)).toBe(6245.7);
+    // Capped general officer pay does not move with the raises, so backing them out was wrong.
+    expect(monthlyPay("O-9", 24, 2024, 3.6)).toBe(18491.7);
+  });
+
+  it("projects a year with no table yet from the newest one and the assumed raise", () => {
+    expect(monthlyPay("E-7", 20, 2027, 4)).toBeCloseTo(6245.7 * 1.04, 6);
+  });
+
+  it("averages the real cells over the 36 months before a January 31, 2027 retirement", () => {
+    // Months Jan 2024 to Dec 2026, 12 on each table. At 30 years on the retirement date the
+    // whole window sits on the over-26 step (27 to 30 years), so the average is of three cells.
+    expect(estimatedYears(new Date(2027, 0, 31))).toEqual([]);
+    const high3 = estimateHigh3({ grade: "W-4", yearsOfService: 30, retirementDate: new Date(2027, 0, 31) })!;
+    const expected = (12 * monthlyPay("W-4", 26, 2024, 0)! + 12 * monthlyPay("W-4", 26, 2025, 0)! + 12 * monthlyPay("W-4", 26, 2026, 0)!) / 36;
+    expect(high3).toBeCloseTo(expected, 1);
+  });
+
+  it("pays each month at the longevity step reached that month (E-7 retiring at 20 years 3 months)", () => {
+    // Retirement date February 1, 2027, service entered as 20 years and 3 months.
+    // Jan 2027: over 20, no 2027 table yet (2026 cell plus the assumed 3.6%)
+    // Nov to Dec 2026: over 20       Jan to Oct 2026: over 18
+    // all of 2025: over 18           Nov to Dec 2024: over 18
+    // Feb to Oct 2024: over 16
+    const high3 = estimateHigh3({ grade: "E-7", yearsOfService: 20 + 3 / 12, retirementDate: new Date(2027, 1, 1), assumedFutureRaisePct: 3.6 })!;
+    const expected = (6245.7 * 1.036 + 2 * 6245.7 + 10 * 6177.3 + 12 * 5951.1 + 2 * 5694.9 + 9 * 5532.3) / 36;
+    expect(high3).toBeCloseTo(expected, 1);
+  });
+
+  it("pays the month a step is reached at that step, even when months make an awkward fraction", () => {
+    // W-5 at 32 years 2 months, retirement date January 1, 2027. The 26th month back is when
+    // they reached 30 years; 32 + 2/12 - 26/12 is 29.999... in floating point.
+    // Nov 2024 to Dec 2026: over 30 (26 months)   Jan to Oct 2024: over 26 (10 months)
+    const high3 = estimateHigh3({ grade: "W-5", yearsOfService: 32 + 2 / 12, retirementDate: new Date(2027, 0, 1) })!;
+    const expected = (12 * 12070.8 + 12 * 11628.9 + 2 * 11128.2 + 10 * 10597.2) / 36;
+    expect(high3).toBeCloseTo(expected, 1);
+  });
+
+  it("says which years in the window are estimated, counting back from the retirement date", () => {
+    // Retirement date January 1, 2027 (last day of service December 31): Jan 2024 to Dec 2026, all official.
+    expect(estimatedYears(new Date(2027, 0, 1))).toEqual([]);
+    // February 1, 2027 (last day January 31): January 2027 is in the window and has no table yet.
+    expect(estimatedYears(new Date(2027, 1, 1))).toEqual([2027]);
+    // December 1, 2026: the window reaches back to December 2023, which has its own table.
+    expect(estimatedYears(new Date(2026, 11, 1))).toEqual([]);
+    // Any 2026 retirement date is covered: January 1, 2026 reaches back to January 2023.
+    expect(estimatedYears(new Date(2026, 0, 1))).toEqual([]);
+    // December 1, 2025 would reach into 2022, before the earliest table.
+    expect(estimatedYears(new Date(2025, 11, 1))).toEqual([2022]);
   });
 });
 

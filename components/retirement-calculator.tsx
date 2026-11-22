@@ -3,13 +3,12 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { calculateIncome, projectIncome, reserveYearsOfService, type RetirementPlan } from "@/lib/retirement/calc";
-import { estimateHigh3, PAY_GRADES, PAY_TABLE_YEAR } from "@/lib/retirement/pay";
+import { estimatedYears, estimateHigh3, PAY_GRADES, PAY_TABLE_YEAR, PAY_TABLE_YEARS, PENDING_RAISE_NOTES } from "@/lib/retirement/pay";
 import { TAX_YEAR, type FilingStatus } from "@/lib/retirement/tax";
-import { VA_RATES_EFFECTIVE, VA_RATES_LABEL, VA_RATINGS } from "@/lib/va/compensation";
+import { VA_PENDING_COLA, VA_RATES_EFFECTIVE, VA_RATES_LABEL, VA_RATINGS } from "@/lib/va/compensation";
 
 // Announced cost-of-living increase for retired pay and VA compensation,
 // effective 1 December 2026. VA has not yet published the new rate table.
-const ANNOUNCED_COLA_PCT = 3.6;
 
 const usd = (value: number, cents = false) =>
   value.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: cents ? 2 : 0, minimumFractionDigits: cents ? 2 : 0 });
@@ -21,7 +20,13 @@ const num = (value: string) => {
 
 const GRADE_LABELS: Record<string, string> = { E: "Enlisted", W: "Warrant Officer", O: "Officer" };
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-const YEARS = [2026, 2027, 2028, 2029, 2030, 2031];
+// Retirement years offered: the newest pay table year and the five after it.
+const YEARS = Array.from({ length: 6 }, (_, i) => PAY_TABLE_YEAR + i);
+const NEXT_RAISE_YEAR = PAY_TABLE_YEAR + 1;
+const longDate = (iso: string) => {
+  const [y, m, d] = iso.split("-").map(Number);
+  return `${MONTHS[m - 1]} ${d}, ${y}`;
+};
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -60,7 +65,7 @@ export function RetirementCalculator() {
   const [high3Mode, setHigh3Mode] = useState<"estimate" | "enter">("estimate");
   const [grade, setGrade] = useState("E-7");
   const [retireMonth, setRetireMonth] = useState(0);
-  const [retireYear, setRetireYear] = useState(2027);
+  const [retireYear, setRetireYear] = useState(NEXT_RAISE_YEAR);
   const [promotedRecently, setPromotedRecently] = useState(false);
   const [monthsInGrade, setMonthsInGrade] = useState("12");
   const [previousGrade, setPreviousGrade] = useState("E-6");
@@ -83,6 +88,10 @@ export function RetirementCalculator() {
   const [cola, setCola] = useState("2.5");
 
   const yearsOfService = component === "active" ? num(years) + Math.min(11, num(months)) / 12 : reserveYearsOfService(num(points));
+
+  // Years in the 36 months before the retirement date with no official pay table yet.
+  const estimated = useMemo(() => estimatedYears(new Date(retireYear, retireMonth, 1)), [retireYear, retireMonth]);
+  const futureEstimated = estimated.filter((y) => y > PAY_TABLE_YEAR);
 
   const high3 = useMemo(() => {
     if (high3Mode === "enter") return num(high3Entered);
@@ -120,7 +129,7 @@ export function RetirementCalculator() {
       regularRetirement: component === "reserve" ? true : undefined,
       vaRating,
       dependents: { spouse, childrenUnder18: num(childrenUnder18), childrenInSchool: num(childrenInSchool), dependentParents: parents },
-      vaIncreasePct: useNewVaRates ? ANNOUNCED_COLA_PCT : 0,
+      vaIncreasePct: useNewVaRates && VA_PENDING_COLA ? VA_PENDING_COLA.pct : 0,
       combatRelatedRating: combatRating,
       sbpBaseAmount: sbpBase,
       filingStatus,
@@ -210,7 +219,7 @@ export function RetirementCalculator() {
                     ))}
                   </select>
                 </Field>
-                <Field label="Retirement month">
+                <Field label="Retirement month" hint="The month your retirement starts, the day after your last day of service. Last day January 31? Choose February.">
                   <select className="input" value={retireMonth} onChange={(e) => setRetireMonth(Number(e.target.value))}>
                     {MONTHS.map((m, i) => (
                       <option key={m} value={i}>
@@ -249,8 +258,8 @@ export function RetirementCalculator() {
                   </Field>
                 </div>
               )}
-              {retireYear > PAY_TABLE_YEAR && (
-                <Field label={`Assumed pay raise after ${PAY_TABLE_YEAR} (%)`} hint="The 2027 raise is not final. Congress is weighing 3.6% against a tiered 5 to 7%.">
+              {futureEstimated.length > 0 && (
+                <Field label={`Assumed pay raise after ${PAY_TABLE_YEAR} (%)`} hint={`The ${NEXT_RAISE_YEAR} raise is not final.${PENDING_RAISE_NOTES[NEXT_RAISE_YEAR] ? " " + PENDING_RAISE_NOTES[NEXT_RAISE_YEAR] : ""}`}>
                   <input className="input" inputMode="decimal" value={futureRaise} onChange={(e) => setFutureRaise(e.target.value)} />
                 </Field>
               )}
@@ -258,6 +267,11 @@ export function RetirementCalculator() {
                 Estimated High-3: <span className="font-bold tabular-nums">{usd(high3, true)}</span>{" "}
                 <span className="text-[var(--muted)]">a month</span>
               </p>
+              {futureEstimated.length > 0 && (
+                <p className="text-xs text-[var(--muted)]">
+                  Your months in {futureEstimated.join(" and ")} use the assumed raise above until DFAS publishes that year&apos;s pay table.
+                </p>
+              )}
             </>
           )}
         </section>
@@ -315,11 +329,11 @@ export function RetirementCalculator() {
               </select>
             </Field>
           )}
-          {vaRating >= 10 && (
+          {vaRating >= 10 && VA_PENDING_COLA && (
             <label className="flex items-start gap-2 text-sm">
               <input type="checkbox" className="mt-1" checked={useNewVaRates} onChange={(e) => setUseNewVaRates(e.target.checked)} />
               <span>
-                Include the {ANNOUNCED_COLA_PCT}% increase effective December 1, 2026
+                Include the {VA_PENDING_COLA.pct}% increase effective {longDate(VA_PENDING_COLA.effective)}
                 <span className="block text-xs text-[var(--muted)]">
                   An estimate until VA publishes the new table. Unchecked uses the official {VA_RATES_LABEL} rates.
                 </span>
@@ -448,12 +462,12 @@ export function RetirementCalculator() {
           <ul className="list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
             <li>Nothing you type here leaves your browser. There is no account and nothing is saved.</li>
             <li>
-              Basic pay: the {PAY_TABLE_YEAR} DFAS table, adjusted month by month for the 2023 to {PAY_TABLE_YEAR} raises. Your LES
-              is the exact figure.
+              Basic pay: the official DFAS tables for {PAY_TABLE_YEARS[0]} to {PAY_TABLE_YEAR}, month by month across your High-3. A month in a
+              year without a published table uses the assumed raise. Your LES is the exact figure.
             </li>
             <li>
-              VA compensation: VA&apos;s published {VA_RATES_LABEL} rates (effective {VA_RATES_EFFECTIVE}), with the announced{" "}
-              {ANNOUNCED_COLA_PCT}% increase if you checked it.
+              VA compensation: VA&apos;s published {VA_RATES_LABEL} rates (effective {VA_RATES_EFFECTIVE})
+              {VA_PENDING_COLA ? `, with the announced ${VA_PENDING_COLA.pct}% increase if you checked it` : ""}.
             </li>
             <li>Federal tax: {TAX_YEAR} brackets and standard deduction only. No credits, itemizing, or other taxes.</li>
             <li>

@@ -11,6 +11,12 @@ export const VA_RATES_LABEL = table.label;
 export const VA_RATES_EFFECTIVE = table.effective;
 export const VA_RATES_SOURCE = table.source;
 
+// VA's announced cost-of-living increase for the next table, offered to
+// members as a labeled estimate. Once a published table with that effective
+// date or later is loaded it turns itself off, so it is never applied twice.
+const ANNOUNCED_COLA = { pct: 3.6, effective: "2026-12-01" };
+export const VA_PENDING_COLA: { pct: number; effective: string } | null = ANNOUNCED_COLA.effective > VA_RATES_EFFECTIVE ? ANNOUNCED_COLA : null;
+
 export type Dependents = {
   spouse: boolean;
   childrenUnder18: number;
