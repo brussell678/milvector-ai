@@ -67,7 +67,7 @@ const base = {
 
 const InputSchema = z.discriminatedUnion("stage", [
   z.object({ stage: z.literal("fit"), ...base }),
-  z.object({ stage: z.literal("build"), ...base, fitMap: z.record(z.any()).optional() }),
+  z.object({ stage: z.literal("build"), ...base, fitMap: z.record(z.string(), z.any()).optional() }),
 ]);
 
 async function handlePOST(req: Request) {
@@ -133,7 +133,10 @@ async function handlePOST(req: Request) {
   // ── Build ──
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
   const yearsOfService = profile?.years_service_at_eas === null || profile?.years_service_at_eas === undefined ? null : Number(profile.years_service_at_eas);
-  const fitRequirements = Array.isArray(input.fitMap?.requirements) ? (input.fitMap.requirements as Record<string, unknown>[]) : [];
+  // Conditions of the job (travel, schedule) are nothing a resume can show, so the plan does not aim at them.
+  const fitRequirements = Array.isArray(input.fitMap?.requirements)
+    ? (input.fitMap.requirements as Record<string, unknown>[]).filter((r) => r.type !== "condition")
+    : [];
   const fitMapText = fitRequirements
     .slice(0, 20)
     .map((r) => `- [${r.type}/${r.assessment}] ${r.requirement} :: ${Array.isArray(r.evidence) ? r.evidence.join(", ") : ""}`)

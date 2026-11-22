@@ -131,6 +131,8 @@ export function MessageBoard() {
   }
 
   useEffect(() => {
+    // Fetch on mount; loadBoard sets its loading flag first by design.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadBoard();
     void loadNotifications();
   }, []);

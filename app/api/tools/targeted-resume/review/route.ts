@@ -19,6 +19,9 @@ import { cleanPunctuation, pastTense } from "@/lib/resume/gates";
 import { figuresIn, type FigureCheck } from "@/lib/resume/targeting";
 import { buildTargetedResumeText, isStructuredTargetedResume, renderTargetedResumeDocx } from "@/lib/resume-template";
 
+// Room for the slowest model call (tool timeouts run up to 150 s), as on the other tool routes.
+export const maxDuration = 300;
+
 const InputSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("outdated"), artifactId: z.string().uuid(), text: z.string().min(1).max(2000), sourceLine: z.string().min(1).max(2000), newLine: z.string().trim().min(10).max(1000) }),
   z.object({ action: z.literal("misstated"), artifactId: z.string().uuid(), text: z.string().min(1).max(2000), sourceLine: z.string().min(1).max(2000) }),

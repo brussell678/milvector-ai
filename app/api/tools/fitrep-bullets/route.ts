@@ -266,7 +266,7 @@ async function handlePOST(req: Request) {
   const body = await req.json();
   const parsed = FitrepBulletsSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json({ error: "Some of the text you added is too short or too long to use. Check it and try again.", details: parsed.error.flatten() }, { status: 400 });
   }
 
   const { mode, documentId, pastedText, vmetText, jstText, fitrepsText, awardsText, targetRole } = parsed.data;

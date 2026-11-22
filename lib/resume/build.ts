@@ -231,10 +231,14 @@ function honestSentences(paragraph: string, figureSupport: string, credentialSup
 
 // ─── Fit map ──────────────────────────────────────────────────────────
 
+// A "condition" is a term of the job the candidate accepts rather than proves
+// from a record (travel, relocation, schedule, on-site work, physical demands,
+// background or drug checks, work authorization). It is never a gap and never
+// decides the verdict; the member confirms it.
 export type FitRequirement = {
   requirement: string;
-  type: "mandatory" | "preferred";
-  assessment: "strong" | "met" | "partial" | "gap";
+  type: "mandatory" | "preferred" | "condition";
+  assessment: "strong" | "met" | "partial" | "gap" | "confirm";
   evidence: string[];
   bridge: string;
 };
@@ -244,15 +248,31 @@ export type FitMap = {
   recommendation: "apply" | "stretch" | "pass";
   reason: string;
   keywords: string[];
-  counts: { mandatory: Record<string, number>; preferred: Record<string, number> };
+  counts: { mandatory: Record<string, number>; preferred: Record<string, number>; conditions: number };
 };
+
+// Wording that marks a condition of the job, as a safety net when the model
+// still files one as a requirement. Deliberately narrow: "travel" alone is
+// not enough ("managed travel budgets" is a qualification).
+const CONDITION_WORDING =
+  /\b(willing(?:ness)?\s+to|(?:able|ability)\s+to\s+(?:travel|relocate|work\s+(?:nights|weekends|shifts|overtime|on[- ]?site|in[- ]office)|lift|stand|sit|obtain|pass)|up to\s+\d+\s*%\s*(?:of\s+the\s+time\s+)?travel|\d+\s*%\s*travel|travel\s+(?:up to\s+)?\d+\s*%|relocat(?:e|ion)\s+(?:is\s+)?required|must\s+(?:be\s+willing\s+to\s+)?relocate|on[- ]call|shift\s+work|rotating\s+shifts|work\s+(?:nights|weekends)|drug\s+(?:test|screen)|background\s+(?:check|investigation)|authori[sz]ed\s+to\s+work|work\s+authori[sz]ation|(?:visa\s+)?sponsorship|lift(?:ing)?\s+(?:up\s+to\s+)?\d+\s*(?:lbs?|pounds))/i;
+
+export function isConditionWording(requirement: string): boolean {
+  return CONDITION_WORDING.test(requirement);
+}
+
+const CONDITION_BRIDGE = "A condition of the job, not something a resume proves. Confirm it works for you before you apply.";
 
 export function buildFitMap(raw: Record<string, unknown>, record: EvidenceRecord, today: Date = new Date()): FitMap {
   const evidence = usableEvidence(record);
   // A role's title and dates are evidence too: tenure and level requirements cite them.
   for (const role of record.roles) evidence.set(role.id, role.title + " " + dateRange(role));
   const requirements = rows(raw.requirements)
-    .map((r) => {
+    .map((r): FitRequirement => {
+      // A condition is confirmed, not proven: no evidence, never a gap.
+      if (text(r.type) === "condition" || isConditionWording(text(r.requirement))) {
+        return { requirement: text(r.requirement), type: "condition", assessment: "confirm", evidence: [], bridge: CONDITION_BRIDGE };
+      }
       const cited = list(r.evidence).filter((id) => evidence.has(id));
       let assessment = (["strong", "met", "partial", "gap"].includes(text(r.assessment)) ? text(r.assessment) : "gap") as FitRequirement["assessment"];
       // A requirement cannot be assessed as covered without evidence that exists.
@@ -278,20 +298,31 @@ export function buildFitMap(raw: Record<string, unknown>, record: EvidenceRecord
         bridge,
       };
     })
-    .filter((r) => r.requirement);
+    .filter((r) => r.requirement)
+    // Conditions after the qualifications, in the model's order otherwise.
+    .sort((a, b) => Number(a.type === "condition") - Number(b.type === "condition"));
 
   const tally = (type: FitRequirement["type"]) => {
     const out: Record<string, number> = { strong: 0, met: 0, partial: 0, gap: 0 };
     for (const r of requirements.filter((x) => x.type === type)) out[r.assessment] += 1;
     return out;
   };
-  const counts = { mandatory: tally("mandatory"), preferred: tally("preferred") };
+  const counts = { mandatory: tally("mandatory"), preferred: tally("preferred"), conditions: requirements.filter((r) => r.type === "condition").length };
 
   let recommendation = (["apply", "stretch", "pass"].includes(text(raw.recommendation)) ? text(raw.recommendation) : "stretch") as FitMap["recommendation"];
+  let reason = text(raw.recommendation_reason);
   // "Apply" is not available while a mandatory requirement is an outright gap.
   if (recommendation === "apply" && counts.mandatory.gap > 0) recommendation = "stretch";
+  // "Pass" means a required qualification is missing. With none missing
+  // (a condition such as travel is not one), it is not a pass.
+  if (recommendation === "pass" && counts.mandatory.gap === 0) {
+    recommendation = "stretch";
+    reason =
+      "None of the required qualifications is missing from your record, so this one is worth weighing. Look at the partial matches below" +
+      (counts.conditions > 0 ? ", and confirm the conditions of the job, like travel or schedule." : ".");
+  }
 
-  return { requirements, recommendation, reason: text(raw.recommendation_reason), keywords: list(raw.keywords).slice(0, 24), counts };
+  return { requirements, recommendation, reason, keywords: list(raw.keywords).slice(0, 24), counts };
 }
 
 // ─── Targeted resume ──────────────────────────────────────────────────

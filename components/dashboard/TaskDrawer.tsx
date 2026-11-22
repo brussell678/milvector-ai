@@ -121,7 +121,11 @@ export function TaskDrawer({
                   <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] underline">
                     {link.title}
                   </a>
-                  {link.description && <p className="text-xs text-[var(--muted)]">{link.description}</p>}
+                  {/* Many links share one category sentence; show a description
+                      only when it tells this link apart from the others here. */}
+                  {link.description && links.filter((other) => other.description === link.description).length === 1 && (
+                    <p className="text-xs text-[var(--muted)]">{link.description}</p>
+                  )}
                 </li>
               ))}
             </ul>

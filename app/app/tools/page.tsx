@@ -356,7 +356,7 @@ export default async function ToolsPage() {
                       run.status === "success" ? "tool-badge-success" : "tool-badge-error"
                     }`}
                   >
-                    {run.status}
+                    {run.status === "success" ? "Done" : "Failed"}
                   </span>
                   <span className="text-xs text-[var(--muted)]">{relativeTime(run.created_at)}</span>
                 </div>

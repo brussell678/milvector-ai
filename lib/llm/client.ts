@@ -147,6 +147,7 @@ async function repairJsonWithModel(args: {
       {
         model: args.model,
         ...samplingFor(args.model, 0, "low"),
+        store: false,
         text: { format: { type: "json_object" } },
         input: [
           {
@@ -207,6 +208,8 @@ export async function generateJson<T>(prompt: string, options?: GenerateOptions)
       {
         model: options?.model ?? env.OPENAI_MODEL,
         ...samplingFor(options?.model ?? env.OPENAI_MODEL, options?.temperature ?? 0.2, options?.reasoningEffort ?? env.LLM_REASONING_EFFORT),
+        // MilVector never chains responses, so OpenAI need not keep them (see /privacy).
+        store: false,
         // JSON mode: one JSON object, never a list or prose around it.
         text: { format: { type: "json_object" } },
         input: [
@@ -277,6 +280,7 @@ export async function generateText(prompt: string): Promise<LlmJsonResult<string
       {
         model: env.OPENAI_MODEL,
         ...samplingFor(env.OPENAI_MODEL, 0.2, env.LLM_REASONING_EFFORT),
+        store: false,
         input: prompt,
       },
       { signal: controller.signal }

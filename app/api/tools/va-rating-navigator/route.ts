@@ -10,6 +10,9 @@ import { runLoggedJson } from "@/lib/tools/run";
 import { redactPII } from "@/lib/redact";
 import { limbForCode } from "@/lib/va/bilateral";
 
+// Room for the slowest model call (tool timeouts run up to 150 s), as on the other tool routes.
+export const maxDuration = 300;
+
 const TOOL = "va_rating_navigator";
 
 const text = (value: unknown) => String(value ?? "").trim();

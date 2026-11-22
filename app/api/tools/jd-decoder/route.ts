@@ -68,7 +68,7 @@ async function handlePOST(req: Request) {
 
   const body = await req.json().catch(() => null);
   const parsed = JdDecoderInputSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: "Paste the full job posting, at least 100 characters, and try again.", details: parsed.error.flatten() }, { status: 400 });
   const jobDescriptionText = parsed.data.jobDescriptionText;
 
   // The fit check runs beside the analysis, inside this one action: its AI

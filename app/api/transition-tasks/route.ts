@@ -28,7 +28,7 @@ async function handlePOST(req: Request) {
   const body = await req.json();
   const parsed = CompletionSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json({ error: "That task could not be updated. Refresh the page and try again.", details: parsed.error.flatten() }, { status: 400 });
   }
 
   if (parsed.data.completed) {

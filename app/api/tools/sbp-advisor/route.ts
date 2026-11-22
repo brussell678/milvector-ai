@@ -9,6 +9,9 @@ import { promptSbpAssessment } from "@/lib/llm/prompts-advisors";
 import { runLoggedJson } from "@/lib/tools/run";
 import { redactPII } from "@/lib/redact";
 
+// Room for the slowest model call (tool timeouts run up to 150 s), as on the other tool routes.
+export const maxDuration = 300;
+
 type SbpAssessment = {
   snapshot: string;
   best_fit_option: string;

@@ -24,7 +24,7 @@ async function handlePOST(req: Request) {
   const body = await req.json();
   const parsed = ProfileUpsertSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json({ error: "Some profile details could not be saved. Check them and try again.", details: parsed.error.flatten() }, { status: 400 });
   }
 
   const payload = parsed.data;

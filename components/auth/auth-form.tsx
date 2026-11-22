@@ -147,6 +147,8 @@ export function AuthForm({ initialError, initialMode, next = "/app" }: AuthFormP
 
       if (data.session) {
         await syncProfile();
+        // A full page load, so the server sees the new session cookie.
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
         window.location.assign("/welcome");
         return;
       }
@@ -247,6 +249,8 @@ export function AuthForm({ initialError, initialMode, next = "/app" }: AuthFormP
       }
       await syncProfile();
       setMessage("Password updated. Redirecting to your workspace...");
+      // A full page load, so the server sees the updated session.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.setTimeout(() => window.location.assign("/app"), 600);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to update password.");

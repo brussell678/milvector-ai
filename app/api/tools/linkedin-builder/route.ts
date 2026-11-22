@@ -15,6 +15,9 @@ import { LinkedinBuilderInputSchema } from "@/lib/validators/tools";
 import { redactPII } from "@/lib/redact";
 import { getEnv } from "@/lib/env";
 
+// Room for the slowest model call (tool timeouts run up to 150 s), as on the other tool routes.
+export const maxDuration = 300;
+
 type ResumeAnalysisOutput = {
   strengths: string[];
   functional_areas: string[];
@@ -457,7 +460,7 @@ async function handlePOST(req: Request) {
   const parsed = LinkedinBuilderInputSchema.safeParse(body);
 
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json({ error: "That request could not be read. Refresh the page and try again.", details: parsed.error.flatten() }, { status: 400 });
   }
 
   const {

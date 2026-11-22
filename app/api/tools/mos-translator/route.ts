@@ -7,6 +7,9 @@ import { generateJson } from "@/lib/llm/client";
 import { promptMosTranslator } from "@/lib/llm/prompts";
 import { getEnv } from "@/lib/env";
 
+// Room for the slowest model call (tool timeouts run up to 150 s), as on the other tool routes.
+export const maxDuration = 300;
+
 type MosTranslatorOutput = {
   civilian_roles: { title: string; match_strength?: string; why_fit: string; common_industries: string[]; keywords: string[] }[];
   recommended_certs: { name: string; why: string; time_to_get: string }[];
@@ -22,7 +25,7 @@ async function handlePOST(req: Request) {
   const body = await req.json();
   const parsed = MosTranslatorInputSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json({ error: "Enter your MOS (at least two characters) and try again.", details: parsed.error.flatten() }, { status: 400 });
   }
 
   const prompt = promptMosTranslator(parsed.data);

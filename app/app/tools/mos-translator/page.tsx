@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, Suspense, useEffect, useState } from "react";
+import { FormEvent, Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { LoadingBlock } from "@/components/tools/loading-block";
@@ -107,7 +107,8 @@ function RoleCard({ role }: { role: CivilianRole }) {
 
 function MosTranslatorContent() {
   const searchParams = useSearchParams();
-  const [mos, setMos] = useState("");
+  // ?mos= and ?welcome=1 (set by the welcome flow and the new-member home) are the starting values.
+  const [mos, setMos] = useState(() => decodeURIComponent(searchParams.get("mos") ?? ""));
   const [billets, setBillets] = useState("");
   const [yearsExp, setYearsExp] = useState("");
   const [interests, setInterests] = useState("");
@@ -115,15 +116,8 @@ function MosTranslatorContent() {
   const [error, setError] = useState<string | null>(null);
   const [copyState, setCopyState] = useState<string>("");
   const [loading, setLoading] = useState(false);
-  const [fromWelcome, setFromWelcome] = useState(false);
+  const [fromWelcome] = useState(() => searchParams.get("welcome") === "1");
 
-  // Pre-fill from ?mos= (set by the welcome flow and the new-user dashboard)
-  useEffect(() => {
-    const mosParam = searchParams.get("mos");
-    if (mosParam) setMos(decodeURIComponent(mosParam));
-    if (searchParams.get("welcome") === "1") setFromWelcome(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   async function copyText(label: string, value: string) {
     try {

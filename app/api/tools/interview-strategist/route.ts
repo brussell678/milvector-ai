@@ -14,6 +14,9 @@ import { loadResumeText } from "@/lib/resume-source";
 import { runLoggedJson } from "@/lib/tools/run";
 import { redactPII } from "@/lib/redact";
 
+// Room for the slowest model call (tool timeouts run up to 150 s), as on the other tool routes.
+export const maxDuration = 300;
+
 const TOOL = "interview_strategist";
 
 type Turn = { role: "interviewer" | "candidate"; text: string };

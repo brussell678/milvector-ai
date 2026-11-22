@@ -165,6 +165,64 @@ describe("buildFitMap", () => {
   });
 });
 
+describe("buildFitMap: conditions of the job", () => {
+  const travelPass = buildFitMap(
+    {
+      requirements: [
+        { requirement: "Willingness to travel up to 25%", type: "mandatory", assessment: "gap", evidence: [], bridge: "Not shown in the record." },
+        { requirement: "5+ years leading maintenance teams", type: "mandatory", assessment: "partial", evidence: ["ACC-01-01"], bridge: "" },
+        { requirement: "Must pass a background check and drug screen", type: "mandatory", assessment: "gap", evidence: [], bridge: "" },
+      ],
+      recommendation: "pass",
+      recommendation_reason: "The record does not show willingness to travel.",
+    },
+    record
+  );
+
+  it("treats travel and checks as conditions to confirm, not gaps", () => {
+    const travel = travelPass.requirements.find((r) => /travel/.test(r.requirement))!;
+    expect(travel.type).toBe("condition");
+    expect(travel.assessment).toBe("confirm");
+    expect(travel.evidence).toEqual([]);
+    expect(travelPass.counts.mandatory.gap).toBe(0);
+    expect(travelPass.counts.conditions).toBe(2);
+  });
+
+  it("does not pass someone over a condition, and says why", () => {
+    expect(travelPass.recommendation).toBe("stretch");
+    expect(travelPass.reason).toMatch(/None of the required qualifications is missing/);
+    expect(travelPass.reason).toMatch(/conditions of the job/);
+  });
+
+  it("lists conditions after the qualifications", () => {
+    expect(travelPass.requirements[0].type).toBe("mandatory");
+    expect(travelPass.requirements.slice(1).every((r) => r.type === "condition")).toBe(true);
+  });
+
+  it("takes the model's own condition label", () => {
+    const fit = buildFitMap({ requirements: [{ requirement: "Occasional weekend events", type: "condition", assessment: "confirm", evidence: ["ACC-01-01"] }], recommendation: "apply" }, record);
+    expect(fit.requirements[0]).toMatchObject({ type: "condition", assessment: "confirm", evidence: [] });
+  });
+
+  it("keeps a real missing qualification as a gap, and its pass", () => {
+    const fit = buildFitMap(
+      {
+        requirements: [
+          { requirement: "Active TS/SCI clearance", type: "mandatory", assessment: "gap", evidence: [] },
+          { requirement: "Experience managing travel budgets", type: "mandatory", assessment: "gap", evidence: [] },
+          { requirement: "Willingness to travel 25%", type: "mandatory", assessment: "gap", evidence: [] },
+        ],
+        recommendation: "pass",
+        recommendation_reason: "No clearance shown.",
+      },
+      record
+    );
+    expect(fit.requirements.filter((r) => r.type === "mandatory").map((r) => r.requirement)).toEqual(["Active TS/SCI clearance", "Experience managing travel budgets"]);
+    expect(fit.recommendation).toBe("pass");
+    expect(fit.reason).toBe("No clearance shown.");
+  });
+});
+
 describe("gateTargetedResume", () => {
   const raw = {
     target_title: "Maintenance Operations Manager",

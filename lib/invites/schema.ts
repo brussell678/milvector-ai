@@ -103,9 +103,9 @@ export const RsvpSettingsSchema = z
           .transform((list) => list.filter((option) => option.length > 0))
           .default([]),
       })
-      .default({}),
+      .prefault({}),
   })
-  .default({});
+  .prefault({});
 
 // Instructions for guests who need a visitor pass. Shown only when an event is
 // aboard an installation. MilVector never asks guests for an SSN or birth date.
@@ -117,7 +117,7 @@ export const BaseAccessSchema = z
     bring: text(400).default(""),
     pickup: text(400).default(""),
   })
-  .default({});
+  .prefault({});
 
 // ─── Phase C: program, guest information, sections, views ────────────
 
@@ -175,7 +175,7 @@ export const ProgramSchema = z
     // A live stream or recording. A YouTube link plays on the page after a tap.
     streamUrl: httpsLink.default(""),
   })
-  .default({});
+  .prefault({});
 
 // Career photos live in their own table (migration 0034), not in this data.
 export const MAX_PHOTOS = 12;
@@ -213,7 +213,7 @@ export const SectionsSchema = z
     stream: z.boolean().default(true),
     share: z.boolean().default(true),
   })
-  .default({});
+  .prefault({});
 
 export const VIEWS = ["invite", "eventday", "memories"] as const;
 export type InviteViewName = (typeof VIEWS)[number];
@@ -224,7 +224,7 @@ export const ViewSchema = z
     override: z.enum(["auto", ...VIEWS]).default("auto"),
     thankYou: text(300).default("Thank you to everyone who stood with us."),
   })
-  .default({});
+  .prefault({});
 
 export const InviteEventSchema = z.object({
   id: z.string().regex(/^[a-z0-9]{4,12}$/),
@@ -396,7 +396,7 @@ export function readInviteData(raw: unknown): InviteData {
     const result = schema.safeParse(value);
     return result.success ? result.data : otherwise;
   };
-  const shape = InviteDataSchema.innerType().shape;
+  const shape = InviteDataSchema.shape;
   const events = Array.isArray(source.events)
     ? source.events.map((event) => InviteEventSchema.safeParse(event)).flatMap((result) => (result.success ? [result.data] : []))
     : [];

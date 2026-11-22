@@ -28,7 +28,9 @@ export default function RetirementCalculatorPage() {
               or CRSC, what SBP costs, and what is left after tax.
             </p>
           </div>
-          <aside className="page-hero-aside">
+          {/* Hidden on phones so the first input is on the first screen: most
+              first visits are a phone at a retirement seminar. */}
+          <aside className="page-hero-aside hidden md:block">
             <p className="page-hero-aside-title">WHAT IT COVERS</p>
             <ul className="page-hero-list">
               <li>High-3 and Blended Retirement, active and reserve</li>
@@ -69,11 +71,11 @@ export default function RetirementCalculatorPage() {
           </div>
         </div>
         <div className="mt-6 flex flex-wrap gap-3">
-          <Link href="/auth" className="btn btn-primary">
-            Open a Free Workspace
+          <Link href="/auth?mode=signup&next=%2Fapp" className="btn btn-primary">
+            Create your free account
           </Link>
-          <Link href="/platform" className="btn btn-secondary">
-            See What Else MilVector Does
+          <Link href="/tools" className="btn btn-secondary">
+            See every MilVector tool
           </Link>
         </div>
       </section>

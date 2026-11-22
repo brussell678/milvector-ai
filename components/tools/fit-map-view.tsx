@@ -18,7 +18,10 @@ const ASSESSMENT: Record<string, { label: string; badge: string }> = {
   met: { label: "Met", badge: "tool-badge-success" },
   partial: { label: "Partial", badge: "tool-badge-warn" },
   gap: { label: "Gap", badge: "tool-badge-error" },
+  // A condition of the job (travel, schedule): neither a match nor a gap.
+  confirm: { label: "Confirm", badge: "" },
 };
+const TYPE_LABEL: Record<string, string> = { mandatory: "required", preferred: "preferred", condition: "condition of the job" };
 
 /** kicker: the label above the verdict. gapHint: what to do about a gap, which differs by tool. */
 export function FitMapView({ fit, kicker, gapHint, children }: { fit: FitResult; kicker: string; gapHint: string; children?: ReactNode }) {
@@ -34,7 +37,7 @@ export function FitMapView({ fit, kicker, gapHint, children }: { fit: FitResult;
         <p className="mt-1 text-xs text-[var(--muted)]">
           Required: {fitMap.counts.mandatory.strong + fitMap.counts.mandatory.met} covered, {fitMap.counts.mandatory.partial} partial, {fitMap.counts.mandatory.gap} gap.
           Preferred: {fitMap.counts.preferred.strong + fitMap.counts.preferred.met} covered, {fitMap.counts.preferred.partial} partial, {fitMap.counts.preferred.gap} gap.
-          Read from {master.name}: {master.roles} roles, {master.lines} lines.
+          {fitMap.counts.conditions ? ` Conditions to confirm: ${fitMap.counts.conditions}.` : ""} Read from {master.name}: {master.roles} roles, {master.lines} lines.
         </p>
       </div>
       {master.notes.length > 0 && (
@@ -54,7 +57,7 @@ export function FitMapView({ fit, kicker, gapHint, children }: { fit: FitResult;
             <li key={i} className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-3">
               <div className="flex items-start justify-between gap-3">
                 <p className="min-w-0 text-sm font-medium">
-                  {r.requirement} <span className="text-xs font-normal text-[var(--muted)]">({r.type === "mandatory" ? "required" : "preferred"})</span>
+                  {r.requirement} <span className="text-xs font-normal text-[var(--muted)]">({TYPE_LABEL[r.type] ?? r.type})</span>
                 </p>
                 <span className={`tool-badge ${a.badge} shrink-0`} style={{ fontSize: "0.62rem" }}>
                   {a.label}

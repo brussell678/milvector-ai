@@ -27,6 +27,8 @@ export function DeleteAccount() {
         setError(typeof data.error === "string" ? data.error : "Something went wrong on our end. Nothing more was deleted. Try again in a minute.");
         return;
       }
+      // A full page load, so nothing from the deleted session stays in memory.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.assign("/account-deleted");
     } catch {
       setError("That didn't go through. Check your connection and try again.");

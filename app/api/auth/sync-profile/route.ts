@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const parsed = AuthProfileSyncSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json({ error: "Your details could not be saved. Check them and try again.", details: parsed.error.flatten() }, { status: 400 });
   }
 
   const { error } = await syncAuthenticatedProfile(supabase, user, parsed.data);

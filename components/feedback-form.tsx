@@ -166,6 +166,8 @@ export function FeedbackForm({ initialMessage = "" }: { initialMessage?: string 
   }
 
   useEffect(() => {
+    // Fetch on mount; loadHistory sets its loading flag first by design.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadHistory();
     // Record the current timestamp so new responses can be detected as "unread"
     const now = new Date().toISOString();

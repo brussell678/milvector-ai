@@ -53,6 +53,11 @@ const privacyPoints = [
       "Support cases, community moderation, and library submissions can be reviewed by the MilVector admin account so issues can be resolved and unsafe content can be managed inside the workspace.",
   },
   {
+    title: "Services MilVector Uses",
+    detail:
+      "Your information passes through a few services only to run MilVector. Supabase stores your account, profile, files, and saved work. Vercel hosts the site, and Cloudflare carries traffic to milvector.org. OpenAI runs the AI tools: it receives the text a tool needs, with SSN and DoD ID numbers removed first. OpenAI's terms for its API say that data is not used to train its models, and it keeps API logs for up to 30 days to watch for abuse; MilVector also tells it not to store the responses. Resend delivers support emails, and Google Analytics measures visits to public pages only.",
+  },
+  {
     title: "Deleting Your Account",
     detail:
       "You can delete your account yourself, at any time, from your Profile. That permanently deletes your profile, uploaded records, every resume and file MilVector made for you, your tool history and Timeline progress, your support tickets, and your business card and retirement invitation along with the answers guests sent. Your Community replies and any thread nobody answered are deleted; a thread other members replied to stays, shown as from a former member, so their replies are not lost.",
@@ -63,6 +68,7 @@ const commitments = [
   "SSN and DoD ID (EDIPI) numbers are auto-removed from document text.",
   "We require sign-in to reduce bot abuse and protect platform operating costs.",
   "We do not sell your information.",
+  "The services that run MilVector are named on this page, and the AI provider does not train on what you send.",
   "Site analytics run on public pages only, never inside your workspace.",
   "Guests who answer a retirement invitation are seen only by the host, and their answers are deleted 180 days after the ceremony.",
   "You control what you upload into your workspace, and you can delete your account and everything in it from your Profile.",

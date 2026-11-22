@@ -182,7 +182,7 @@ export default function RootLayout({
                 color: "rgba(255,255,255,0.22)",
               }}
             >
-              <p>Copyright 2026 MilVector AI · Built by Russell Innovation Group LLC</p>
+              <p>Copyright {new Date().getFullYear()} MilVector AI · Built by Russell Innovation Group LLC</p>
             </div>
           </div>
         </footer>

@@ -103,6 +103,8 @@ export default function DocumentsPage() {
   }
 
   useEffect(() => {
+    // Fetch on mount; loadDocuments sets its loading flag first by design.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadDocuments();
   }, []);
 

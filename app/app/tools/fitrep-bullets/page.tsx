@@ -53,7 +53,9 @@ function FitrepBulletsContent() {
   const [mode, setMode] = useState<"bullets" | "master_resume">("master_resume");
   const [useUploadedDocs, setUseUploadedDocs] = useState(true);
   const [pastedText, setPastedText] = useState("");
-  const [targetRole, setTargetRole] = useState("");
+  // ?role= (linked from the MOS Translator) is the starting value.
+  const searchParams = useSearchParams();
+  const [targetRole, setTargetRole] = useState(() => decodeURIComponent(searchParams.get("role") ?? ""));
   const [vmetText, setVmetText] = useState("");
   const [jstText, setJstText] = useState("");
   const [fitrepsText, setFitrepsText] = useState("");
@@ -79,17 +81,11 @@ function FitrepBulletsContent() {
   }
 
   useEffect(() => {
+    // Fetch on mount and when the source changes; loadDocs sets its loading flag first by design.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (mode === "master_resume" && useUploadedDocs) void loadDocs();
   }, [mode, useUploadedDocs]);
 
-  // Pre-fill ?role= param (linked from MOS Translator)
-  const searchParams = useSearchParams();
-  useEffect(() => {
-    const roleParam = searchParams.get("role");
-    if (roleParam) setTargetRole(decodeURIComponent(roleParam));
-    // intentionally empty deps: only run on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const sourceSummary = useMemo(() => {
     const extracted = docs.filter((d) => d.text_extracted);

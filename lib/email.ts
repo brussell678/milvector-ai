@@ -1,8 +1,12 @@
 import { Resend } from "resend";
 import { siteUrl } from "@/lib/seo";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = process.env.RESEND_FROM_EMAIL ?? "support@milvectorai.com";
+// Built on first send, after the key check: Resend throws at construction with
+// no key, which crashed every route that imports this file.
+let resendClient: Resend | null = null;
+const resend = () => (resendClient ??= new Resend(process.env.RESEND_API_KEY));
+// No sender, no email: the old fallback address was on a domain that does not exist.
+const FROM = process.env.RESEND_FROM_EMAIL;
 const ADMIN_EMAIL = process.env.ADMIN_NOTIFY_EMAIL ?? "brussell678@gmail.com";
 // Links in every email. The live site when the variable is unset.
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? siteUrl;
@@ -65,7 +69,7 @@ export async function notifyAdminNewTicket(ticket: {
   attachment?: { filename: string; base64: string; contentType?: string } | null;
   attachmentFilename?: string | null;
 }) {
-  if (!process.env.RESEND_API_KEY) return;
+  if (!process.env.RESEND_API_KEY || !FROM) return;
 
   const typeLabel = TYPE_LABELS[ticket.feedback_type] ?? ticket.feedback_type;
   const submitted = ticket.createdAt ? new Date(ticket.createdAt) : new Date();
@@ -136,7 +140,7 @@ export async function notifyAdminNewTicket(ticket: {
     ? [{ filename: ticket.attachment.filename, content: ticket.attachment.base64 }]
     : undefined;
 
-  await resend.emails.send({
+  await resend().emails.send({
     from: FROM,
     to: ADMIN_EMAIL,
     subject: `[MilVector Support] New ${typeLabel}: ${ticket.name ?? ticket.email ?? "Anonymous"}`,
@@ -152,7 +156,7 @@ export async function notifyUserAdminResponse(opts: {
   ticketMessage: string;
   adminResponse: string;
 }) {
-  if (!process.env.RESEND_API_KEY) return;
+  if (!process.env.RESEND_API_KEY || !FROM) return;
 
   const typeLabel = TYPE_LABELS[opts.ticketType] ?? opts.ticketType;
 
@@ -165,7 +169,7 @@ export async function notifyUserAdminResponse(opts: {
     <a class="btn" href="${APP_URL}/app/feedback">View Your Support Cases</a>
   `;
 
-  await resend.emails.send({
+  await resend().emails.send({
     from: FROM,
     to: opts.to,
     subject: `[MilVector] Response to your ${typeLabel.toLowerCase()} support case`,
@@ -179,7 +183,7 @@ export async function notifyUserRequestShipped(opts: {
   updateTitle: string;
   updateBody: string;
 }) {
-  if (!process.env.RESEND_API_KEY) return;
+  if (!process.env.RESEND_API_KEY || !FROM) return;
 
   const body = `
     <p class="value">You reported something, and it's now live on MilVector. Thanks for helping make the platform better for everyone transitioning.</p>
@@ -192,7 +196,7 @@ export async function notifyUserRequestShipped(opts: {
     <a class="btn" href="${APP_URL}/app/whats-new">See What's New</a>
   `;
 
-  await resend.emails.send({
+  await resend().emails.send({
     from: FROM,
     to: opts.to,
     subject: "[MilVector] You asked, we built it: your request is live",
@@ -205,7 +209,7 @@ export async function notifyCardOwnerNewLead(opts: {
   cardName: string;
   lead: { name: string; email: string; phone: string; company: string; note: string };
 }) {
-  if (!process.env.RESEND_API_KEY) return;
+  if (!process.env.RESEND_API_KEY || !FROM) return;
   const row = (label: string, value: string) =>
     value ? `<p class="label" style="margin-top:12px;">${label}</p><p class="value">${escapeHtml(value)}</p>` : "";
   const body = `
@@ -218,7 +222,7 @@ export async function notifyCardOwnerNewLead(opts: {
     <a class="btn" href="${APP_URL}/app/tools/business-card">Open Your Contacts</a>
     <p class="value" style="margin-top:16px;font-size:12px;color:#6b7a8d;">You can turn these emails off in the card editor.</p>
   `;
-  await resend.emails.send({
+  await resend().emails.send({
     from: FROM,
     to: opts.to,
     subject: `${opts.lead.name} shared their contact with you`,
