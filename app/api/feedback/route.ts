@@ -55,15 +55,16 @@ async function handlePOST(req: Request) {
       attachmentUrl = attachmentPath;
     }
 
-    const { data: inserted, error } = await supabase
-      .from("feedback")
-      .insert({
-        user_id: user?.id ?? null,
-        ...parsed.data,
-        attachment_url: attachmentUrl,
-      })
-      .select("id, created_at")
-      .single();
+    // No .select() after the insert: reading the row back needs a select policy,
+    // and a signed-out visitor has none (feedback_select_own), so the insert
+    // would fail for them. The id and time are set here instead.
+    const inserted = { id: crypto.randomUUID(), created_at: new Date().toISOString() };
+    const { error } = await supabase.from("feedback").insert({
+      ...inserted,
+      user_id: user?.id ?? null,
+      ...parsed.data,
+      attachment_url: attachmentUrl,
+    });
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
@@ -90,10 +91,10 @@ async function handlePOST(req: Request) {
       }
     }
 
-    // Fire-and-forget — don't block the response if email fails
+    // Fire and forget: do not block the response if the email fails
     void notifyAdminNewTicket({
-      id: inserted?.id ?? crypto.randomUUID(),
-      createdAt: inserted?.created_at ?? null,
+      id: inserted.id,
+      createdAt: inserted.created_at,
       name: parsed.data.name ?? null,
       email: parsed.data.email ?? null,
       branch: parsed.data.branch ?? null,

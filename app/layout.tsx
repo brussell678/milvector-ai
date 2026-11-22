@@ -52,6 +52,7 @@ const footerNav = [
   { href: "/knowledge-base", label: "Knowledge Base" },
   { href: "/library", label: "Resource Library" },
   { href: "/message-board", label: "Community" },
+  { href: "/whats-new", label: "What's New" },
 ];
 
 const footerSupport = [
