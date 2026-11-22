@@ -1,5 +1,5 @@
 export const UPLOAD_WARNING_TEXT =
-  "MilVector automatically removes SSN and DoD ID (EDIPI) numbers from your document text before it is stored or used by the AI. Still, redact anything else you wouldn't want kept — full date of birth, home address, or dependent information — before uploading.";
+  "MilVector automatically removes SSN and DoD ID (EDIPI) numbers from your document text before it is stored or used by the AI. Before uploading, still redact anything else you wouldn't want kept, such as your full date of birth, home address, or dependent information.";
 
 export function UploadWarning() {
   return (

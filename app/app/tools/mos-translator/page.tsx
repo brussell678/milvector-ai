@@ -163,12 +163,12 @@ function MosTranslatorContent() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error ?? "Something went wrong on our end. Your inputs are still here — try again in a few seconds.");
+        setError(data.error ?? "Something went wrong on our end. Your inputs are still here. Try again in a few seconds.");
         return;
       }
       setResult(data as Output);
     } catch {
-      setError("That didn't go through. Check your connection and try again — your inputs are still here.");
+      setError("That didn't go through. Check your connection and try again. Your inputs are still here.");
     } finally {
       setLoading(false);
     }
@@ -224,11 +224,11 @@ function MosTranslatorContent() {
         {/* ── INPUT PANEL ────────────────────────────────────────── */}
         <div className="tool-input-panel">
           {fromWelcome && !result && (
-            <ToolAlert variant="info" title="Welcome aboard — here's your first win">
+            <ToolAlert variant="info" title="Welcome aboard. Here's your first win">
               <p className="text-sm">
                 {mos
-                  ? `Your MOS (${mos}) is loaded. Hit Translate and see the civilian jobs that match your experience — takes about 30 seconds.`
-                  : "Enter your MOS and hit Translate to see the civilian jobs that match your experience — takes about 30 seconds."}
+                  ? `Your MOS (${mos}) is loaded. Hit Translate and see the civilian jobs that match your experience. It takes about 30 seconds.`
+                  : "Enter your MOS and hit Translate to see the civilian jobs that match your experience. It takes about 30 seconds."}
               </p>
             </ToolAlert>
           )}
@@ -237,7 +237,7 @@ function MosTranslatorContent() {
               <div>
                 <p className="tool-kicker">INPUTS</p>
                 <p className="section-description mt-1">
-                  MOS is required. Billets and interests sharpen the role matching — add them when you have them.
+                  MOS is required. Billets and interests sharpen the role matching, so add them when you have them.
                 </p>
               </div>
 
@@ -337,7 +337,7 @@ function MosTranslatorContent() {
           {loading && (
             <LoadingBlock
               task="Translating MOS experience…"
-              detail="Mapping military roles to civilian titles, industries, and keywords. Usually takes 15–25 seconds."
+              detail="Mapping military roles to civilian titles, industries, and keywords. Usually takes 10 to 30 seconds."
             />
           )}
 

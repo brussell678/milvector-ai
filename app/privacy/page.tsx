@@ -30,7 +30,7 @@ const privacyPoints = [
   {
     title: "Workspace-Based AI Use",
     detail:
-      "Integrated tools use paid API calls so outputs can connect to your MilVector profile, documents, and saved artifacts. GPT links open in your own ChatGPT account and follow that environment instead.",
+      "Every tool runs inside MilVector on paid API calls, so its results connect to your profile, documents, and saved work. No tool sends you to a separate ChatGPT account.",
   },
   {
     title: "Analytics On Public Pages Only",
@@ -56,7 +56,7 @@ const privacyPoints = [
 
 const commitments = [
   "SSN and DoD ID (EDIPI) numbers are auto-removed from document text.",
-  "We use email sign-in to reduce bot abuse and protect platform operating costs.",
+  "We require sign-in to reduce bot abuse and protect platform operating costs.",
   "We do not sell your information.",
   "Site analytics run on public pages only, never inside your workspace.",
   "Guests who answer a retirement invitation are seen only by the host, and their answers are deleted 180 days after the ceremony.",

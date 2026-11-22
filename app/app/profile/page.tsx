@@ -201,7 +201,7 @@ export default function ProfilePage() {
       setSavedSection(sectionId);
       savedTimer.current = setTimeout(() => setSavedSection(null), 3000);
     } catch {
-      setError("That didn't go through. Check your connection and try again — nothing you typed is lost.");
+      setError("That didn't go through. Check your connection and try again. Nothing you typed is lost.");
     } finally {
       setSaving(false);
     }
@@ -246,7 +246,7 @@ export default function ProfilePage() {
     }
   }
 
-  // Section completion — drives the meter and the per-section badges
+  // Section completion: drives the meter and the per-section badges
   const serviceDone = !!(form.branch && form.mos && form.rank && form.eas_date);
   const contactDone = !!(form.full_name && form.professional_email);
   const goalsDone = form.career_interests.length > 0;
@@ -269,7 +269,7 @@ export default function ProfilePage() {
         <div className="page-hero-grid">
           <div className="relative z-10">
             <p className="page-kicker-pill">PROFILE</p>
-            <h1 className="page-title">Tell us once — every tool uses it.</h1>
+            <h1 className="page-title">Tell us once. Every tool uses it.</h1>
             <p className="page-description">
               Your contact info lands on your resumes, your dates drive your timeline, and your education shows up where it helps. Fill in what you know; skip what you don&apos;t.
             </p>
@@ -289,7 +289,7 @@ export default function ProfilePage() {
             </div>
             <p className="mt-2 text-xs text-[var(--muted)]">
               {sectionsDone === 4
-                ? "Full strength — every tool has what it needs."
+                ? "Full strength. Every tool has what it needs."
                 : "Each section you fill in makes your results stronger."}
             </p>
           </aside>
@@ -392,7 +392,7 @@ export default function ProfilePage() {
           />
         </label>
         <details className="md:col-span-2 rounded-xl border border-[var(--line)] bg-[var(--surface)] p-4">
-          <summary className="cursor-pointer text-sm font-semibold">More dates — terminal leave, PTAD, ceremony (optional)</summary>
+          <summary className="cursor-pointer text-sm font-semibold">More dates: terminal leave, PTAD, ceremony (optional)</summary>
           <p className="mt-2 text-sm text-[var(--muted)]">These sharpen your timeline as your plan firms up. Add them whenever you know them.</p>
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             <label className="space-y-1">
@@ -430,7 +430,7 @@ export default function ProfilePage() {
       <SectionCard
         id="contact"
         title="Your Contact Info"
-        unlocks="Goes at the top of every resume MilVector builds for you — name, email, phone, location."
+        unlocks="Goes at the top of every resume MilVector builds for you: name, email, phone, location."
         done={contactDone}
         savedId={savedSection}
         saving={saving}
@@ -507,7 +507,7 @@ export default function ProfilePage() {
             className="input"
             value={form.location_pref}
             onChange={(e) => setForm((f) => ({ ...f, location_pref: e.target.value }))}
-            placeholder="e.g. Dallas–Fort Worth, remote, or open to anywhere"
+            placeholder="e.g. Dallas-Fort Worth, remote, or open to anywhere"
           />
         </label>
       </SectionCard>

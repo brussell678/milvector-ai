@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
-import { daysUntilDate, phaseFromDays, phaseMonthFromDays } from "@/lib/timeline";
+import { daysUntilDate, phaseFromDays, phaseMonthFromDays, phaseSentence } from "@/lib/timeline";
 import { getLibraryLinkFallbacks, getTransitionTaskFallbacks, mergeDashboardTasks, mergeLibraryLinks } from "@/lib/transition-data";
 import { toolLinkVisible } from "@/lib/tools/preview";
 import { PhaseObjectives } from "@/components/dashboard/PhaseObjectives";
@@ -110,7 +110,7 @@ export default async function DashboardPage() {
       {
         step: "2",
         title: "Upload your records",
-        detail: "FITREPs, EVALs, JST, or VMET — the AI builds from your real record, not a template.",
+        detail: "FITREPs, EVALs, JST, or VMET. The AI builds from your real record, not a template.",
         href: "/app/documents",
         cta: "Upload records",
         primary: false,
@@ -141,7 +141,7 @@ export default async function DashboardPage() {
               <p className="page-kicker-pill">WELCOME ABOARD</p>
               <h1 className="page-title">Your next career starts with one click.</h1>
               <p className="page-description">
-                No forms, no homework — start by seeing what your military experience is worth in the civilian world. The rest of the path builds from there.
+                No forms, no homework. Start by seeing what your military experience is worth in the civilian world, and the rest of the path builds from there.
               </p>
               <div className="mt-5 flex flex-wrap gap-3">
                 <Link href={translatorHref} className="btn btn-primary">
@@ -170,7 +170,7 @@ export default async function DashboardPage() {
 
         <section className="section-card">
           <h2 className="section-title">The path, start to finish</h2>
-          <p className="section-description">Four steps. Do them in order — each one makes the next one better.</p>
+          <p className="section-description">Four steps. Do them in order, because each one makes the next one better.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {startSteps.map((item) => (
               <article
@@ -256,7 +256,7 @@ export default async function DashboardPage() {
               Do this next: <span className="gradient-text">{step.label}</span>
             </h1>
             <p className="page-description">
-              You&apos;re in the {currentPhase.toLowerCase()} phase. One step at a time — this is the one that moves you forward right now.
+              {[phaseSentence(daysUntilEas), "One step at a time: this is the one that moves you forward right now."].filter(Boolean).join(" ")}
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <Link href={step.href} className="btn btn-primary">
@@ -288,7 +288,7 @@ export default async function DashboardPage() {
       {/* ── Journey pipeline ──────────────────────────────────────── */}
       <section className="section-card">
         <h2 className="section-title">Where you are in the four steps</h2>
-        <p className="section-description">Do the steps in order — each one makes the next one better.</p>
+        <p className="section-description">Do the steps in order, because each one makes the next one better.</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {journeySteps.map((item, idx) => (
             <Link

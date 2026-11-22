@@ -25,15 +25,27 @@ export function daysUntilDate(dateValue: string | null | undefined, now = new Da
   return Math.max(0, days);
 }
 
+// Phase names, shared by the workspace home and the Timeline so both say the
+// same thing. Keyed by TIMELINE_MARKERS.
+export const PHASE_LABEL: Record<number, string> = {
+  24: "24 Months",
+  18: "18 Months",
+  12: "12 Months",
+  9: "9 Months",
+  6: "6 Months",
+  3: "3 Months",
+  0: "Final Approach",
+};
+
 export function phaseFromDays(daysUntilEas: number | null): string {
-  if (daysUntilEas === null) return "24 months";
-  if (daysUntilEas > 540) return "24 months";
-  if (daysUntilEas > 365) return "18 months";
-  if (daysUntilEas > 270) return "12 months";
-  if (daysUntilEas > 180) return "9 months";
-  if (daysUntilEas > 90) return "6 months";
-  if (daysUntilEas > 30) return "3 months";
-  return "Final";
+  return PHASE_LABEL[phaseMonthFromDays(daysUntilEas)];
+}
+
+/** Where the member is on the Timeline, as a sentence. Empty when no EAS date is set. */
+export function phaseSentence(daysUntilEas: number | null): string {
+  if (daysUntilEas === null) return "";
+  const month = phaseMonthFromDays(daysUntilEas);
+  return month === 0 ? "You're on final approach." : `You're in the ${month}-month phase of your Timeline.`;
 }
 
 export function phaseMonthFromDays(daysUntilEas: number | null): number {

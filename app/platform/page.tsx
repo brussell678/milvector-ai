@@ -27,7 +27,7 @@ const principles: Principle[] = [
   {
     Icon: ShieldCheck,
     title: "Trust-First Access",
-    detail: "The platform is free to use. Email sign-in helps protect the tools from bot abuse, control AI operating costs, and give members a secure way to return to saved work.",
+    detail: "The platform is free to use. Signing in helps protect the tools from bot abuse, control AI operating costs, and give members a secure way to return to saved work.",
   },
   {
     Icon: ArrowRightLeft,
@@ -37,7 +37,7 @@ const principles: Principle[] = [
   {
     Icon: Route,
     title: "Built For Continuity",
-    detail: "MilVector is meant to feel closer to mission planning software than a generic job board — your documents, plan, applications, and support all in one place.",
+    detail: "MilVector is meant to feel closer to mission planning software than a generic job board, with your documents, plan, applications, and support in one place.",
   },
 ];
 
@@ -80,14 +80,14 @@ export default function PlatformPage() {
             <p className="page-hero-aside-title">TRUST LAYER</p>
             <ul className="page-hero-list">
               <li>Free access for service members</li>
-              <li>Email sign-in instead of passwords</li>
+              <li>Sign in with a password or an emailed link</li>
               <li>No selling user information</li>
               <li>Connected workflow between tools and saved outputs</li>
             </ul>
           </aside>
         </div>
 
-        {/* 4-principle strip — negative margins cancel card padding, flush to edges */}
+        {/* 4-principle strip: negative margins cancel card padding, flush to edges */}
         <div className="hero-trust-strip -mx-7 -mb-7 mt-6">
           <div className="grid grid-cols-2 sm:grid-cols-4">
             {heroStrip.map((item) => (
@@ -136,7 +136,7 @@ export default function PlatformPage() {
         <p className="section-kicker">TRANSPARENCY</p>
         <h2 className="section-title mt-1">How Access And AI Usage Work</h2>
         <p className="section-description">
-          MilVector is designed to be transparent about how the platform works and why some workflows live inside the product while others open in ChatGPT.
+          MilVector is designed to be transparent about how the platform works and what happens to the information you give it.
         </p>
         <ul className="mt-5 space-y-2.5 text-sm text-[var(--muted)]">
           {trustPoints.map((point) => (

@@ -127,7 +127,7 @@ function TicketCard({ item, isNew }: { item: FeedbackRow; isNew: boolean }) {
         </div>
       ) : (
         <p className="mt-4 text-xs text-[var(--muted)]">
-          Awaiting response &mdash; the MilVector team typically replies within 48 hours.
+          Awaiting response. The MilVector team typically replies within 48 hours.
         </p>
       )}
     </article>

@@ -1,10 +1,19 @@
-# MILVECTOR AI (MVP)
+# MILVECTOR AI
 
-Next.js App Router application for guided military transition workflows with AI tools:
+Next.js App Router application for the military transition, live at https://www.milvector.org.
+
+Tools in the workspace (the Tools hub renders from `lib/tools/registry.ts`):
+- MOS Translator
 - Master Resume Builder
-- MOS translator
-- Job Description Decoder
+- LinkedIn Profile Builder
+- Digital Business Card
 - Targeted Resume Builder
+- Job Description Decoder
+- Interview Strategist
+- Retirement Pay Calculator (public, no account)
+- VA Rating Navigator
+- SBP Decision Advisor
+- Retirement Invitation Builder
 
 ## Prerequisites
 - Node.js 20+
@@ -12,24 +21,14 @@ Next.js App Router application for guided military transition workflows with AI 
 - An OpenAI API key
 
 ## Environment Variables
-Create `.env.local` in project root:
-
-```bash
-NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
-OPENAI_API_KEY=YOUR_OPENAI_API_KEY
-# Models default in lib/env.ts; set OPENAI_MODEL and the other *_MODEL vars only to override.
-LLM_TIMEOUT_MS=30000
-# Optional:
-# OPENAI_BASE_URL=https://api.openai.com/v1
-# MAX_UPLOAD_MB=10
-```
+Copy `.env.example` to `.env.local` and fill it in. Every variable is described there.
+Models and reasoning effort default in `lib/env.ts`; set the `*_MODEL` variables only to override.
 
 ## Database + RLS Setup
-1. Open Supabase SQL Editor.
-2. Run: [supabase/migrations/0001_init.sql](supabase/migrations/0001_init.sql)
-3. Run hardening: [supabase/migrations/0002_security_and_metrics.sql](supabase/migrations/0002_security_and_metrics.sql)
-4. Verify bucket `documents` exists and RLS policies are created.
+1. Open the Supabase SQL Editor.
+2. Run every file in [supabase/migrations](supabase/migrations) in order, from `0001_init.sql` to the newest.
+   There is no staging database, so migrations are additive and are run by hand.
+3. Verify the `documents` storage bucket exists and RLS policies are created.
 
 ## Local Run
 ```bash
@@ -39,17 +38,17 @@ npm run dev
 
 Health check:
 - `GET /api/health`
-- `GET /api/metrics` (authenticated)
 
 ## Quality Checks
 ```bash
-npm run lint
+npm run check   # lint, typecheck, and unit tests
 npm run build
 ```
+Run the unit tests from PowerShell. In Git Bash, vitest fails every suite with "reading 'config'".
 
 ## Notes
 - `node_modules` is intentionally not committed to Git.
 - Text extraction supports PDF, DOCX, TXT, and MD (legacy DOC upload allowed, but extraction requires conversion).
+- SSN and DoD ID (EDIPI) numbers are removed from document text before it is stored or sent to a model (`lib/redact.ts`).
 - Tool runs are logged without raw document text.
-- PRD traceability: [PRD_CHECKLIST.md](PRD_CHECKLIST.md)
-
+- User-facing changes get an entry in `WHATSNEW.md`; see `CLAUDE.md`.

@@ -82,7 +82,7 @@ function FitrepBulletsContent() {
     if (mode === "master_resume" && useUploadedDocs) void loadDocs();
   }, [mode, useUploadedDocs]);
 
-  // Pre-fill ?role= param — linked from MOS Translator
+  // Pre-fill ?role= param (linked from MOS Translator)
   const searchParams = useSearchParams();
   useEffect(() => {
     const roleParam = searchParams.get("role");
@@ -165,7 +165,7 @@ function FitrepBulletsContent() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error ?? "Something went wrong on our end. Your inputs are still here — try again in a few seconds.");
+        setError(data.error ?? "Something went wrong on our end. Your inputs are still here. Try again in a few seconds.");
         return;
       }
       setResult(data as BulletsOutput | MasterResumeOutput);
@@ -181,7 +181,7 @@ function FitrepBulletsContent() {
         setNotice("Master bullets generated and saved to your account.");
       }
     } catch {
-      setError("That didn't go through. Check your connection and try again — your inputs are still here.");
+      setError("That didn't go through. Check your connection and try again. Your inputs are still here.");
     } finally {
       setLoading(false);
     }
@@ -212,7 +212,7 @@ function FitrepBulletsContent() {
               <span className="gradient-text">every other tool builds on.</span>
             </h1>
             <p className="page-description">
-              Turns your FITREPs, EVALs, JST, and VMET into a strong first draft — most people polish it and re-upload their final version. Already have a master resume? Upload it in My Files instead and skip this step.
+              Turns your FITREPs, EVALs, JST, and VMET into a strong first draft. Most people polish it and re-upload their final version. Already have a master resume? Upload it in My Files instead and skip this step.
             </p>
           </div>
           <aside className="page-hero-aside relative z-10">
@@ -226,7 +226,7 @@ function FitrepBulletsContent() {
         </div>
         <div className="hero-trust-strip -mx-7 -mb-7 mt-6">
           <div className="grid grid-cols-2 sm:grid-cols-4">
-            {["FITREPs / EVALs", "JST · VMET", "LinkedIn profile docs", "Auto-saved to Library"].map(
+            {["FITREPs / EVALs", "JST · VMET", "LinkedIn profile docs", "Saved to My Files"].map(
               (label) => (
                 <div key={label} className="hero-trust-item">
                   <span
@@ -255,9 +255,9 @@ function FitrepBulletsContent() {
               <p className="text-sm">
                 Add your FITREPs, EVALs, JST, or VMET on the{" "}
                 <a href="/app/documents" className="font-semibold underline">
-                  Documents
+                  My Files
                 </a>{" "}
-                page before running this. The more records you add, the stronger your master resume.
+                before running this. The more records you add, the stronger your master resume.
               </p>
             </ToolAlert>
           )}
@@ -267,7 +267,7 @@ function FitrepBulletsContent() {
               <div>
                 <p className="tool-kicker">INPUTS</p>
                 <p className="section-description mt-1">
-                  Use uploaded documents when possible — the tool runs from whichever source records are available.
+                  Use uploaded documents when possible. The tool runs from whichever source records are available.
                 </p>
               </div>
 
@@ -348,13 +348,13 @@ function FitrepBulletsContent() {
                         ))}
                       </div>
                       <p className="mt-3 text-xs text-[var(--muted)]">
-                        Missing records are fine — the tool will ask you follow-up questions to fill the gaps. If you upload a lot, it uses your most recent material first.
+                        Missing records are fine. The tool will ask you follow-up questions to fill the gaps. If you upload a lot, it uses your most recent material first.
                       </p>
                       <p className="mt-2 text-xs text-[var(--muted)]">
-                        &ldquo;LinkedIn Profile&rdquo; here means a PDF export of your profile uploaded in Documents — the LinkedIn URL saved on your Profile page isn&rsquo;t read by this tool.
+                        &ldquo;LinkedIn Profile&rdquo; here means a PDF export of your profile uploaded in My Files. The LinkedIn URL saved on your Profile page isn&rsquo;t read by this tool.
                       </p>
                       <a className="btn btn-secondary mt-3 w-full text-xs" href="/app/documents">
-                        Manage Documents
+                        Open My Files
                       </a>
                     </div>
                   ) : (
@@ -435,7 +435,7 @@ function FitrepBulletsContent() {
               task={
                 mode === "master_resume" ? "Generating master resume…" : "Generating master bullets…"
               }
-              detail="Analyzing source records and translating military experience. This typically takes 30–60 seconds."
+              detail="Analyzing source records and translating military experience. This usually takes about two minutes. Keep this page open."
             />
           )}
 
@@ -467,7 +467,7 @@ function FitrepBulletsContent() {
                 <p className="tool-kicker">OUTPUT</p>
                 <p className="section-title mt-0.5">Generated Master Resume</p>
                 <p className="section-description">
-                  Review this draft, refine it, and save your best version in Documents so every downstream tool starts from a stronger source.
+                  Review this draft, refine it, and save your best version in My Files so every downstream tool starts from a stronger source.
                 </p>
               </div>
 
@@ -476,7 +476,7 @@ function FitrepBulletsContent() {
                   <p className="text-xs text-[var(--muted)]">
                     FITREP/EVAL sources: {result.fitrepDocsIncluded} of {result.fitrepDocsDetected}{" "}
                     included
-                    {result.fitrepDocsTruncated ? " — truncated by input budget" : ""}
+                    {result.fitrepDocsTruncated ? " (the most recent ones; the rest did not fit)" : ""}
                   </p>
                 )}
 

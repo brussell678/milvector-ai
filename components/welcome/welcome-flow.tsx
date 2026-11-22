@@ -21,7 +21,7 @@ const GOALS = [
   {
     value: "not_sure",
     title: "Not sure yet",
-    detail: "Show me my options — I'm still figuring it out.",
+    detail: "Show me my options. I'm still figuring it out.",
   },
 ] as const;
 
@@ -151,7 +151,7 @@ export function WelcomeFlow() {
             <div>
               <h1 className="text-2xl font-extrabold tracking-tight">When do you get out?</h1>
               <p className="mt-2 text-sm text-[var(--muted)]">
-                Your EAS or retirement date sets your countdown and unlocks your transition timeline. If you don&apos;t know it yet, skip this — you can add it any time.
+                Your EAS or retirement date sets your countdown and unlocks your transition timeline. If you don&apos;t know it yet, skip this and add it any time.
               </p>
               <label className="mt-5 block space-y-1">
                 <span className="text-sm font-medium">EAS / retirement date</span>
@@ -178,7 +178,7 @@ export function WelcomeFlow() {
             <div>
               <h1 className="text-2xl font-extrabold tracking-tight">What&apos;s your MOS and rank?</h1>
               <p className="mt-2 text-sm text-[var(--muted)]">
-                Your MOS lets the tools translate your actual experience — this is what makes your first result feel like it was written about you.
+                Your MOS lets the tools translate your actual experience. That is what makes your first result feel like it was written about you.
               </p>
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 <label className="block space-y-1">
@@ -219,7 +219,7 @@ export function WelcomeFlow() {
             <div>
               <h1 className="text-2xl font-extrabold tracking-tight">What&apos;s next for you?</h1>
               <p className="mt-2 text-sm text-[var(--muted)]">
-                No wrong answer here — this just helps point you at the right first tool.
+                No wrong answer here. This just helps point you at the right first tool.
               </p>
               <div className="mt-5 grid gap-3">
                 {GOALS.map((g) => (
@@ -247,7 +247,7 @@ export function WelcomeFlow() {
                   Back
                 </button>
                 <button type="button" className="btn btn-primary" onClick={() => void finish()} disabled={saving}>
-                  {saving ? "Setting up…" : mos.trim() ? "Finish — see my first result" : "Finish setup"}
+                  {saving ? "Setting up…" : mos.trim() ? "Finish and see my first result" : "Finish setup"}
                 </button>
               </div>
             </div>

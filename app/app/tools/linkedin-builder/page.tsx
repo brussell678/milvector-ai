@@ -240,7 +240,7 @@ export default function LinkedinBuilderPage() {
       if (!res.ok) { setError(data.error ?? "Something went wrong on our end. Try again in a few seconds."); return null; }
       return data;
     } catch {
-      setError("That didn't go through. Check your connection and try again — your work is still here.");
+      setError("That didn't go through. Check your connection and try again. Your work is still here.");
       return null;
     } finally {
       setLoading(false);
@@ -298,7 +298,7 @@ export default function LinkedinBuilderPage() {
       setActiveTab("career");
       setNotice("Analysis and career matching complete. Review the career tab, adjust your target role and industry, then generate your profile.");
     } catch {
-      setError("That didn't go through. Check your connection and try again — your resume text is still here.");
+      setError("That didn't go through. Check your connection and try again. Your resume text is still here.");
     } finally {
       setLoading(false);
       setActiveTask(null);
@@ -339,7 +339,7 @@ export default function LinkedinBuilderPage() {
     setLastAutoSave(null);
     setDocumentId(null);
     setActiveTab("profile");
-    setNotice("Profile package generated. Edit the sections below — changes auto-save after 30 seconds.");
+    setNotice("Profile package generated. Edit the sections below; changes auto-save after 30 seconds.");
     void refreshSavedProfiles();
   }
 
@@ -454,7 +454,7 @@ export default function LinkedinBuilderPage() {
               <span className="gradient-text">from your master resume.</span>
             </h1>
             <p className="page-description">
-              Start with your master resume and get a complete LinkedIn profile — headline, about section, experience, and a banner. Edit anything; your changes save automatically.
+              Start with your master resume and get a complete LinkedIn profile: headline, about section, experience, and a banner. Edit anything; your changes save automatically.
             </p>
           </div>
           <aside className="page-hero-aside relative z-10">
@@ -519,7 +519,7 @@ export default function LinkedinBuilderPage() {
               {documentId
                 ? <span className="tool-badge tool-badge-success" style={{ fontSize: "0.65rem" }}>Saved to Documents</span>
                 : profileOutput
-                ? <span className="tool-badge tool-badge-warn" style={{ fontSize: "0.65rem" }}>Unsaved — edits lost on close</span>
+                ? <span className="tool-badge tool-badge-warn" style={{ fontSize: "0.65rem" }}>Unsaved: edits are lost on close</span>
                 : null}
               {lastAutoSave && (
                 <span>Auto-saved {lastAutoSave.toLocaleTimeString()}</span>
@@ -678,16 +678,16 @@ export default function LinkedinBuilderPage() {
               task={activeTask ?? "Processing…"}
               detail={
                 activeTask?.includes("1")
-                  ? "Analyzing your resume for strengths, skills, and role families. Usually 15–25 seconds."
+                  ? "Analyzing your resume for strengths, skills, and role families. Usually 15 to 25 seconds."
                   : activeTask?.includes("2")
-                  ? "Matching your profile to civilian career paths. Usually 15–20 seconds."
+                  ? "Matching your profile to civilian career paths. Usually 15 to 20 seconds."
                   : activeTask?.includes("3")
-                  ? "Generating your full LinkedIn profile package. Usually 30–60 seconds."
+                  ? "Generating your full LinkedIn profile package. Usually 30 to 60 seconds."
                   : activeTask?.includes("Score") || activeTask?.includes("scor")
-                  ? "Scoring your profile against recruiter standards. Usually 15–25 seconds."
+                  ? "Scoring your profile against recruiter standards. Usually 15 to 25 seconds."
                   : activeTask?.includes("Banner") || activeTask?.includes("banner")
-                  ? "Creating your banner assets. Image generation may take 20–40 seconds."
-                  : "AI processing is in progress — please wait."
+                  ? "Creating your banner assets. Image generation may take 20 to 40 seconds."
+                  : "AI processing is in progress. Please wait."
               }
             />
           )}
@@ -761,7 +761,7 @@ export default function LinkedinBuilderPage() {
                     Operations Leader | Logistics &amp; Team Management | Marine Corps Veteran
                   </p>
                   <p className="mt-1 text-xs text-[var(--muted)]">
-                    Plus an about section, experience entries, and networking guidance — all editable.
+                    Plus an about section, experience entries, and networking guidance, all editable.
                   </p>
                 </div>
               </div>

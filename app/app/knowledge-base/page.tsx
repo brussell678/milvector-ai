@@ -32,7 +32,7 @@ export default async function AppKnowledgeBasePage() {
             <p className="page-hero-aside-title">HOW TO USE IT</p>
             <ul className="page-hero-list">
               <li>Start with the category closest to your current problem.</li>
-              <li>Open only the article you need — no scanning walls of text.</li>
+              <li>Open only the article you need, with no walls of text to scan.</li>
               <li>Jump from guidance into the tools when you&apos;re ready to act.</li>
             </ul>
           </aside>

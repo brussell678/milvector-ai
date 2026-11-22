@@ -258,7 +258,7 @@ export function AuthForm({ initialError, initialMode }: AuthFormProps) {
   return (
     <section className="panel w-full overflow-hidden p-0">
       <div className="grid gap-0 md:grid-cols-[1.05fr_0.95fr]">
-        {/* ── Dark left panel — matches site-wide hero palette ── */}
+        {/* ── Dark left panel, matches site-wide hero palette ── */}
         <div
           className="relative order-2 overflow-hidden border-t border-[rgba(255,255,255,0.08)] p-6 sm:p-8 md:order-1 md:border-r md:border-t-0 md:border-r-[rgba(255,255,255,0.08)] md:p-10"
           style={{
@@ -436,7 +436,7 @@ export function AuthForm({ initialError, initialMode }: AuthFormProps) {
                 {loading ? "Creating account..." : "Create Account"}
               </button>
               <p className="text-xs text-[var(--muted)]">
-                That&apos;s all we need to start. We&apos;ll ask about your service after you&apos;re in — takes about a minute.
+                That&apos;s all we need to start. We&apos;ll ask about your service after you&apos;re in. It takes about a minute.
               </p>
             </form>
           ) : null}

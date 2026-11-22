@@ -1,9 +1,11 @@
 import { Resend } from "resend";
+import { siteUrl } from "@/lib/seo";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = process.env.RESEND_FROM_EMAIL ?? "support@milvectorai.com";
 const ADMIN_EMAIL = process.env.ADMIN_NOTIFY_EMAIL ?? "brussell678@gmail.com";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://milvectorai.com";
+// Links in every email. The live site when the variable is unset.
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? siteUrl;
 
 const TYPE_LABELS: Record<string, string> = {
   bug: "Bug Report",
@@ -40,7 +42,7 @@ function baseHtml(title: string, body: string) {
     <div class="hdr-title">${title}</div>
   </div>
   <div class="body">${body}</div>
-  <div class="ftr">MilVector AI &mdash; Military-to-civilian career transition platform. This message was sent automatically.</div>
+  <div class="ftr">MilVector AI | Military-to-civilian career transition platform. This message was sent automatically.</div>
 </div>
 </body>
 </html>`;
@@ -75,7 +77,7 @@ export async function notifyAdminNewTicket(ticket: {
     ? `${ticket.attachmentFilename} (view in admin portal)`
     : "none";
 
-  // Paste-ready block — the owner copies this straight into their dev tool for a quick fix.
+  // Paste-ready block: the owner copies this straight into their dev tool for a quick fix.
   const pasteText = [
     "MILVECTOR SUPPORT TICKET",
     `Type: ${typeLabel}`,
@@ -120,7 +122,7 @@ export async function notifyAdminNewTicket(ticket: {
         : ticket.attachmentFilename
         ? `<p class="value" style="margin-top:8px;font-size:13px;color:#6b7a8d;">&#128206; Attachment: ${escapeHtml(
             ticket.attachmentFilename
-          )} — view inline in the admin portal</p>`
+          )}. View it inline in the admin portal.</p>`
         : ""
     }
     <p class="label" style="margin-top:16px;">Message</p>
@@ -137,7 +139,7 @@ export async function notifyAdminNewTicket(ticket: {
   await resend.emails.send({
     from: FROM,
     to: ADMIN_EMAIL,
-    subject: `[MilVector Support] New ${typeLabel} — ${ticket.name ?? ticket.email ?? "Anonymous"}`,
+    subject: `[MilVector Support] New ${typeLabel}: ${ticket.name ?? ticket.email ?? "Anonymous"}`,
     html: baseHtml("New Support Case Received", body),
     text: pasteText,
     attachments,
@@ -160,7 +162,7 @@ export async function notifyUserAdminResponse(opts: {
     <div class="msg-block">${opts.ticketMessage.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
     <p class="label">MilVector Response</p>
     <div class="reply-block">${opts.adminResponse.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
-    <a class="btn" href="${APP_URL}/app/support">View Your Support Cases</a>
+    <a class="btn" href="${APP_URL}/app/feedback">View Your Support Cases</a>
   `;
 
   await resend.emails.send({
@@ -193,7 +195,7 @@ export async function notifyUserRequestShipped(opts: {
   await resend.emails.send({
     from: FROM,
     to: opts.to,
-    subject: "[MilVector] You asked, we built it — your request is live",
+    subject: "[MilVector] You asked, we built it: your request is live",
     html: baseHtml("Your Request Is Live", body),
   });
 }

@@ -84,7 +84,7 @@ export function ChipInput({ value, onChange, placeholder, addLabel = "Add" }: Ch
           {addLabel}
         </button>
       </div>
-      <p className="mt-1 text-xs text-[var(--muted)]">Type one and press Enter — it becomes a tag you can remove any time.</p>
+      <p className="mt-1 text-xs text-[var(--muted)]">Type one and press Enter. It becomes a tag you can remove any time.</p>
     </div>
   );
 }

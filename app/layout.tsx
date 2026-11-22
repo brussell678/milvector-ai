@@ -68,7 +68,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      {/* Inline theme init — runs before first paint to prevent FOUC */}
+      {/* Inline theme init: runs before first paint to prevent FOUC */}
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -120,7 +120,7 @@ export default function RootLayout({
                   Built for service members
                 </p>
                 <p className="mt-3 text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.35)" }}>
-                  Career translation, job targeting, and transition planning — AI-powered and built for service members.
+                  AI tools for career translation, job targeting, and transition planning, built for service members.
                 </p>
               </div>
 

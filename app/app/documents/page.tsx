@@ -291,9 +291,9 @@ export default function DocumentsPage() {
       <section className="page-hero-dark">
         <div className="page-hero-grid">
           <div className="relative z-10">
-            <p className="page-kicker-pill">DOCUMENTS</p>
+            <p className="page-kicker-pill">MY FILES</p>
             <h1 className="page-title">
-              Drop your records in —{" "}
+              Drop your records in,{" "}
               <span className="gradient-text">we handle the rest.</span>
             </h1>
             <p className="page-description">
@@ -303,9 +303,9 @@ export default function DocumentsPage() {
           <aside className="page-hero-aside relative z-10">
             <p className="page-hero-aside-title">MOST USEFUL RECORDS</p>
             <ul className="page-hero-list">
-              <li>FITREPs and EVALs — your strongest raw material</li>
-              <li>JST — your training and education record</li>
-              <li>VMET — your experience summary</li>
+              <li>FITREPs and EVALs: your strongest raw material</li>
+              <li>JST: your training and education record</li>
+              <li>VMET: your experience summary</li>
               <li>A PDF of your LinkedIn profile, if you have one</li>
             </ul>
           </aside>
@@ -435,10 +435,10 @@ export default function DocumentsPage() {
           <div className="mt-3 grid gap-3 text-sm text-[var(--muted)] sm:grid-cols-2">
             <div>
               <p className="font-semibold text-[var(--foreground)]">FITREPs / EVALs</p>
-              <p className="mt-1">Marines: download from MOL (Marine Online). Sailors: from NSIPS. These carry the most detail about what you actually did — upload as many as you can.</p>
+              <p className="mt-1">Marines: download from MOL (Marine Online). Sailors: from NSIPS. These carry the most detail about what you actually did, so upload as many as you can.</p>
             </div>
             <div>
-              <p className="font-semibold text-[var(--foreground)]">JST — Joint Services Transcript</p>
+              <p className="font-semibold text-[var(--foreground)]">JST (Joint Services Transcript)</p>
               <p className="mt-1">Your official training and education record. Get it free at jst.doded.mil.</p>
             </div>
             <div>
@@ -447,7 +447,7 @@ export default function DocumentsPage() {
             </div>
             <div>
               <p className="font-semibold text-[var(--foreground)]">Awards</p>
-              <p className="mt-1">Upload the <span className="font-medium text-[var(--foreground)]">Summary of Action</span> if you have it — it carries the real scope and numbers. The citation works too. Awards add depth to the billet you already held; they won&apos;t create a separate job on your resume.</p>
+              <p className="mt-1">Upload the <span className="font-medium text-[var(--foreground)]">Summary of Action</span> if you have it, because it carries the real scope and numbers. The citation works too. Awards add depth to the billet you already held; they won&apos;t create a separate job on your resume.</p>
             </div>
             <div>
               <p className="font-semibold text-[var(--foreground)]">LinkedIn profile</p>
@@ -479,7 +479,7 @@ export default function DocumentsPage() {
           <div className="rounded-lg border border-dashed border-[var(--line)] p-8 text-center">
             <p className="text-sm font-medium text-[var(--muted)]">Nothing here yet</p>
             <p className="mt-1 text-xs text-[var(--muted)]">
-              Drop your first FITREP, EVAL, JST, or VMET above — it&apos;ll be tool-ready in seconds.
+              Drop your first FITREP, EVAL, JST, or VMET above and it&apos;ll be tool-ready in seconds.
             </p>
           </div>
         ) : (

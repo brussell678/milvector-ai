@@ -133,7 +133,7 @@ export default async function LibraryPage() {
           <div className="relative z-10">
             <p className="page-kicker-pill">MY FILES</p>
             <h1 className="page-title">Everything you&apos;ve uploaded and built, in one place.</h1>
-            <p className="page-description">Your saved resumes, uploaded records, guides, and vetted links — so you can pick up right where you left off.</p>
+            <p className="page-description">Your saved resumes, uploaded records, guides, and vetted links, so you can pick up right where you left off.</p>
           </div>
           <aside className="page-hero-aside relative z-10">
             <p className="page-hero-aside-title">HOW TO USE IT</p>

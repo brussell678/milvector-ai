@@ -1198,7 +1198,7 @@ function ProgramTab({ draft, set }: { draft: InviteData; set: <K extends keyof I
         </p>
         <DocList docs={UNIT_PAPERWORK} />
         <a href="/app/library" className="text-sm font-semibold text-[var(--accent)] underline underline-offset-2">
-          See everything in the Library
+          See every template in My Files
         </a>
       </section>
     </>

@@ -41,7 +41,7 @@ export default async function AdminUpdatesPage() {
       <section className="section-card">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-lg font-bold">What&apos;s New — Composer</h1>
+            <h1 className="text-lg font-bold">What&apos;s New Composer</h1>
             <p className="mt-1 text-sm text-[var(--muted)]">
               Post a product update. It appears on the announcement bar (for 21 days) and the What&apos;s New page.
               Linking a support case marks it resolved and emails the reporter that their request is live.

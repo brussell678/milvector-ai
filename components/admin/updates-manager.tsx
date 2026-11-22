@@ -159,7 +159,7 @@ export function UpdatesManager({
             {linkedFeedbackId
               ? linkedOption?.hasEmail
                 ? "Posting will resolve this case and email the reporter that their request is live."
-                : "Posting will resolve this case. No email — the reporter left no address."
+                : "Posting will resolve this case. No email, because the reporter left no address."
               : "Leave unlinked for ideas that came in through other channels."}
           </span>
         </label>

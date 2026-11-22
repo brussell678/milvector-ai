@@ -128,12 +128,12 @@ export default function JobDescriptionDecoderPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error ?? "Something went wrong on our end. Your posting text is still here — try again in a few seconds.");
+        setError(data.error ?? "Something went wrong on our end. Your posting text is still here. Try again in a few seconds.");
         return;
       }
       setResult(data as Output);
     } catch {
-      setError("That didn't go through. Check your connection and try again — your posting text is still here.");
+      setError("That didn't go through. Check your connection and try again. Your posting text is still here.");
     } finally {
       setLoading(false);
     }
@@ -156,7 +156,7 @@ export default function JobDescriptionDecoderPage() {
               <span className="gradient-text">really wants before you apply.</span>
             </h1>
             <p className="page-description">
-              Paste any job posting and see what they actually require, what they quietly expect, which keywords matter, and what to watch out for — before you spend time applying.
+              Paste any job posting and see what they actually require, what they quietly expect, which keywords matter, and what to watch out for, all before you spend time applying.
             </p>
           </div>
           <aside className="page-hero-aside relative z-10">
@@ -217,7 +217,7 @@ export default function JobDescriptionDecoderPage() {
                   className="input min-h-72"
                   value={jobDescriptionText}
                   onChange={(e) => setJobDescriptionText(e.target.value)}
-                  placeholder="Paste the complete job posting here — title, responsibilities, requirements, and any company context."
+                  placeholder="Paste the complete job posting here: title, responsibilities, requirements, and any company context."
                   required
                 />
               </label>
@@ -232,7 +232,7 @@ export default function JobDescriptionDecoderPage() {
             </form>
           </section>
 
-          {/* Cross-tool CTA — shown after a result is saved */}
+          {/* Cross-tool CTA, shown after a result is saved */}
           {result && !loading && (
             <section className="tool-section">
               <div>
@@ -376,7 +376,7 @@ export default function JobDescriptionDecoderPage() {
               {result.ats_keywords_priority.length > 0 && (
                 <div className="flex flex-col gap-2">
                   <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
-                    <Term k="ats">ATS</Term> <Term k="keywords">Keywords</Term> — Priority Order
+                    <Term k="ats">ATS</Term> <Term k="keywords">Keywords</Term> by Priority
                   </p>
                   <KeywordChips keywords={result.ats_keywords_priority} />
                   <button
@@ -443,7 +443,7 @@ export default function JobDescriptionDecoderPage() {
               </p>
               <div className="tool-example">
                 <p className="tool-example-kicker">Example</p>
-                <p className="mt-2 text-sm font-bold text-[var(--foreground)]">Logistics Coordinator — what they really want</p>
+                <p className="mt-2 text-sm font-bold text-[var(--foreground)]">Logistics Coordinator: what they really want</p>
                 <ul className="mt-1.5 space-y-1 text-xs text-[var(--muted)]">
                   <li>• Must-have: 3+ years coordinating shipments or supply</li>
                   <li>• Unwritten: comfortable being the one everyone calls when plans change</li>

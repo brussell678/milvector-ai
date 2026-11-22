@@ -177,7 +177,7 @@ export default async function Home({
                 className="fade-up max-w-xl text-lg leading-relaxed"
                 style={{ animationDelay: "120ms", color: "rgba(255,255,255,0.62)" }}
               >
-                Career translation, job targeting, and transition planning — AI-powered and built for service members.
+                AI tools for career translation, job targeting, and transition planning, built for service members.
               </p>
 
               <div
@@ -193,7 +193,7 @@ export default async function Home({
               </div>
             </div>
 
-            {/* Right: outcome bento — dark-adapted */}
+            {/* Right: outcome bento, dark-adapted */}
             <aside
               aria-label="What you get"
               className="relative z-10 rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.03)] p-4 fade-up"
@@ -249,13 +249,13 @@ export default async function Home({
         <section className="observe-fade" aria-label="Platform features">
           <div className="grid gap-3 md:grid-cols-3">
 
-            {/* Hero tile: Connected system — spans 2 cols */}
+            {/* Hero tile: Connected system, spans 2 cols */}
             <article className="bento-hero-tile card-hover flex flex-col gap-4 p-6 md:col-span-2">
               <Layers size={22} className="text-[var(--accent)]" aria-hidden="true" />
               <div>
                 <h3 className="text-base font-bold tracking-tight">Connected transition system</h3>
                 <p className="mt-1.5 text-sm leading-relaxed text-[var(--muted)]">
-                  Your profile, service records, AI tools, and timeline all reinforce each other — no rebuilding the process from scratch at every step.
+                  Your profile, service records, AI tools, and timeline all reinforce each other, so you never rebuild the process from scratch.
                 </p>
               </div>
             </article>
@@ -277,12 +277,12 @@ export default async function Home({
               <div>
                 <h3 className="text-sm font-bold">Job Description Decoder</h3>
                 <p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">
-                  Break any job posting into must-haves, risks, and your application fit score.
+                  Break any job posting into must-haves and risks, and see how well you fit.
                 </p>
               </div>
             </article>
 
-            {/* Document workflows — spans 2 cols, mirrors hero */}
+            {/* Document workflows: spans 2 cols, mirrors hero */}
             <article className="subtle-panel card-hover flex flex-col gap-3 p-5 md:col-span-2">
               <FileText size={20} className="text-[var(--accent)]" aria-hidden="true" />
               <div>
@@ -300,7 +300,7 @@ export default async function Home({
           <p className="section-kicker">THE PROCESS</p>
           <h2 className="section-title mt-1">How It Works</h2>
           <p className="section-description">
-            MilVector is designed as a connected transition system — each step strengthens the next instead of forcing you to start over.
+            MilVector is designed as a connected transition system: each step strengthens the next instead of forcing you to start over.
           </p>
 
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -334,7 +334,7 @@ export default async function Home({
           <p className="section-kicker">IN PRACTICE</p>
           <h2 className="section-title mt-1">Example Transformation</h2>
           <p className="section-description">
-            The goal is not to erase military experience — it is to translate it into language hiring managers can understand quickly.
+            The goal is not to erase military experience. It is to translate it into language hiring managers understand quickly.
           </p>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <article className="subtle-panel p-5">
@@ -382,7 +382,7 @@ export default async function Home({
                 Ready to find your vector?
               </h2>
               <p className="mt-2 max-w-lg text-sm leading-relaxed md:text-base" style={{ color: "rgba(255,255,255,0.58)" }}>
-                Connect your records, translate your experience, and build a transition plan that works — all in one workspace.
+                Connect your records, translate your experience, and build a transition plan that works, all in one workspace.
               </p>
             </div>
             <Link

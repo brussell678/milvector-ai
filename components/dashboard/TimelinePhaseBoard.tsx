@@ -5,17 +5,7 @@ import { TaskCard } from "./TaskCard";
 import { TaskDrawer } from "./TaskDrawer";
 import { getTaskLinks } from "./task-linking";
 import type { DashboardLink, DashboardTask } from "./types";
-
-const PHASE_ORDER = [24, 18, 12, 9, 6, 3, 0] as const;
-const PHASE_LABEL: Record<number, string> = {
-  24: "24 Months",
-  18: "18 Months",
-  12: "12 Months",
-  9: "9 Months",
-  6: "6 Months",
-  3: "3 Months",
-  0: "Final Approach",
-};
+import { PHASE_LABEL, TIMELINE_MARKERS as PHASE_ORDER } from "@/lib/timeline";
 
 export function TimelinePhaseBoard({
   tasks,

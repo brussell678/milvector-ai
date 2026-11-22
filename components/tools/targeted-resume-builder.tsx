@@ -47,6 +47,7 @@ function withLine(resume: BuildResult["resume"], oldText: string, newText: strin
   };
 }
 
+const BUILD_BUSY = "Writing your resume from your master and checking every line...";
 const FRIENDLY_ERROR = "Something went wrong on our end. Your work is still here. Try again in a few seconds.";
 
 const LEVEL: Record<string, { label: string; badge: string }> = {
@@ -158,7 +159,7 @@ export function TargetedResumeBuilder({ initialTitle = "", initialPosting = "", 
     setError(null);
     setBuilt(null);
     setReview({});
-    setBusy("Writing your resume from your master and checking every line...");
+    setBusy(BUILD_BUSY);
     const res = await post<BuildResult>({ stage: "build", ...body(), fitMap: fit?.fitMap });
     setBusy(null);
     if (!res.ok) return setError(res.error);
@@ -264,7 +265,7 @@ export function TargetedResumeBuilder({ initialTitle = "", initialPosting = "", 
         {!haveSource && <p className="text-xs text-[var(--muted)]">{pasting ? "Paste the resume to work from first." : "Choose your master resume first."}</p>}
       </section>
 
-      {busy && <LoadingBlock task={busy} detail="Usually 20 to 60 seconds. Keep this page open." />}
+      {busy && <LoadingBlock task={busy} detail={busy === BUILD_BUSY ? "Usually one to two minutes. Keep this page open." : "Usually under a minute. Keep this page open."} />}
       {error && (
         <ToolAlert variant="error" title="Could not finish">
           <p className="text-sm">{error}</p>

@@ -11,15 +11,15 @@ describe("tool registry", () => {
     expect(new Set(titles).size).toBe(titles.length);
   });
 
-  it("marks a tool external exactly when its href leaves the site", () => {
+  it("keeps every tool inside MilVector", () => {
     for (const tool of allTools) {
-      expect(!!tool.isExternal, tool.title).toBe(tool.href.startsWith("http"));
+      expect(tool.href.startsWith("/"), tool.title).toBe(true);
     }
   });
 
   it("gives every built-in tool route a display label for the activity feed", () => {
     const labelled = new Set(Object.values(toolLabels));
-    for (const tool of allTools.filter((t) => !t.isExternal && !t.isCalculator && !t.isBuilder && !t.isPreview)) {
+    for (const tool of allTools.filter((t) => !t.isCalculator && !t.isBuilder && !t.isPreview)) {
       expect(labelled.has(tool.title), tool.title).toBe(true);
     }
   });

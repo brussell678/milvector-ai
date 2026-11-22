@@ -19,7 +19,7 @@ export default function AppFeedbackPage() {
             </h1>
             <p className="page-description">
               Submit bugs, product suggestions, and platform questions. The MilVector team responds
-              within 48 hours — your case stays visible here so nothing gets lost.
+              within 48 hours, and your case stays visible here so nothing gets lost.
             </p>
           </div>
           <aside className="page-hero-aside">

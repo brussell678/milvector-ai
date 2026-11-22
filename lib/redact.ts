@@ -30,7 +30,7 @@ export function redactPII(input: string): RedactionResult {
   let dodId = 0;
   let text = input;
 
-  // Labeled EDIPI / DoD ID — allows separators inside the number
+  // Labeled EDIPI / DoD ID: allows separators inside the number
   text = text.replace(
     /\b(EDIPI|Do[Dd]\s*ID(?:\s*(?:Number|No\.?|#))?)\s*[:#]?\s*(\d[\d\s-]{8,12}\d)\b/gi,
     (_m, label: string) => {

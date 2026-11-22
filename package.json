@@ -26,7 +26,6 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "resend": "^6.16.0",
-    "xlsx": "^0.18.5",
     "zod": "^3.25.76"
   },
   "devDependencies": {
@@ -41,6 +40,7 @@
     "eslint-config-next": "^16.4.6",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.0",
+    "xlsx": "^0.18.5"
   }
 }

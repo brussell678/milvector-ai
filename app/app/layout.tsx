@@ -10,7 +10,7 @@ import { isAdminEmail } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 
 // Only surface the bar for genuinely recent updates. When it's been dry, the
-// bar is simply absent — no stale "last updated months ago" nag. The full
+// bar is simply absent, with no stale "last updated months ago" nag. The full
 // dated record still lives on the What's New page.
 const ANNOUNCEMENT_WINDOW_DAYS = 21;
 

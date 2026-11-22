@@ -36,14 +36,7 @@ function relativeTime(iso: string): string {
 function ToolCardUI({ tool, checks }: { tool: ToolCard; checks: ChecksState }) {
   return (
     <article className="subtle-panel flex flex-col gap-3 p-5">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <h3 className="font-bold text-base leading-tight">{tool.title}</h3>
-        {tool.isExternal && (
-          <span className="tool-badge tool-badge-warn" style={{ fontSize: "0.65rem" }}>
-            Opens in ChatGPT
-          </span>
-        )}
-      </div>
+      <h3 className="font-bold text-base leading-tight">{tool.title}</h3>
       <p className="text-sm text-[var(--muted)] leading-relaxed">{tool.desc}</p>
       {tool.requirements?.length ? (
         <div className="rounded-md border border-[var(--line)] bg-[var(--surface)] p-3">
@@ -69,32 +62,10 @@ function ToolCardUI({ tool, checks }: { tool: ToolCard; checks: ChecksState }) {
           </ul>
         </div>
       ) : null}
-      {tool.isExternal && (
-        <p className="text-xs text-[var(--muted)]">
-          Needs a free ChatGPT account. Results are not saved to MilVector — copy anything you want to keep.
-        </p>
-      )}
       <div className="mt-auto flex flex-wrap gap-2 pt-1">
-        {tool.isExternal ? (
-          <a href={tool.href} className="btn btn-secondary text-sm" target="_blank" rel="noreferrer">
-            Open in ChatGPT
-          </a>
-        ) : (
-          <Link href={tool.href} className="btn btn-primary text-sm">
-            Open Tool
-          </Link>
-        )}
-        {tool.gptHref && (
-          <a
-            href={tool.gptHref}
-            className="btn btn-secondary text-sm"
-            target="_blank"
-            rel="noreferrer"
-            title="A chat version of this tool. Results are not saved to MilVector."
-          >
-            ChatGPT version
-          </a>
-        )}
+        <Link href={tool.href} className="btn btn-primary text-sm">
+          Open Tool
+        </Link>
       </div>
     </article>
   );
@@ -148,6 +119,8 @@ export default async function ToolsPage() {
       .from("tool_runs")
       .select("tool_name, status, created_at")
       .eq("user_id", user.id)
+      // One row per member action, not the internal calls inside it (see lib/usage-limit.ts)
+      .is("input_json->>_step", null)
       .order("created_at", { ascending: false })
       .limit(5),
     supabase
@@ -191,13 +164,13 @@ export default async function ToolsPage() {
       description: "Add FITREPs, EVALs, JST, VMET, and any award Summaries of Action so the AI has your real experience to work from.",
       href: "/app/documents",
       status: hasSources ? "complete" : "active",
-      ctaLabel: hasSources ? `${extractedDocCount} ready — manage` : "Upload Records",
+      ctaLabel: hasSources ? `Manage your ${extractedDocCount} records` : "Upload Records",
     },
     {
       phase: "Step 2",
       title: "Build Your Master Resume",
       description:
-        "Turn your records into one master resume that every other tool builds on. Already have one? Upload it in My Files as a Master Resume — that counts too.",
+        "Turn your records into one master resume that every other tool builds on. Already have one? Upload it in My Files as a Master Resume and it counts too.",
       href: "/app/tools/fitrep-bullets",
       status: hasMasterResume ? "complete" : hasSources ? "active" : "pending",
       ctaLabel: hasMasterResume ? "Open Tool" : "Build Master Resume",
@@ -205,7 +178,7 @@ export default async function ToolsPage() {
     {
       phase: "Step 3",
       title: "Target a Real Job",
-      description: "Research the title, analyze the posting, and decide go or no-go before building the resume.",
+      description: "See how you fit the posting first, then get a resume tailored to it from your master resume.",
       href: "/app/tools/resume-targeter",
       status: hasTargetedResume ? "complete" : hasMasterResume ? "active" : "pending",
       ctaLabel: hasTargetedResume ? "Run Again" : "Target a Job",
@@ -254,7 +227,7 @@ export default async function ToolsPage() {
           <aside className="page-hero-aside relative z-10">
             <p className="page-hero-aside-title">THE ORDER THAT WORKS</p>
             <ul className="page-hero-list">
-              <li>Upload your records first — the AI works from your real experience</li>
+              <li>Upload your records first, so the AI works from your real experience</li>
               <li>Build your master resume before targeting jobs</li>
               <li>Then build targeted resumes and prep for interviews</li>
               <li>Use the decision tools for big benefits choices like SBP and VA ratings</li>
@@ -283,7 +256,7 @@ export default async function ToolsPage() {
           <p className="tool-kicker">YOUR PROGRESS</p>
           <h2 className="section-title mt-1">Where you are in the four steps</h2>
           <p className="section-description">
-            Do the steps in order — each one makes the next one better.
+            Do the steps in order, because each one makes the next one better.
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

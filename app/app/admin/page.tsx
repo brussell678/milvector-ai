@@ -130,7 +130,7 @@ export default async function AdminPage() {
             <h1 className="page-title">Triage feedback, moderate community, review submissions.</h1>
             <p className="page-description">
               Restricted to {user.email}. Respond to user support cases, publish library submissions,
-              action community reports, and manage posting blocks — all in one place.
+              action community reports, and manage posting blocks, all in one place.
             </p>
             <div className="mt-5">
               <Link href="/app/admin/updates" className="btn btn-primary text-sm">
