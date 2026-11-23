@@ -4,9 +4,10 @@
 --
 -- Additive: new columns, two new functions, wider source lists, one new row
 -- policy, submit_card_lead redefined with the same signature, and
--- card_follow_up added to the AI tools tool_runs accepts. Existing cards, counts, and contacts are untouched. Until this
--- runs the app still works: the editor says banners and event mode are not
--- set up, and the new sources are counted as "Shared link".
+-- card_follow_up added to the AI tools tool_runs accepts. Existing cards,
+-- counts, and contacts are untouched. Until this runs the app still works:
+-- the editor says banners and event mode are not set up, and the new sources
+-- are counted as "Shared link".
 
 -- ─── Banner ──────────────────────────────────────────────────────────
 -- One banner per card, 1584 x 396 (LinkedIn's banner size), stored as JPEG
