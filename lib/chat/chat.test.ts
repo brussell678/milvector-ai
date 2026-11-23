@@ -8,8 +8,10 @@ import { mosTranscript } from "@/lib/chat/mos-transcript";
 import { transcriptFilename, transcriptText } from "@/lib/chat/transcript";
 import { renderTranscriptDocx } from "@/lib/chat/transcript-docx";
 import { FollowUpSchema, MosContextSchema, TranscriptRequestSchema } from "@/lib/chat/schemas";
-import { chatEnabled } from "@/lib/chat/access";
-import { chatToolFor } from "@/lib/chat/tools";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { chatOpenFor } from "@/lib/chat/access";
+import { CHAT_TOOLS, chatToolFor } from "@/lib/chat/tools";
 import { chatLimitMessage } from "@/lib/chat/limit";
 import { promptChatSystem } from "@/lib/llm/prompts-chat";
 
@@ -216,16 +218,20 @@ describe("chat rules", () => {
 });
 
 describe("who sees the chat", () => {
-  it("opens to the admin, and to members only when listed", () => {
-    const before = process.env.CHAT_TOOLS_PUBLIC;
-    delete process.env.CHAT_TOOLS_PUBLIC;
-    expect(chatEnabled("mos", "russell.innovation.group@gmail.com")).toBe(true);
-    expect(chatEnabled("mos", "member@example.com")).toBe(false);
-    process.env.CHAT_TOOLS_PUBLIC = "jd, MOS ";
-    expect(chatEnabled("mos", "member@example.com")).toBe(true);
-    expect(chatEnabled("va", "member@example.com")).toBe(false);
-    if (before === undefined) delete process.env.CHAT_TOOLS_PUBLIC;
-    else process.env.CHAT_TOOLS_PUBLIC = before;
+  it("opens to the admin always, and to members only when the admin portal opens it", () => {
+    expect(chatOpenFor("mos", "russell.innovation.group@gmail.com", [])).toBe(true);
+    expect(chatOpenFor("mos", " Russell.Innovation.Group@gmail.com ", [])).toBe(true);
+    expect(chatOpenFor("mos", "member@example.com", [])).toBe(false);
+    expect(chatOpenFor("mos", "member@example.com", ["jd", "mos"])).toBe(true);
+    expect(chatOpenFor("va", "member@example.com", ["jd", "mos"])).toBe(false);
+    expect(chatOpenFor("mos", null, ["mos"])).toBe(true);
+  });
+
+  it("has a switch for every chat tool, by the names migration 0044 allows", () => {
+    const sql = readFileSync(path.join(process.cwd(), "supabase", "migrations", "0044_chat_tool_access.sql"), "utf8");
+    const keys = Object.values(CHAT_TOOLS).map((tool) => tool.key);
+    expect(keys).toEqual(["mos", "jd", "resume", "va", "sbp"]);
+    for (const key of keys) expect(sql).toContain(`('${key}')`);
   });
 
   it("knows only the tools that have a chat", () => {

@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { AdminPortal } from "@/components/admin/admin-portal";
+import { ChatAccessPanel } from "@/components/admin/chat-access-panel";
+import { chatSwitches } from "@/lib/chat/access";
 import { UsagePanel } from "@/components/admin/usage-panel";
 import { summarizeUsage, type ProfileRow, type RunRow, type UsageSummary } from "@/lib/admin/usage";
 import { isAdminEmail } from "@/lib/auth";
@@ -131,7 +133,7 @@ export default async function AdminPage() {
 
   if (!user) redirect("/auth");
   if (!isAdminEmail(user.email)) redirect("/app");
-  const usage = await loadUsage(user.id);
+  const [usage, switches] = await Promise.all([loadUsage(user.id), chatSwitches()]);
 
   const [{ data: feedback }, { data: submissions }, { data: reports }, { data: blockedUsers }, { data: draftUpdates }] = await Promise.all([
     supabase
@@ -206,6 +208,7 @@ export default async function AdminPage() {
               <li>Move tickets from new to in-review to resolved</li>
               <li>Review and publish community library submissions</li>
               <li>Action board reports and manage posting blocks</li>
+              <li>Open each chat tool to members when it is ready</li>
             </ul>
           </aside>
         </div>
@@ -224,6 +227,8 @@ export default async function AdminPage() {
           </Link>
         </div>
       )}
+
+      <ChatAccessPanel switches={switches} />
 
       <UsagePanel summary={usage.summary} note={usage.note} />
 

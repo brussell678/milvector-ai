@@ -5,7 +5,7 @@ import { CHAT_TOOLS } from "@/lib/chat/tools";
 import { supabaseServer } from "@/lib/supabase/server";
 
 // The Job Description Decoder. Whoever the chat is open to (the admin first,
-// then CHAT_TOOLS_PUBLIC with "jd") gets the chat view; everyone else gets
+// then members once the admin portal opens it) gets the chat view; everyone else gets
 // today's page, which stays at ?view=classic (docs/CHAT_TOOLS_PLAN.md, 2.1).
 export default async function JdDecoderPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await searchParams;
@@ -14,7 +14,7 @@ export default async function JdDecoderPage({ searchParams }: { searchParams: Pr
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const chat = !!user && chatEnabled(CHAT_TOOLS.jd_decoder.key, user.email);
+  const chat = !!user && (await chatEnabled(CHAT_TOOLS.jd_decoder.key, user.email));
 
   if (chat && user && view !== "classic") return <JdChat userId={user.id} />;
   return <JdDecoderClassic chatAvailable={chat} />;

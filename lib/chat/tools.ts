@@ -4,7 +4,8 @@
 export type ChatToolId = "mos_translator" | "jd_decoder" | "resume_targeter" | "va_rating_navigator" | "sbp_advisor";
 
 export type ChatToolInfo = {
-  // The short name CHAT_TOOLS_PUBLIC uses to open the chat to members.
+  // The short name the admin portal's switch uses to open the chat to
+  // members (chat_tool_access, migration 0044).
   key: string;
   label: string;
   // tool_runs.tool_name for its runs and its follow-ups.

@@ -24,7 +24,7 @@ async function handlePOST(req: Request) {
   const { userId, email } = await requireUser();
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   const info = chatToolFor(String(body?.tool ?? ""));
-  if (!info || !chatEnabled(info.key, email)) return NextResponse.json({ error: "This chat is not open yet." }, { status: 404 });
+  if (!info || !(await chatEnabled(info.key, email))) return NextResponse.json({ error: "This chat is not open yet." }, { status: 404 });
 
   // The VA and SBP chats hold health and money details, so they are never
   // kept (D9, D10): download only.

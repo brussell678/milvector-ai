@@ -36,6 +36,7 @@ the status board at the end of each phase.
 | 2026-11-23 | Phase 4 walked: Brandon likes the VA chat, especially taking conditions one at a time. On to Phase 5. |
 | 2026-11-23 | SBP Advisor intake (D19): four essentials on top (marital status, ages, gross retired pay); the chat offers "Ask me quick questions first", mostly one tap each, and every answer fills the More details section on top, where it can be changed. Page-guided, no AI. |
 | 2026-11-23 | D10 decided: the SBP chat is kept like the VA chat: the open tab by default, an opt-in "keep on this device for 30 days" switch, Download only, never saved by MilVector; the transcript route refuses a Save for it. |
+| 2026-11-23 | D20: who sees each chat is a switch on the admin portal, not the `CHAT_TOOLS_PUBLIC` Vercel setting. Brandon opens or closes each tool's chat for members on `/app/admin`; it shows on their next page load, with no redeploy. The admin always sees every chat. Migration 0044 holds the switches; `CHAT_TOOLS_PUBLIC` no longer does anything. |
 | Later | D8 (Phase 3) editing a resume by chat, D9 (Phase 4) saving a VA chat, D10 (Phase 5) saving an SBP chat, D11 (Phase 2 on) a typed sentence filling the top inputs. Brandon decides each at its milestone. |
 
 ## How the chat works
@@ -322,6 +323,32 @@ Open each chat to members when Brandon says, with a What's New draft for each;
 privacy page wording for anything new that is kept; retire the classic pages
 when he decides.
 
+| # | Requirement |
+|---|---|
+| 6.1 | **The switches (D20):** the admin portal (`/app/admin`) has a "Who sees each chat" panel, one row per chat tool in the tools' order. Each row says "Admin only" or "Open to members since" a date. Opening asks first and reminds Brandon to publish that tool's What's New entry; closing does not ask, since members simply go back to the classic page. |
+| 6.2 | A switch is a row in `chat_tool_access` (migration 0044): one row per tool (`mos`, `jd`, `resume`, `va`, `sbp`), all closed to start. Signed-in members may read the rows (the pages need them); only the admin may change them, in the route (`PATCH /api/admin/chat-access`) and in the row policy. Nobody adds or removes rows. |
+| 6.3 | The pages and both chat routes read the switch on every request, so a change shows on the member's next page load with no redeploy. The admin always gets the chat. |
+| 6.4 | **Fails closed:** if the switches cannot be read (0044 not run yet, or the database is down), members get the classic pages and the chat routes refuse with 404; the admin portal says to run 0044, and a flip answers 503 saying so. Nothing crashes. |
+
+**Switch results (2026-11-23):** 507 unit tests pass (the old setting's test
+replaced by two: who sees a chat, and a switch for every tool by the names
+0044 allows), tsc and eslint clean. The new `chat-access-verify.cjs` runs in
+two halves. As a member (28/28): with every switch closed, all five pages are
+classic with no chat link and every chat route refuses; a member's flip is
+refused by the route (403) and by the row policy straight to the database; a
+member can read the switches; opening MOS gives the member the chat on the
+next load with no restart, the classic page gains its chat link, and the JD
+Decoder stays classic; all open, then closed again; with the table missing the
+pages stay classic and load. As the admin (20/20): every chat still shows with
+every switch closed; the panel lists five rows in order at 390 px and 1280 px
+dark; opening asks first and Not yet changes nothing; Yes opens it and stamps
+the time; it survives a reload; closing does not ask; the route refuses a tool
+with no chat; with the table missing the portal loads, says to run 0044, and a
+flip answers 503. The five chat walkthroughs and `sbp-classic-verify.cjs` now
+set the switches themselves instead of reading `CHAT_TOOLS_PUBLIC`, and all
+are green (MOS 54, JD 35, resume 40, VA 45, SBP 32, classic SBP 8). Production
+build clean. Admin only, so no What's New entry.
+
 ## Status board
 
 | Phase | Status |
@@ -331,5 +358,5 @@ when he decides.
 | 2. JD Decoder | Done 2026-11-23: live, admin only (`6a9c858`), walked |
 | 3. Targeted Resume Builder | Done 2026-11-23: live (`ac73f9a`), chat admin only, review lock for every member; walked |
 | 4. VA Rating Navigator | Done 2026-11-23: live, admin only (`9fcb74a`, budgets `5decf5f`); walked |
-| 5. SBP Decision Advisor | Built 2026-11-23 on branch `chat-tools`, admin only; waiting on Brandon's walk |
-| 6. Rollout | Not started |
+| 5. SBP Decision Advisor | Live 2026-11-23, admin only (`41f6772`); waiting on Brandon's walk |
+| 6. Rollout | Admin portal switches (D20) built 2026-11-23 on branch `chat-tools`; needs migration 0044, then Brandon opens each chat when ready |

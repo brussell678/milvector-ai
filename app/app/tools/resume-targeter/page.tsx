@@ -17,9 +17,9 @@ import type { SavedFit } from "@/lib/resume/fit-check";
 // <resume id> reopens a saved resume at its line review: a locked download
 // sends the member here (docs/CHAT_TOOLS_PLAN.md, D15).
 //
-// Whoever the chat is open to (the admin first, then CHAT_TOOLS_PUBLIC with
-// "resume") gets the chat view; everyone else gets this page, which stays at
-// ?view=classic.
+// Whoever the chat is open to (the admin first, then members
+// once the admin portal opens it) gets the chat view; everyone else gets this
+// page, which stays at ?view=classic.
 export default async function ResumeTargeterPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const raw = await searchParams;
   const one = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
@@ -43,7 +43,7 @@ export default async function ResumeTargeterPage({ searchParams }: { searchParam
   }
   const initialTitle = (typeof params.title === "string" ? params.title : decodedTitle).slice(0, 200);
   const savedReview = user && params.review ? await loadSavedBuild(supabase, user.id, params.review) : null;
-  const chat = !!user && chatEnabled(CHAT_TOOLS.resume_targeter.key, user.email);
+  const chat = !!user && (await chatEnabled(CHAT_TOOLS.resume_targeter.key, user.email));
 
   if (chat && user && params.view !== "classic") {
     return <ResumeChat userId={user.id} initialTitle={initialTitle} initialPosting={initialPosting} initialFit={initialFit} initialReview={savedReview} />;

@@ -40,7 +40,7 @@ async function handlePOST(req: Request, ctx: Ctx) {
   const { userId, email } = await requireUser();
   const { tool } = await ctx.params;
   const info = chatToolFor(tool);
-  if (!info || !chatEnabled(info.key, email)) return NextResponse.json({ error: "This chat is not open yet." }, { status: 404 });
+  if (!info || !(await chatEnabled(info.key, email))) return NextResponse.json({ error: "This chat is not open yet." }, { status: 404 });
 
   const spec = SPECS[tool as ChatToolId];
   const parsed = FollowUpSchema.safeParse(await req.json().catch(() => null));
