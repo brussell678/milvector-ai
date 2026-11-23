@@ -26,6 +26,9 @@ that reporter), use the admin composer at /app/admin/updates instead — it can
 link the case. This file is for the general changelog.
 -->
 
+## See a far-off retirement estimate in today's dollars {improvement} {draft}
+If your retired pay starts years from now, the Retirement Pay Calculator also shows your High-3 and monthly retired pay at today's pay table, so you can weigh it against your budget now. It also makes clear that your years in the Retired Reserve count toward your pay.
+
 ## Reserve and Guard retirement estimates follow DFAS more closely {improvement} {draft}
 In the Retirement Pay Calculator, Reserve and Guard members now pick the month their retired pay starts, usually the month they turn 60, and the High-3 comes from the 36 months before it, the way DFAS figures it. You can add months to your years of service, plan a start date up to 30 years out, and see your points turned into years the way DFAS rounds them. If you chose RCSBP Option B or C, it also reminds you of the extra premium DFAS takes.
 

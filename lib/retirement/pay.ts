@@ -95,6 +95,9 @@ export type High3Inputs = {
   monthsInGrade?: number;
   previousGrade?: string | null;
   assumedFutureRaisePct?: number;
+  // Price every month at this year's table instead of the month's own year.
+  // With the newest table, the result is the High-3 in today's dollars.
+  payTableYear?: number;
 };
 
 /** Calendar years in the 36 months before retirement that have no official table yet. */
@@ -126,7 +129,7 @@ export function estimateHigh3(inputs: High3Inputs): number | null {
     const date = new Date(inputs.retirementDate.getFullYear(), inputs.retirementDate.getMonth() - monthsBack, 1);
     const grade = monthsBack <= monthsInGrade || !inputs.previousGrade ? inputs.grade : inputs.previousGrade;
     const yos = Math.max(0, serviceMonths - monthsBack) / 12;
-    const pay = monthlyPay(grade, yos, date.getFullYear(), raise);
+    const pay = monthlyPay(grade, yos, inputs.payTableYear ?? date.getFullYear(), raise);
     if (pay === null) return null;
     total += pay;
   }

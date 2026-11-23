@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { calculateIncome, projectIncome, reserveYearsOfService, type RetirementPlan } from "@/lib/retirement/calc";
+import { calculateIncome, grossRetiredPay, projectIncome, reserveYearsOfService, type RetirementPlan } from "@/lib/retirement/calc";
 import { estimatedYears, estimateHigh3, PAY_GRADES, PAY_TABLE_YEAR, PAY_TABLE_YEARS, PENDING_RAISE_NOTES } from "@/lib/retirement/pay";
 import { TAX_YEAR, type FilingStatus } from "@/lib/retirement/tax";
 import { VA_PENDING_COLA, VA_RATES_EFFECTIVE, VA_RATES_LABEL, VA_RATINGS } from "@/lib/va/compensation";
@@ -96,20 +96,26 @@ export function RetirementCalculator() {
   const estimated = useMemo(() => estimatedYears(new Date(retireYear, retireMonth, 1)), [retireYear, retireMonth]);
   const futureEstimated = estimated.filter((y) => y > PAY_TABLE_YEAR);
 
-  const high3 = useMemo(() => {
-    if (high3Mode === "enter") return num(high3Entered);
-    return (
-      estimateHigh3({
-        grade,
-        // Reserve: years for the pay table (with months), not the points-based years in the formula.
-        yearsOfService: component === "active" ? yearsOfService : num(years) + Math.min(11, num(months)) / 12,
-        retirementDate: new Date(retireYear, retireMonth, 1),
-        monthsInGrade: promotedRecently ? Math.min(36, Math.max(0, num(monthsInGrade))) : 36,
-        previousGrade: promotedRecently ? previousGrade : null,
-        assumedFutureRaisePct: num(futureRaise),
-      }) ?? 0
-    );
-  }, [high3Mode, high3Entered, grade, component, yearsOfService, years, months, retireYear, retireMonth, promotedRecently, monthsInGrade, previousGrade, futureRaise]);
+  const high3Inputs = useMemo(
+    () => ({
+      grade,
+      // Reserve: years for the pay table (with months), not the points-based years in the formula.
+      yearsOfService: component === "active" ? yearsOfService : num(years) + Math.min(11, num(months)) / 12,
+      retirementDate: new Date(retireYear, retireMonth, 1),
+      monthsInGrade: promotedRecently ? Math.min(36, Math.max(0, num(monthsInGrade))) : 36,
+      previousGrade: promotedRecently ? previousGrade : null,
+      assumedFutureRaisePct: num(futureRaise),
+    }),
+    [grade, component, yearsOfService, years, months, retireYear, retireMonth, promotedRecently, monthsInGrade, previousGrade, futureRaise],
+  );
+  const high3 = useMemo(() => (high3Mode === "enter" ? num(high3Entered) : (estimateHigh3(high3Inputs) ?? 0)), [high3Mode, high3Entered, high3Inputs]);
+
+  // A start years past the newest table: the same months priced at that table, in today's dollars.
+  const farOff = futureEstimated.length > 0 && futureEstimated[0] > PAY_TABLE_YEAR + 2;
+  const high3Today = useMemo(
+    () => (high3Mode === "estimate" && farOff ? (estimateHigh3({ ...high3Inputs, payTableYear: PAY_TABLE_YEAR }) ?? 0) : 0),
+    [high3Mode, farOff, high3Inputs],
+  );
 
   // Phone only: hide the bottom total bar once the full result is on screen.
   const resultRef = useRef<HTMLDivElement>(null);
@@ -190,7 +196,7 @@ export function RetirementCalculator() {
               >
                 <input className="input" inputMode="numeric" value={points} onChange={(e) => setPoints(e.target.value)} />
               </Field>
-              <Field label="Years of service for the pay table" hint="Total years since your pay entry date, including time in the gray area.">
+              <Field label="Years of service for the pay table" hint="From your pay entry date to the month retired pay starts. Years in the Retired Reserve (the gray area) count.">
                 <input className="input" inputMode="numeric" value={years} onChange={(e) => setYears(e.target.value)} />
               </Field>
               <Field label="Plus months" hint="Each full month counts.">
@@ -303,7 +309,16 @@ export function RetirementCalculator() {
                 <p className="text-xs text-[var(--muted)]">
                   Your months in {futureEstimated.length > 2 ? `${futureEstimated[0]} to ${futureEstimated[futureEstimated.length - 1]}` : futureEstimated.join(" and ")}{" "}
                   use the assumed raise above until DFAS publishes {futureEstimated.length > 1 ? "those years' pay tables" : "that year's pay table"}.
-                  {futureEstimated[0] > PAY_TABLE_YEAR + 2 && " That is a projection years ahead, so treat it as a rough estimate in future dollars."}
+                  {farOff && " That is a projection years ahead, so treat it as a rough estimate in future dollars."}
+                </p>
+              )}
+              {high3Today > 0 && (
+                <p className="text-sm">
+                  In today&apos;s dollars: a High-3 of <span className="font-bold tabular-nums">{usd(high3Today, true)}</span>, or{" "}
+                  <span className="font-bold tabular-nums">{usd(grossRetiredPay(high3Today, yearsOfService, plan))}</span> a month in gross retired pay.{" "}
+                  <span className="mt-1 block text-xs text-[var(--muted)]">
+                    That prices every month at the {PAY_TABLE_YEAR} pay table, so you can weigh it against your budget now.
+                  </span>
                 </p>
               )}
             </>

@@ -112,6 +112,16 @@ describe("one official table per year in the High-3 window", () => {
     expect(high3).toBeCloseTo(expected, 1);
   });
 
+  it("prices every month at one table for a High-3 in today's dollars (Reserve E-7, pay starting 2044)", () => {
+    // 22 years 6 months on the start date, February 2044. Same steps as any start:
+    // 6 months over 22, 24 over 20, 6 over 18, all at the 2026 table, no assumed raise.
+    const inputs = { grade: "E-7", yearsOfService: 22.5, retirementDate: new Date(2044, 1, 1), assumedFutureRaisePct: 3.6 };
+    const today = estimateHigh3({ ...inputs, payTableYear: 2026 })!;
+    expect(today).toBeCloseTo((6 * 6475.2 + 24 * 6245.7 + 6 * 6177.3) / 36, 2);
+    expect(today).toBe(6272.55);
+    expect(estimateHigh3(inputs)!).toBeGreaterThan(today * 1.036 ** 14);
+  });
+
   it("says which years in the window are estimated, counting back from the retirement date", () => {
     // Retirement date January 1, 2027 (last day of service December 31): Jan 2024 to Dec 2026, all official.
     expect(estimatedYears(new Date(2027, 0, 1))).toEqual([]);
