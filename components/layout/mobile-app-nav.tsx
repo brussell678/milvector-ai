@@ -31,7 +31,7 @@ const primaryLinks: MobileLink[] = [
 const secondaryLinks: MobileLink[] = [
   { href: "/app/message-board", label: "Community", badge: "board" },
   { href: "/app/knowledge-base", label: "Knowledge Base" },
-  { href: "/retirement-calculator", label: "Retirement Pay Calculator" },
+  { href: "/app/tools/retirement-calculator", label: "Retirement Pay Calculator" },
   { href: "/app/whats-new", label: "What's New" },
   { href: "/app/feedback", label: "Support" },
   { href: "/app/donate", label: "Donate" },

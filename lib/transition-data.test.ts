@@ -99,7 +99,7 @@ describe("Timeline tasks link to the tool that does them", () => {
     const expected: Record<string, string> = {
       "mv-0014": "/app/tools/va-rating-navigator",
       "mv-0084": "/app/tools/sbp-advisor",
-      "mv-0064": "/retirement-calculator",
+      "mv-0064": "/app/tools/retirement-calculator",
       "mv-0062": "/app/tools/fitrep-bullets",
       "mv-0067": "/app/tools/linkedin-builder",
       "mv-0069": "/app/tools/mos-translator",

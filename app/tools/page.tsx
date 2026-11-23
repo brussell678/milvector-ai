@@ -21,8 +21,9 @@ export const metadata: Metadata = pageMetadata({
 const signUpFor = (href: string) => `/auth?mode=signup&next=${encodeURIComponent(href)}`;
 
 function ToolCardPublic({ tool, signedIn }: { tool: ToolCard; signedIn: boolean }) {
-  const noAccount = !!tool.isCalculator;
-  const href = noAccount || signedIn ? tool.href : signUpFor(tool.href);
+  // A tool with a public page opens there for visitors; members go to the workspace copy.
+  const noAccount = !!tool.publicHref;
+  const href = signedIn ? tool.href : (tool.publicHref ?? signUpFor(tool.href));
   const label = noAccount ? "Open the calculator" : signedIn ? "Open tool" : "Start free";
   return (
     <article className="subtle-panel flex flex-col gap-3 p-5">

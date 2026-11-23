@@ -926,7 +926,7 @@
                       "assistance_type":  "none",
                       "assistance_ref":  null,
                       "assistance_notes":  "The Retirement Pay Calculator shows your monthly income after retirement: retired pay, VA disability, SBP, and taxes together.",
-                      "tool_link":  "/retirement-calculator",
+                      "tool_link":  "/app/tools/retirement-calculator",
                       "supporting_tasks":  [
 
                                            ]

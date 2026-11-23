@@ -18,6 +18,8 @@ export type ToolCard = {
   title: string;
   desc: string;
   requirements?: Requirement[];
+  // Also open to visitors with no account, at this public page. Members use href.
+  publicHref?: string;
   // A calculator that runs in the browser: no AI run, nothing logged
   isCalculator?: boolean;
   // Builds a page the member publishes (a card, an invitation): no AI run,
@@ -112,7 +114,8 @@ export const toolGroups: ToolGroupDef[] = [
     description: "Support for benefits and retirement decisions with long-term consequences: your retirement income, VA ratings, and the Survivor Benefit Plan.",
     tools: [
       {
-        href: "/retirement-calculator",
+        href: "/app/tools/retirement-calculator",
+        publicHref: "/retirement-calculator",
         title: "Retirement Pay Calculator",
         desc: "See your full monthly income after retirement: retired pay, VA disability, CRDP or CRSC, SBP, and taxes together. Runs in your browser and saves nothing.",
         requirements: [{ text: "Your pay grade and years of service at retirement, or your High-3 if you know it." }],

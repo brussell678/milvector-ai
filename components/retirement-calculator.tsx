@@ -541,7 +541,7 @@ export function RetirementCalculator() {
         <div className="tool-output-card">
           <p className="tool-kicker">WHAT THIS IS BUILT ON</p>
           <ul className="list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
-            <li>Nothing you type here leaves your browser. There is no account and nothing is saved.</li>
+            <li>Nothing you type here leaves your browser, and nothing is saved.</li>
             <li>
               Basic pay: the official DFAS tables for {PAY_TABLE_YEARS[0]} to {PAY_TABLE_YEAR}, month by month across your High-3. A month in a
               year without a published table uses the assumed raise. Your LES is the exact figure.
