@@ -855,6 +855,28 @@ export function BusinessCardBuilder() {
             </section>
 
             <section className="section-card space-y-3">
+              <h2 className="section-title">Wallet pass</h2>
+              <label className="flex items-start gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4"
+                  checked={draft.passShowPhone && !!draft.phone.trim()}
+                  disabled={!draft.phone.trim()}
+                  onChange={(e) => set("passShowPhone", e.target.checked)}
+                />
+                <span>
+                  <span className="font-medium">Show my phone number on the pass</span>
+                  <span className="block text-[var(--muted)]">
+                    {draft.phone.trim()
+                      ? "Puts your number on the front, under your name, for someone who would rather write it down than scan. Your phone and email are in the pass details either way, where a tap calls or emails you."
+                      : "Add a phone number above to use this."}
+                  </span>
+                </span>
+              </label>
+              <p className="text-xs text-[var(--muted)]">After you save, add the pass to your wallet again from the Share tab to update it.</p>
+            </section>
+
+            <section className="section-card space-y-3">
               <h2 className="section-title">Card address</h2>
               <Field label="Your link" hint="Lowercase letters, numbers, and hyphens. Changing it breaks QR codes and wallet passes you already shared.">
                 <div className="flex items-center gap-2">
@@ -1153,8 +1175,10 @@ function SharePanel({ card, wallet }: { card: SavedCard; wallet: { apple: boolea
             )}
           </div>
           <p className="text-xs text-[var(--muted)]">
-            Open this page on the phone itself to add the pass. The pass shows your name, title, and QR code. The QR code always opens your current
-            card; if you change your name or title, add the pass again.
+            Open this page on the phone itself to add the pass. The front shows your name, title, and QR code
+            {card.card.passShowPhone && card.card.phone ? ", plus your phone number" : ""}; your phone and email are in the pass details, where a tap
+            calls or emails you. To change what the front shows, use Wallet pass on the Design tab. The QR code always opens your current card; if you
+            change your name, title, or phone, add the pass again.
           </p>
         </section>
 

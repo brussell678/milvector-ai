@@ -16,3 +16,8 @@ export function cardUrl(slug: string, source?: EventSource): string {
   const base = `${siteUrl}/c/${slug}`;
   return source && source !== "direct" ? `${base}?s=${source}` : base;
 }
+
+/** The card's address as people read and type it: milvector.org/c/<slug>. */
+export function shortCardUrl(slug: string): string {
+  return `${siteUrl.replace(/^https?:\/\//, "").replace(/^www\./, "")}/c/${slug}`;
+}

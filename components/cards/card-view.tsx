@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { Briefcase, Calendar, ExternalLink, FileText, Globe, Link2, Mail, MapPin, MessageSquare, Phone } from "lucide-react";
-import { LINK_TYPE_LABELS, textOnColor, type CardData, type LinkType } from "@/lib/cards/schema";
+import { LINK_TYPE_LABELS, telDigits, textOnColor, type CardData, type LinkType } from "@/lib/cards/schema";
 
 // The card itself. Used by the public page and by the live preview in the
 // editor, so what a member designs is exactly what a visitor sees. It carries
@@ -37,7 +37,6 @@ function initials(name: string) {
   return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
 }
 
-const telHref = (phone: string) => phone.replace(/[^\d+]/g, "");
 
 export function CardView({
   card,
@@ -55,8 +54,8 @@ export function CardView({
   children?: ReactNode;
 }) {
   const quick = [
-    card.phone && { href: `tel:${telHref(card.phone)}`, label: "Call", Icon: Phone },
-    card.phone && { href: `sms:${telHref(card.phone)}`, label: "Text", Icon: MessageSquare },
+    card.phone && { href: `tel:${telDigits(card.phone)}`, label: "Call", Icon: Phone },
+    card.phone && { href: `sms:${telDigits(card.phone)}`, label: "Text", Icon: MessageSquare },
     card.email && { href: `mailto:${card.email}`, label: "Email", Icon: Mail },
     card.website && { href: card.website, label: "Website", Icon: Globe, external: true },
   ].filter(Boolean) as { href: string; label: string; Icon: typeof Phone; external?: boolean }[];

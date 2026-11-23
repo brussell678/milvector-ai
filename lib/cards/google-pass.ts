@@ -1,7 +1,7 @@
 import { createSign } from "node:crypto";
-import { cardUrl } from "@/lib/cards/access";
+import { cardUrl, shortCardUrl } from "@/lib/cards/access";
 import { readPem } from "@/lib/cards/apple-pass";
-import type { CardData } from "@/lib/cards/schema";
+import { displayPhone, telDigits, type CardData } from "@/lib/cards/schema";
 import { siteUrl } from "@/lib/seo";
 
 // Google Wallet "generic" pass for a business card.
@@ -39,16 +39,36 @@ const b64url = (input: Buffer | string) => Buffer.from(input).toString("base64ur
 export const googleClassId = (issuerId: string) => `${issuerId}.milvector_business_card`;
 export const googleObjectId = (issuerId: string, cardId: string) => `${issuerId}.card_${cardId.replace(/[^A-Za-z0-9]/g, "")}`;
 
+// The text module a pass carries when its owner chose "Show my phone number on
+// the pass". The class's card template shows it as one row on the front; a
+// pass without it shows no row.
+export const FACE_PHONE_MODULE = "face_phone";
+
+/** The pass class every business card shares: one optional row on the front, for the phone. */
+export function googleClass(classId: string) {
+  return {
+    id: classId,
+    classTemplateInfo: {
+      cardTemplateOverride: {
+        cardRowTemplateInfos: [{ oneItem: { item: { firstValue: { fields: [{ fieldPath: `object.textModulesData['${FACE_PHONE_MODULE}']` }] } } } }],
+      },
+    },
+  };
+}
+
 // `full` is the pass registered through the API. The trimmed form is what fits
-// inside a save link when the API cannot be reached.
+// inside a save link when the API cannot be reached. Phone and email are links
+// in the details, so a tap calls or emails; the phone can also sit on the front.
 export function buildGoogleObject({ card, slug, cardId, hasPhoto, issuerId, bannerVersion }: PassArgs, full: boolean) {
+  const phone = card.phone ? displayPhone(card.phone) : "";
   const text = [
-    card.phone && { id: "phone", header: "Phone", body: card.phone },
-    card.email && { id: "email", header: "Email", body: card.email },
+    card.passShowPhone && phone && { id: FACE_PHONE_MODULE, header: "Phone", body: phone },
     full && card.headline && { id: "about", header: "About", body: card.headline },
     full && card.location && { id: "location", header: "Location", body: card.location },
   ].filter(Boolean);
   const uris = [
+    ...(phone ? [{ id: "phone", uri: `tel:${telDigits(card.phone)}`, description: phone }] : []),
+    ...(card.email ? [{ id: "email", uri: `mailto:${card.email}`, description: card.email }] : []),
     { id: "card", uri: cardUrl(slug), description: "Open my digital card" },
     ...(full && card.website ? [{ id: "web", uri: card.website, description: "Website" }] : []),
     ...(full ? card.links.map((link, i) => ({ id: `link${i}`, uri: link.url, description: link.label || "Link" })) : []),
@@ -71,7 +91,8 @@ export function buildGoogleObject({ card, slug, cardId, hasPhoto, issuerId, bann
           },
         }
       : {}),
-    barcode: { type: "QR_CODE", value: cardUrl(slug, "wallet") },
+    // Under the code, the address people can read and type, not the full link.
+    barcode: { type: "QR_CODE", value: cardUrl(slug, "wallet"), alternateText: shortCardUrl(slug) },
     textModulesData: text,
     linksModuleData: { uris },
   };
@@ -121,14 +142,21 @@ async function accessToken(config: GoogleConfig, fetcher: Fetcher): Promise<stri
   return json.access_token;
 }
 
-// Creates the pass class if needed, then creates or updates the pass.
+// Brings the pass class up to date (creating it the first time), then creates
+// or updates the pass. Updating the class each time keeps its front-row
+// template current on passes made before the template existed.
 export async function registerGooglePass(config: GoogleConfig, object: ReturnType<typeof buildGoogleObject>, fetcher: Fetcher = fetch): Promise<void> {
   const token = await accessToken(config, fetcher);
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
-  const classRes = await fetcher(`${WALLET_API}/genericClass`, { method: "POST", headers, body: JSON.stringify({ id: object.classId }) });
-  // 409 means the class already exists, which is the normal case after the first pass.
-  if (!classRes.ok && classRes.status !== 409) throw new Error(`Google Wallet class request failed (${classRes.status})`);
+  const passClass = JSON.stringify(googleClass(object.classId));
+  const classUpdate = await fetcher(`${WALLET_API}/genericClass/${encodeURIComponent(object.classId)}`, { method: "PUT", headers, body: passClass });
+  if (!classUpdate.ok) {
+    if (classUpdate.status !== 404) throw new Error(`Google Wallet class update failed (${classUpdate.status})`);
+    const classCreate = await fetcher(`${WALLET_API}/genericClass`, { method: "POST", headers, body: passClass });
+    // 409: another request created it first.
+    if (!classCreate.ok && classCreate.status !== 409) throw new Error(`Google Wallet class create failed (${classCreate.status})`);
+  }
 
   const update = await fetcher(`${WALLET_API}/genericObject/${encodeURIComponent(object.id)}`, { method: "PUT", headers, body: JSON.stringify(object) });
   if (update.ok) return;
@@ -149,7 +177,31 @@ export async function googleSaveUrl(
     return { url: `https://pay.google.com/gp/v/save/${googleSaveJwt(config, [{ id: object.id, classId: object.classId }])}`, mode: "registered" };
   } catch (error) {
     console.error("google wallet registration failed, using embedded pass", error);
-    const object = buildGoogleObject(passArgs, false);
-    return { url: `https://pay.google.com/gp/v/save/${googleSaveJwt(config, [object], [{ id: object.classId }])}`, mode: "embedded" };
+    return { url: embeddedSaveUrl(config, buildGoogleObject(passArgs, false)), mode: "embedded" };
   }
+}
+
+// Google asks that a save link stay under about 1,800 characters.
+export const SAVE_LINK_LIMIT = 1800;
+
+// The fallback link carries the whole pass, so it drops extras, least useful
+// first, until it fits: the phone and email links (the card has them), the
+// short address under the code, the photo, the title, then the company line.
+// The name and the code always stay. The class goes by name only; the next
+// registered save brings its front-row template up to date.
+function embeddedSaveUrl(config: GoogleConfig, object: ReturnType<typeof buildGoogleObject>): string {
+  const link = (o: object) => `https://pay.google.com/gp/v/save/${googleSaveJwt(config, [o], [{ id: object.classId }])}`;
+  const cardOnly = { ...object, linksModuleData: { uris: object.linksModuleData.uris.filter((u) => u.id === "card") } };
+  const noAddress = { ...cardOnly, barcode: { type: object.barcode.type, value: object.barcode.value } };
+  const { logo: _logo, ...noPhoto } = noAddress;
+  const { subheader: _subheader, ...noTitle } = noPhoto;
+  void _logo;
+  void _subheader;
+  const plainTitle = { ...noTitle, cardTitle: localized("Business Card") };
+  let url = "";
+  for (const candidate of [object, cardOnly, noAddress, noPhoto, noTitle, plainTitle]) {
+    url = link(candidate);
+    if (url.length < SAVE_LINK_LIMIT) return url;
+  }
+  return url;
 }

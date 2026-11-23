@@ -1,13 +1,14 @@
 import { createHash, createVerify, generateKeyPairSync } from "node:crypto";
 import forge from "node-forge";
 import { describe, expect, it } from "vitest";
-import { cardUrl } from "@/lib/cards/access";
+import { cardUrl, shortCardUrl } from "@/lib/cards/access";
 import { appleConfig, buildApplePass, buildPassJson, readPem } from "@/lib/cards/apple-pass";
-import { buildGoogleObject, googleConfig, googleSaveJwt, googleSaveUrl } from "@/lib/cards/google-pass";
+import { buildGoogleObject, FACE_PHONE_MODULE, googleClass, googleConfig, googleSaveJwt, googleSaveUrl } from "@/lib/cards/google-pass";
 import { leadsCsv, summarizeStats } from "@/lib/cards/insights";
 import { opsecWarnings, piiProblem } from "@/lib/cards/opsec";
 import {
   CardDataSchema,
+  displayPhone,
   EMPTY_CARD,
   LeadSchema,
   qrColor,
@@ -16,6 +17,7 @@ import {
   safeHttpsUrl,
   slugFromName,
   slugProblem,
+  telDigits,
   textOnColor,
   validPhoto,
   type CardData,
@@ -45,6 +47,22 @@ describe("card schema", () => {
     expect(minimal.links).toEqual([]);
     expect(minimal.leadCapture).toBe(true);
     expect(minimal.style).toBe("band");
+    expect(minimal.passShowPhone).toBe(false);
+  });
+
+  it("formats a phone for reading and for dialing", () => {
+    expect(displayPhone("4023008919")).toBe("(402) 300-8919");
+    expect(displayPhone("402-300-8919")).toBe("(402) 300-8919");
+    expect(displayPhone("+1 402 300 8919")).toBe("(402) 300-8919");
+    expect(displayPhone("1 (402) 300-8919")).toBe("(402) 300-8919");
+    expect(displayPhone("+44 20 7946 0958")).toBe("+44 20 7946 0958");
+    expect(displayPhone("910-555-0142 x12")).toBe("910-555-0142 x12");
+    expect(telDigits("(402) 300-8919")).toBe("4023008919");
+    expect(telDigits("+1 402 300 8919")).toBe("+14023008919");
+  });
+
+  it("gives the card address as people read it", () => {
+    expect(shortCardUrl("brandon-russell")).toBe("milvector.org/c/brandon-russell");
   });
 
   it("rejects a missing name, a bad color, and too many links", () => {
@@ -341,9 +359,21 @@ describe("Apple Wallet pass", () => {
     expect(json.passTypeIdentifier).toBe("pass.org.milvector.card");
     expect(json.serialNumber).toBe("id-1");
     expect(json.generic.primaryFields[0].value).toBe("Jordan A. Reyes");
-    expect(json.barcodes[0]).toMatchObject({ format: "PKBarcodeFormatQR", message: "https://www.milvector.org/c/jordan?s=wallet" });
+    expect(json.barcodes[0]).toMatchObject({ format: "PKBarcodeFormatQR", message: "https://www.milvector.org/c/jordan?s=wallet", altText: "milvector.org/c/jordan" });
     expect(json.backgroundColor).toBe("rgb(31, 111, 84)");
     expect(json.foregroundColor).toBe("rgb(255, 255, 255)");
+  });
+
+  it("keeps phone and email off the front unless the owner shows the phone", () => {
+    const config = { passTypeId: "pass.org.milvector.card", teamId: "ABCDE12345" };
+    const plain = buildPassJson({ card, slug: "jordan", cardId: "id-1", config });
+    expect(plain.generic.auxiliaryFields).toEqual([]);
+    const back = Object.fromEntries((plain.generic.backFields as { key: string; value: string }[]).map((f) => [f.key, f.value]));
+    expect(back["b-phone"]).toBe("(910) 555-0142");
+    expect(back["b-email"]).toBe("jordan@example.com");
+    const shown = buildPassJson({ card: { ...card, passShowPhone: true }, slug: "jordan", cardId: "id-1", config });
+    expect(shown.generic.auxiliaryFields).toEqual([{ key: "phone", label: "PHONE", value: "(910) 555-0142" }]);
+    expect(buildPassJson({ card: { ...card, phone: "", passShowPhone: true }, slug: "jordan", cardId: "id-1", config }).generic.auxiliaryFields).toEqual([]);
   });
 
   it("builds a signed package whose manifest matches every file", () => {
@@ -400,10 +430,34 @@ describe("Google Wallet pass", () => {
     expect(object.id).toBe("3388000000012345678.card_3f1c9a2e000040008000000000000001");
     expect(object.classId).toBe("3388000000012345678.milvector_business_card");
     expect(object.barcode.value).toBe("https://www.milvector.org/c/jordan?s=wallet");
+    expect(object.barcode.alternateText).toBe("milvector.org/c/jordan");
     expect(object.logo.sourceUri.uri).toBe("https://www.milvector.org/c/jordan/photo");
     expect(object.header.defaultValue.value).toBe("Jordan A. Reyes");
-    expect(object.linksModuleData.uris.map((u) => u.id)).toEqual(["card", "web", "link0"]);
-    expect(buildGoogleObject({ ...args, issuerId: config.issuerId }, false).linksModuleData.uris).toHaveLength(1);
+    expect(object.linksModuleData.uris.map((u) => u.id)).toEqual(["phone", "email", "card", "web", "link0"]);
+    expect(buildGoogleObject({ ...args, issuerId: config.issuerId }, false).linksModuleData.uris.map((u) => u.id)).toEqual(["phone", "email", "card"]);
+  });
+
+  it("makes the phone and email tappable in the details, never plain text", () => {
+    const object = buildGoogleObject({ ...args, card: { ...card, phone: "910.555.0142" }, issuerId: config.issuerId }, true);
+    const links = Object.fromEntries(object.linksModuleData.uris.map((u) => [u.id, u]));
+    expect(links.phone).toEqual({ id: "phone", uri: "tel:9105550142", description: "(910) 555-0142" });
+    expect(links.email).toEqual({ id: "email", uri: "mailto:jordan@example.com", description: "jordan@example.com" });
+    expect(object.textModulesData.map((t) => (t as { id: string }).id)).toEqual(["about", "location"]);
+    const bare = buildGoogleObject({ ...args, card: { ...card, phone: "", email: "" }, issuerId: config.issuerId }, true);
+    expect(bare.linksModuleData.uris.map((u) => u.id)).toEqual(["card", "web", "link0"]);
+  });
+
+  it("shows the phone on the front only when the owner chose it", () => {
+    const face = (c: CardData, full = true) => buildGoogleObject({ ...args, card: c, issuerId: config.issuerId }, full).textModulesData.find((t) => (t as { id: string }).id === FACE_PHONE_MODULE);
+    expect(face(card)).toBeUndefined();
+    expect(face({ ...card, passShowPhone: true })).toEqual({ id: FACE_PHONE_MODULE, header: "Phone", body: "(910) 555-0142" });
+    expect(face({ ...card, passShowPhone: true }, false)).toEqual({ id: FACE_PHONE_MODULE, header: "Phone", body: "(910) 555-0142" });
+    expect(face({ ...card, phone: "", passShowPhone: true })).toBeUndefined();
+    // The shared class shows that module as one row on the front; a pass without it has no row.
+    const passClass = googleClass("3388000000012345678.milvector_business_card");
+    expect(passClass.classTemplateInfo.cardTemplateOverride.cardRowTemplateInfos).toEqual([
+      { oneItem: { item: { firstValue: { fields: [{ fieldPath: `object.textModulesData['${FACE_PHONE_MODULE}']` }] } } } },
+    ]);
   });
 
   it("registers the pass with Google and hands out a short signed link", async () => {
@@ -412,14 +466,16 @@ describe("Google Wallet pass", () => {
       const url = String(input);
       calls.push({ url, method: init?.method ?? "GET" });
       if (url.includes("oauth2")) return Response.json({ access_token: "token-1" });
-      if (url.endsWith("/genericClass")) return new Response("{}", { status: 409 });
+      if (url.includes("/genericClass/") && init?.method === "PUT") return Response.json({});
       if (init?.method === "PUT") return new Response("{}", { status: 404 });
       return Response.json({});
     }) as typeof fetch;
 
     const result = await googleSaveUrl({ ...args, config }, fetcher);
     expect(result.mode).toBe("registered");
-    expect(calls.map((c) => c.method)).toEqual(["POST", "POST", "PUT", "POST"]);
+    // Token, the class brought up to date (it carries the front-row template), then the pass.
+    expect(calls.map((c) => c.method)).toEqual(["POST", "PUT", "PUT", "POST"]);
+    expect(calls[1].url).toContain("/genericClass/3388000000012345678.milvector_business_card");
     expect(calls[2].url).toContain("/genericObject/3388000000012345678.card_3f1c9a2e000040008000000000000001");
 
     const jwt = result.url.replace("https://pay.google.com/gp/v/save/", "");
@@ -428,6 +484,22 @@ describe("Google Wallet pass", () => {
     expect(claims).toMatchObject({ aud: "google", typ: "savetowallet", iss: config.serviceAccountEmail, origins: ["https://www.milvector.org"] });
     expect(claims.payload.genericObjects).toEqual([{ id: "3388000000012345678.card_3f1c9a2e000040008000000000000001", classId: "3388000000012345678.milvector_business_card" }]);
     expect(result.url.length).toBeLessThan(1000);
+  });
+
+  it("creates the class the first time", async () => {
+    const calls: { url: string; method: string; body?: string }[] = [];
+    const fetcher = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      calls.push({ url, method: init?.method ?? "GET", body: typeof init?.body === "string" ? init.body : undefined });
+      if (url.includes("oauth2")) return Response.json({ access_token: "token-1" });
+      if (init?.method === "PUT") return new Response("{}", { status: 404 });
+      return Response.json({});
+    }) as typeof fetch;
+    const result = await googleSaveUrl({ ...args, config }, fetcher);
+    expect(result.mode).toBe("registered");
+    expect(calls.map((c) => c.method)).toEqual(["POST", "PUT", "POST", "PUT", "POST"]);
+    expect(calls[2].url.endsWith("/genericClass")).toBe(true);
+    expect(JSON.parse(calls[2].body ?? "{}")).toEqual(googleClass("3388000000012345678.milvector_business_card"));
   });
 
   it("falls back to a pass carried in the link when Google's API is unreachable", async () => {
@@ -439,6 +511,19 @@ describe("Google Wallet pass", () => {
     const claims = decode(jwt);
     expect(claims.payload.genericClasses).toEqual([{ id: "3388000000012345678.milvector_business_card" }]);
     expect(claims.payload.genericObjects[0].header.defaultValue.value).toBe("Jordan A. Reyes");
+    // Google asks for save links under about 1,800 characters, even with the phone on the front.
+    expect(result.url.length).toBeLessThan(1800);
+    const shown = await googleSaveUrl({ ...args, card: { ...card, passShowPhone: true }, config }, down);
+    expect(shown.url.length).toBeLessThan(1800);
+    const shownClaims = decode(shown.url.replace("https://pay.google.com/gp/v/save/", ""));
+    expect(shownClaims.payload.genericObjects[0].textModulesData).toEqual([{ id: FACE_PHONE_MODULE, header: "Phone", body: "(910) 555-0142" }]);
+    // Every field at its longest still fits: the extras give way, never the name or the code.
+    const long = { ...card, name: "N".repeat(80), title: "T".repeat(80), company: "C".repeat(80), phone: "+1 (910) 555-0142 x1234", email: `${"e".repeat(100)}@example.com`, passShowPhone: true };
+    const longest = await googleSaveUrl({ ...args, card: long, config }, down);
+    expect(longest.url.length).toBeLessThan(1800);
+    const longObject = decode(longest.url.replace("https://pay.google.com/gp/v/save/", "")).payload.genericObjects[0];
+    expect(longObject.header.defaultValue.value).toBe("N".repeat(80));
+    expect(longObject.barcode.value).toBe("https://www.milvector.org/c/jordan?s=wallet");
   });
 
   it("shows the banner as the pass's wide image when the card has one", () => {

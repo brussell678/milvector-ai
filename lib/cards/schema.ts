@@ -124,6 +124,10 @@ export const CardDataSchema = z.object({
   style: z.enum(CARD_STYLES).default("band"),
   leadCapture: z.boolean().default(true),
   notifyLeads: z.boolean().default(true),
+  // Show the phone number on the front of the wallet pass, under the name.
+  // Off by default: the front stays name, title, and QR code, and the phone
+  // and email are one tap away in the pass details either way.
+  passShowPhone: z.boolean().default(false),
 });
 
 export type CardData = z.infer<typeof CardDataSchema>;
@@ -145,7 +149,19 @@ export const EMPTY_CARD: CardData = {
   style: "band",
   leadCapture: true,
   notifyLeads: true,
+  passShowPhone: false,
 };
+
+/** A phone number as a dialable tel: target: digits and a leading +, nothing else. */
+export const telDigits = (phone: string) => phone.replace(/[^\d+]/g, "");
+
+/** A phone number for reading: a US number as (402) 555-0187, anything else as typed. */
+export function displayPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (phone.includes("x")) return phone.trim();
+  const us = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits.length === 10 && !phone.trim().startsWith("+") ? digits : null;
+  return us ? `(${us.slice(0, 3)}) ${us.slice(3, 6)}-${us.slice(6)}` : phone.trim();
+}
 
 // Reads whatever is stored and returns a complete card, so an older or partly
 // filled row never breaks the public page.

@@ -26,6 +26,9 @@ that reporter), use the admin composer at /app/admin/updates instead — it can
 link the case. This file is for the general changelog.
 -->
 
+## Tap to call or email from your wallet pass {improvement} {draft}
+Your business card's wallet pass keeps a clean front: your photo, name, title, and QR code, with your card's address under the code, short enough to read. Your phone number and email are in the pass details, and a tap calls or emails you. Want your number on the front too? Turn on "Show my phone number on the pass" on the Design tab, then add the pass to your wallet again.
+
 ## Work through every condition you claim in one sitting {improvement} {draft}
 The VA Rating Navigator now has its own daily allowance: 150 analyses and code lookups a day, apart from your other tools. If you are claiming 25 or 40 conditions, you can match and analyze all of them in one sitting, and still have your runs for your resume and job search.
 

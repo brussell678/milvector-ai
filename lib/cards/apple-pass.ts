@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import forge from "node-forge";
-import { cardUrl } from "@/lib/cards/access";
+import { cardUrl, shortCardUrl } from "@/lib/cards/access";
 import { PASS_ASSETS } from "@/lib/cards/pass-assets";
-import { textOnColor, type CardData } from "@/lib/cards/schema";
+import { displayPhone, textOnColor, type CardData } from "@/lib/cards/schema";
 import { zipStore } from "@/lib/cards/zip";
 
 // Apple Wallet pass (.pkpass) for a business card.
@@ -58,11 +58,15 @@ export function buildPassJson(args: { card: CardData; slug: string; cardId: stri
   const field = (key: string, label: string, value: string) => ({ key, label, value });
 
   const secondary = [card.title && field("title", "TITLE", card.title), card.company && field("company", "ORGANIZATION", card.company)].filter(Boolean);
-  const auxiliary = [card.phone && field("phone", "PHONE", card.phone), card.email && field("email", "EMAIL", card.email)].filter(Boolean);
+  // The front stays clean, like the Google pass: the phone only when the owner
+  // chose to show it. Phone and email are always on the back, where iPhone
+  // makes them tappable.
+  const phone = card.phone ? displayPhone(card.phone) : "";
+  const auxiliary = [card.passShowPhone && phone && field("phone", "PHONE", phone)].filter(Boolean);
   const back = [
     field("card", "Digital card", cardUrl(slug)),
     card.headline && field("headline", "About", card.headline),
-    card.phone && field("b-phone", "Phone", card.phone),
+    phone && field("b-phone", "Phone", phone),
     card.email && field("b-email", "Email", card.email),
     card.website && field("b-web", "Website", card.website),
     ...card.links.map((link, i) => field(`link-${i}`, link.label || "Link", link.url)),
@@ -87,7 +91,7 @@ export function buildPassJson(args: { card: CardData; slug: string; cardId: stri
       auxiliaryFields: auxiliary,
       backFields: back,
     },
-    barcodes: [{ format: "PKBarcodeFormatQR", message: url, messageEncoding: "iso-8859-1", altText: "Scan to open my card" }],
+    barcodes: [{ format: "PKBarcodeFormatQR", message: url, messageEncoding: "iso-8859-1", altText: shortCardUrl(slug) }],
   };
 }
 
