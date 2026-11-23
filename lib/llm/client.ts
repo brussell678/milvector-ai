@@ -7,6 +7,8 @@ export type LlmJsonResult<T> = {
 } | {
   ok: false;
   error: string;
+  // The raw provider message, for the run log only (it can mention billing).
+  detail?: string;
   latencyMs?: number;
 };
 
@@ -20,6 +22,8 @@ export type LlmImageResult = {
 } | {
   ok: false;
   error: string;
+  // The raw provider message, for the run log only (it can mention billing).
+  detail?: string;
   latencyMs?: number;
 };
 
@@ -27,6 +31,28 @@ import OpenAI from "openai";
 import { jsonrepair } from "jsonrepair";
 import { getEnv } from "@/lib/env";
 import { MILVECTOR_SYSTEM_PROMPT } from "@/lib/llm/prompts";
+
+export const AI_MESSAGES = {
+  paused: "MilVector's AI tools are paused for a moment on our end. What you entered is still here. Please try again later today.",
+  busy: "The AI service is busy right now. Wait a minute and try again. What you entered is still here.",
+  outage: "The AI service had a problem on its end. Try again in a minute. What you entered is still here.",
+} as const;
+
+/**
+ * What a member sees when OpenAI refuses a call. OpenAI's own message can name
+ * quotas and billing ("429 You exceeded your current quota..."), so it goes to
+ * the run log as detail, never to the page. Null leaves the message as is.
+ */
+export function memberMessageFor(error: unknown): string | null {
+  if (!error || typeof error !== "object") return null;
+  const { status, code } = error as { status?: unknown; code?: unknown };
+  const message = error instanceof Error ? error.message : "";
+  if (status === 429 && (code === "insufficient_quota" || /quota|billing/i.test(message))) return AI_MESSAGES.paused;
+  if (status === 429) return AI_MESSAGES.busy;
+  if (status === 401 || status === 403) return AI_MESSAGES.paused;
+  if (typeof status === "number" && status >= 500) return AI_MESSAGES.outage;
+  return null;
+}
 
 const JSON_INSTRUCTION =
   "Return valid JSON only. Do not wrap in markdown code fences. Do not include extra commentary.";
@@ -256,7 +282,7 @@ export async function generateJson<T>(prompt: string, options?: GenerateOptions)
         latencyMs: Date.now() - started,
       };
     }
-    return { ok: false, error: message, latencyMs: Date.now() - started };
+    return { ok: false, error: memberMessageFor(error) ?? message, detail: message, latencyMs: Date.now() - started };
   } finally {
     clearTimeout(timeout);
   }
@@ -295,7 +321,7 @@ export async function generateText(prompt: string): Promise<LlmJsonResult<string
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "LLM request failed";
-    return { ok: false, error: message, latencyMs: Date.now() - started };
+    return { ok: false, error: memberMessageFor(error) ?? message, detail: message, latencyMs: Date.now() - started };
   } finally {
     clearTimeout(timeout);
   }
@@ -345,7 +371,7 @@ export async function generateImage(args: {
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Image generation failed";
-    return { ok: false, error: message, latencyMs: Date.now() - started };
+    return { ok: false, error: memberMessageFor(error) ?? message, detail: message, latencyMs: Date.now() - started };
   } finally {
     clearTimeout(timeout);
   }

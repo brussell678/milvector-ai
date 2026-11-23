@@ -41,7 +41,7 @@ async function handlePOST(req: Request) {
   };
 
   if (!llm.ok) {
-    await supabase.from("tool_runs").insert({ ...baseRun, status: "error", error_message: llm.error });
+    await supabase.from("tool_runs").insert({ ...baseRun, status: "error", error_message: llm.detail ?? llm.error });
     return NextResponse.json({ error: llm.error }, { status: 500 });
   }
 

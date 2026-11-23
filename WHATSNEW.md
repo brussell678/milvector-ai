@@ -26,6 +26,9 @@ that reporter), use the admin composer at /app/admin/updates instead — it can
 link the case. This file is for the general changelog.
 -->
 
+## Paste a job link instead of the whole posting {new} {draft}
+On your phone? In the JD Decoder and the Targeted Resume Builder you can now paste the link to a job posting instead of copying the whole description. MilVector reads the posting and fills in the job title and company for you. LinkedIn does not allow this, so for a LinkedIn job, open the company's own posting and use that link.
+
 ## See a far-off retirement estimate in today's dollars {improvement} {draft}
 If your retired pay starts years from now, the Retirement Pay Calculator shows your monthly income in today's dollars, using today's pay table, VA rates, and tax brackets, so you can weigh it against your budget now. The future-years table shows the same income in the dollars of each year. It also makes clear that your years in the Retired Reserve count toward your pay.
 

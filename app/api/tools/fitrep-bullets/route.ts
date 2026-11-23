@@ -446,13 +446,13 @@ async function handlePOST(req: Request) {
     };
 
     if (!llm.ok) {
-      const message = llm.error.includes("Request too large")
+      const message = (llm.detail ?? llm.error).includes("Request too large")
         ? "Input too large for current model/rate limit. Reduce documents, or retry later."
         : llm.error;
       await supabase.from("tool_runs").insert({
         ...baseRun,
         status: "error",
-        error_message: message,
+        error_message: llm.detail ?? message,
         output_json: null,
       });
       return NextResponse.json({ error: message }, { status: 500 });
@@ -559,7 +559,7 @@ async function handlePOST(req: Request) {
     await supabase.from("tool_runs").insert({
       ...baseRun,
       status: "error",
-      error_message: llm.error,
+      error_message: llm.detail ?? llm.error,
       output_json: null,
     });
 

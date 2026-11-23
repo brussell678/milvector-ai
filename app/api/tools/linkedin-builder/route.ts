@@ -533,7 +533,7 @@ async function handlePOST(req: Request) {
       const latency = Date.now() - started;
 
       if (!llm.ok) {
-        await supabase.from("tool_runs").insert({ ...baseRun, latency_ms: latency, status: "error", error_message: llm.error });
+        await supabase.from("tool_runs").insert({ ...baseRun, latency_ms: latency, status: "error", error_message: llm.detail ?? llm.error });
         return NextResponse.json({ error: llm.error }, { status: 500 });
       }
 
@@ -562,7 +562,7 @@ async function handlePOST(req: Request) {
       const latency = Date.now() - started;
 
       if (!llm.ok) {
-        await supabase.from("tool_runs").insert({ ...baseRun, latency_ms: latency, status: "error", error_message: llm.error });
+        await supabase.from("tool_runs").insert({ ...baseRun, latency_ms: latency, status: "error", error_message: llm.detail ?? llm.error });
         return NextResponse.json({ error: llm.error }, { status: 500 });
       }
 
@@ -598,7 +598,7 @@ async function handlePOST(req: Request) {
     const latency = Date.now() - started;
 
     if (!llm.ok) {
-      await supabase.from("tool_runs").insert({ ...baseRun, latency_ms: latency, status: "error", error_message: llm.error });
+      await supabase.from("tool_runs").insert({ ...baseRun, latency_ms: latency, status: "error", error_message: llm.detail ?? llm.error });
       return NextResponse.json({ error: llm.error }, { status: 500 });
     }
 
@@ -654,7 +654,7 @@ async function handlePOST(req: Request) {
     const latency = Date.now() - started;
 
     if (!llm.ok) {
-      await supabase.from("tool_runs").insert({ ...baseRun, latency_ms: latency, status: "error", error_message: llm.error });
+      await supabase.from("tool_runs").insert({ ...baseRun, latency_ms: latency, status: "error", error_message: llm.detail ?? llm.error });
       return NextResponse.json({ error: llm.error }, { status: 500 });
     }
 
@@ -752,7 +752,7 @@ async function handlePOST(req: Request) {
     const latency = Date.now() - started;
 
     if (!llm.ok) {
-      await supabase.from("tool_runs").insert({ ...baseRun, latency_ms: latency, status: "error", error_message: llm.error });
+      await supabase.from("tool_runs").insert({ ...baseRun, latency_ms: latency, status: "error", error_message: llm.detail ?? llm.error });
       return NextResponse.json({ error: llm.error }, { status: 500 });
     }
 
@@ -789,7 +789,7 @@ async function handlePOST(req: Request) {
   const latency = Date.now() - started;
 
   if (!imageResult.ok) {
-    await supabase.from("tool_runs").insert({ ...baseRun, latency_ms: latency, status: "error", error_message: imageResult.error });
+    await supabase.from("tool_runs").insert({ ...baseRun, latency_ms: latency, status: "error", error_message: imageResult.detail ?? imageResult.error });
     return NextResponse.json({ error: imageResult.error }, { status: 500 });
   }
 

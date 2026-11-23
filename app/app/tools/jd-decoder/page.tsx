@@ -7,6 +7,7 @@ import { ToolAlert } from "@/components/tools/tool-alert";
 import { ActionBar } from "@/components/tools/action-bar";
 import { Term } from "@/components/ui/term";
 import { MasterResumePicker } from "@/components/tools/master-resume-picker";
+import { JobLinkField, postingSummary, readPostingFromLink, type LoadedPosting } from "@/components/tools/job-link-field";
 import { FitMapView } from "@/components/tools/fit-map-view";
 import type { FitResult } from "@/lib/resume/fit-check";
 
@@ -98,10 +99,22 @@ function KeywordChips({ keywords }: { keywords: string[] }) {
 
 export default function JobDescriptionDecoderPage() {
   const [jobDescriptionText, setJobDescriptionText] = useState("");
+  const [link, setLink] = useState("");
+  // The posting read from the link, so a new link clears it but typed text stays.
+  const [fromLink, setFromLink] = useState<LoadedPosting | null>(null);
+  const [readingLink, setReadingLink] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
   const [result, setResult] = useState<Output | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copyState, setCopyState] = useState<string>("");
   const [loading, setLoading] = useState(false);
+
+  function changeLink(value: string) {
+    setLink(value);
+    setLinkError(null);
+    if (fromLink && jobDescriptionText === fromLink.text) setJobDescriptionText("");
+    setFromLink(null);
+  }
 
   async function copyText(label: string, value: string) {
     try {
@@ -115,16 +128,32 @@ export default function JobDescriptionDecoderPage() {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    setLoading(true);
     setResult(null);
     setError(null);
+    setLinkError(null);
     setCopyState("");
 
+    // A link and an empty box: read the posting first, then decode it.
+    let postingText = jobDescriptionText;
+    if (!postingText.trim() && link.trim()) {
+      setReadingLink(true);
+      const read = await readPostingFromLink(link);
+      setReadingLink(false);
+      if (!read.ok) {
+        setLinkError(read.error);
+        return;
+      }
+      postingText = read.posting.text;
+      setJobDescriptionText(postingText);
+      setFromLink(read.posting);
+    }
+
+    setLoading(true);
     try {
       const res = await fetch("/api/tools/jd-decoder", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobDescriptionText }),
+        body: JSON.stringify({ jobDescriptionText: postingText }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -205,29 +234,31 @@ export default function JobDescriptionDecoderPage() {
               <div>
                 <p className="tool-kicker">INPUT</p>
                 <p className="section-description mt-1">
-                  Paste the complete job posting. The more text you include, the stronger the analysis.
+                  Paste a link to the job posting, or the complete posting itself. The more of the posting we have, the stronger the analysis.
                 </p>
               </div>
 
               <MasterResumePicker purpose="Your fit compares the posting with this resume, the same way the Targeted Resume Builder does. Without one, you still get the posting analysis." />
 
+              <JobLinkField value={link} onChange={changeLink} disabled={loading || readingLink} note={fromLink ? postingSummary(fromLink) : null} error={linkError} />
+
               <label className="block space-y-1">
-                <span className="text-sm font-medium">Full Job Description</span>
+                <span className="text-sm font-medium">Full Job Description{link.trim() ? " (or leave empty to use the link)" : ""}</span>
                 <textarea
                   className="input min-h-72"
                   value={jobDescriptionText}
                   onChange={(e) => setJobDescriptionText(e.target.value)}
                   placeholder="Paste the complete job posting here: title, responsibilities, requirements, and any company context."
-                  required
+                  required={!link.trim()}
                 />
               </label>
 
               <button
                 className="btn btn-primary w-full sm:w-auto"
                 type="submit"
-                disabled={loading}
+                disabled={loading || readingLink}
               >
-                {loading ? "Analyzing…" : "Analyze Job Description"}
+                {readingLink ? "Reading the posting..." : loading ? "Analyzing…" : "Analyze Job Description"}
               </button>
             </form>
           </section>

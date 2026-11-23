@@ -45,7 +45,7 @@ export async function runLoggedJson<T>(args: RunArgs<T>): Promise<RunResult<T>> 
   };
 
   if (!llm.ok) {
-    await args.supabase.from("tool_runs").insert({ ...baseRun, status: "error", error_message: llm.error });
+    await args.supabase.from("tool_runs").insert({ ...baseRun, status: "error", error_message: llm.detail ?? llm.error });
     return { ok: false, error: llm.error };
   }
 

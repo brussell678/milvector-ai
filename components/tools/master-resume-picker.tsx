@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, FileText, Upload } from "lucide-react";
 import { ToolAlert } from "@/components/tools/tool-alert";
@@ -13,6 +13,18 @@ import type { MasterOption } from "@/lib/master-resume";
 type State = { canSave: boolean; chosen: string | null; options: MasterOption[] };
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" });
+
+// File names like Jordan_Reyes_Master_Resume.docx have no spaces, so offer
+// line breaks after _ . and - (the text itself is unchanged).
+function breakableName(name: string) {
+  const parts = name.split(/(?<=[_.-])/);
+  return parts.map((part, i) => (
+    <Fragment key={i}>
+      {i > 0 && <wbr />}
+      {part}
+    </Fragment>
+  ));
+}
 
 export function originLine(option: MasterOption): string {
   return option.origin === "uploaded" ? `Uploaded by you, ${formatDate(option.createdAt)}` : `Written by MilVector, ${formatDate(option.createdAt)}`;
@@ -122,7 +134,7 @@ export function MasterResumePicker({
               <div className="flex min-w-0 items-start gap-3">
                 <FileText size={20} className="mt-0.5 shrink-0 text-[var(--accent)]" aria-hidden="true" />
                 <div className="min-w-0">
-                  <p className="break-words font-semibold">{active.name}</p>
+                  <p className="font-semibold [overflow-wrap:anywhere]">{breakableName(active.name)}</p>
                   <p className="text-xs text-[var(--muted)]">{originLine(active)}</p>
                 </div>
               </div>
@@ -156,7 +168,7 @@ export function MasterResumePicker({
                           {current && <Check size={12} strokeWidth={3} className="text-[var(--accent)]" />}
                         </span>
                         <span className="min-w-0">
-                          <span className="block break-words font-semibold">{option.name}</span>
+                          <span className="block font-semibold [overflow-wrap:anywhere]">{breakableName(option.name)}</span>
                           <span className="block text-xs text-[var(--muted)]">
                             {originLine(option)}
                             {!option.ready ? ". Not ready to use yet; check it in My Files." : ""}

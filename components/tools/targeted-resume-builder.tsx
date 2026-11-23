@@ -13,6 +13,7 @@ import type { MasterOption } from "@/lib/master-resume";
 import type { FigureCheck } from "@/lib/resume/targeting";
 import { CorrectionsList, ReviewCard, type Correction, type ReviewState } from "@/components/tools/resume-review";
 import { PASTE_LIMIT, POSTING_LIMIT } from "@/lib/resume/limits";
+import { JobLinkField, postingSummary, readPostingFromLink, type LoadedPosting } from "@/components/tools/job-link-field";
 
 // The rebuilt Targeted Resume Builder. Works only from the member's own master
 // resume: the fit comes first, gaps send the member back to their master, and
@@ -123,6 +124,10 @@ export function TargetedResumeBuilder({ initialTitle = "", initialPosting = "", 
   const [jobTitle, setJobTitle] = useState(initialTitle);
   const [company, setCompany] = useState("");
   const [posting, setPosting] = useState(initialPosting);
+  const [link, setLink] = useState("");
+  // What the link filled in, so a new link clears it but anything typed stays.
+  const [fromLink, setFromLink] = useState<LoadedPosting | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
 
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -135,8 +140,29 @@ export function TargetedResumeBuilder({ initialTitle = "", initialPosting = "", 
   const source = pasting ? "paste" : "master";
   const haveSource = pasting ? pastedText.trim().length >= 100 && pastedText.trim().length <= PASTE_LIMIT : !!master;
   const postingOk = posting.trim().length >= 100 && posting.trim().length <= POSTING_LIMIT;
-  const ready = haveSource && jobTitle.trim().length >= 2 && postingOk && !busy;
-  const body = () => ({ source, masterRef: pasting ? null : master?.ref, pastedText: pasting ? pastedText : null, jobTitle, company: company || null, jobDescriptionText: posting });
+  // A link with an empty posting box is read when the member checks the fit.
+  const linkOnly = !posting.trim() && link.trim().length > 0;
+  const ready = haveSource && ((jobTitle.trim().length >= 2 && postingOk) || linkOnly) && !busy;
+  const body = (job = { jobTitle, company, posting }) => ({
+    source,
+    masterRef: pasting ? null : master?.ref,
+    pastedText: pasting ? pastedText : null,
+    jobTitle: job.jobTitle,
+    company: job.company || null,
+    jobDescriptionText: job.posting,
+  });
+
+  function changeLink(value: string) {
+    setLink(value);
+    setLinkError(null);
+    if (fromLink) {
+      if (posting === fromLink.text) setPosting("");
+      if (jobTitle === (fromLink.title ?? "")) setJobTitle("");
+      if (company === (fromLink.company ?? "")) setCompany("");
+      setFromLink(null);
+      reset();
+    }
+  }
 
   // A new master, paste, or posting makes earlier results stale.
   const reset = () => {
@@ -147,9 +173,32 @@ export function TargetedResumeBuilder({ initialTitle = "", initialPosting = "", 
 
   async function checkFit() {
     setError(null);
+    setLinkError(null);
     reset();
+    let job = { jobTitle, company, posting };
+    if (linkOnly) {
+      setBusy("Reading the job posting from your link...");
+      const read = await readPostingFromLink(link);
+      if (!read.ok) {
+        setBusy(null);
+        return setLinkError(read.error);
+      }
+      job = {
+        jobTitle: jobTitle.trim() || read.posting.title || "",
+        company: company.trim() || read.posting.company || "",
+        posting: read.posting.text,
+      };
+      setPosting(job.posting);
+      setJobTitle(job.jobTitle);
+      setCompany(job.company);
+      setFromLink(read.posting);
+      if (job.jobTitle.trim().length < 2) {
+        setBusy(null);
+        return setLinkError("We read the posting but not its job title. Type the job title above, then tap Check My Fit.");
+      }
+    }
     setBusy("Reading your master and mapping the posting against it...");
-    const res = await post<FitResult>({ stage: "fit", ...body() });
+    const res = await post<FitResult>({ stage: "fit", ...body(job) });
     setBusy(null);
     if (!res.ok) return setError(res.error);
     setFit(res.data);
@@ -235,9 +284,10 @@ export function TargetedResumeBuilder({ initialTitle = "", initialPosting = "", 
             : what it really asks for, the level it implies, and how you fit.
           </p>
         </div>
+        <JobLinkField value={link} onChange={changeLink} disabled={!!busy} note={fromLink ? postingSummary(fromLink) : null} error={linkError} />
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block space-y-1">
-            <span className="text-sm font-medium">Job title</span>
+            <span className="text-sm font-medium">Job title{linkOnly ? " (or leave empty to use the link)" : ""}</span>
             <input className="input" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder="e.g. Director of AI Transformation" />
           </label>
           <label className="block space-y-1">
@@ -246,7 +296,7 @@ export function TargetedResumeBuilder({ initialTitle = "", initialPosting = "", 
           </label>
         </div>
         <label className="block space-y-1">
-          <span className="text-sm font-medium">Full job posting</span>
+          <span className="text-sm font-medium">Full job posting{linkOnly ? " (or leave empty to use the link)" : ""}</span>
           <textarea
             className="input min-h-72 resize-y"
             value={posting}
