@@ -121,13 +121,17 @@ export default async function ToolsPage() {
       .eq("user_id", user.id)
       // One row per member action, not the internal calls inside it (see lib/usage-limit.ts)
       .is("input_json->>_step", null)
+      // Chat follow-up questions are not tool runs (lib/chat/limit.ts)
+      .is("input_json->>_chat", null)
       .order("created_at", { ascending: false })
       .limit(5),
     supabase
       .from("documents")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
-      .eq("text_extracted", true),
+      .eq("text_extracted", true)
+      // A chat saved to My Files is not a record
+      .neq("doc_type", "CHAT_TRANSCRIPT"),
     supabase.from("profiles").select("id, full_name, mos").eq("id", user.id).maybeSingle(),
     // An uploaded master resume counts the same as one MilVector built
     supabase

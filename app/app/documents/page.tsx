@@ -7,7 +7,7 @@ import { optionForDocument, type MasterOption } from "@/lib/master-resume";
 
 type DocumentRow = {
   id: string;
-  doc_type: "FITREP" | "EVAL" | "VMET" | "JST" | "AWARD" | "MASTER_RESUME" | "RESUME_TEMPLATE" | "TARGETED_RESUME" | "LINKEDIN_PROFILE" | "OTHER";
+  doc_type: "FITREP" | "EVAL" | "VMET" | "JST" | "AWARD" | "MASTER_RESUME" | "RESUME_TEMPLATE" | "TARGETED_RESUME" | "LINKEDIN_PROFILE" | "CHAT_TRANSCRIPT" | "OTHER";
   filename: string;
   mime_type: string;
   size_bytes: number;
@@ -28,6 +28,7 @@ const DOC_TYPE_INFO: Record<string, { label: string; hint: string }> = {
   RESUME_TEMPLATE: { label: "Resume Template", hint: "A format you want your resumes to follow" },
   TARGETED_RESUME: { label: "Targeted Resume", hint: "A resume built for one specific job" },
   LINKEDIN_PROFILE: { label: "LinkedIn Profile", hint: "Your LinkedIn profile saved as PDF" },
+  CHAT_TRANSCRIPT: { label: "Saved chat", hint: "A chat with a MilVector tool, saved from the tool" },
   OTHER: { label: "Other", hint: "Awards, certificates, anything else useful" },
 };
 

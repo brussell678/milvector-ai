@@ -288,6 +288,62 @@ export async function generateJson<T>(prompt: string, options?: GenerateOptions)
   }
 }
 
+export type ChatTurn = { role: "user" | "assistant"; content: string };
+export type StreamPiece = { type: "delta"; text: string } | { type: "usage"; tokensIn?: number; tokensOut?: number };
+
+/** A refused or failed stream: what the member sees, and the provider's own words for the log. */
+export class ChatStreamError extends Error {
+  constructor(
+    public memberMessage: string,
+    public detail: string,
+  ) {
+    super(detail);
+  }
+}
+
+/**
+ * A chat answer, streamed as it is written (docs/CHAT_TOOLS_PLAN.md, D7). The
+ * whole conversation goes with each turn and OpenAI keeps nothing, the same
+ * as every other call here. Yields the text as it arrives, then the usage.
+ */
+export async function* streamChat(args: {
+  system: string;
+  turns: ChatTurn[];
+  model: string;
+  reasoningEffort?: ReasoningEffort;
+  signal: AbortSignal;
+}): AsyncGenerator<StreamPiece> {
+  const env = getEnv();
+  if (!env.OPENAI_API_KEY) throw new ChatStreamError(AI_MESSAGES.paused, "OPENAI_API_KEY is not configured");
+  const client = new OpenAI({ apiKey: env.OPENAI_API_KEY, baseURL: env.OPENAI_BASE_URL });
+
+  try {
+    const stream = await client.responses.create(
+      {
+        model: args.model,
+        ...samplingFor(args.model, 0.3, args.reasoningEffort),
+        store: false,
+        stream: true,
+        input: [{ role: "system", content: args.system }, ...args.turns],
+      },
+      { signal: args.signal },
+    );
+    for await (const event of stream) {
+      if (event.type === "response.output_text.delta") yield { type: "delta", text: event.delta };
+      else if (event.type === "response.completed") yield { type: "usage", tokensIn: event.response.usage?.input_tokens, tokensOut: event.response.usage?.output_tokens };
+      else if (event.type === "response.failed" || event.type === "error") throw new Error("message" in event && typeof event.message === "string" ? event.message : "The answer failed on the AI service.");
+    }
+    // The SDK ends an aborted stream quietly instead of throwing; a stopped or
+    // timed-out answer must not be logged as finished.
+    if (args.signal.aborted) throw new ChatStreamError("Stopped.", "aborted: the stream was stopped before it finished");
+  } catch (error) {
+    if (error instanceof ChatStreamError) throw error;
+    const message = error instanceof Error ? error.message : "LLM request failed";
+    if (args.signal.aborted) throw new ChatStreamError("Stopped.", `aborted: ${message}`);
+    throw new ChatStreamError(memberMessageFor(error) ?? AI_MESSAGES.outage, message);
+  }
+}
+
 export async function generateText(prompt: string): Promise<LlmJsonResult<string>> {
   const env = getEnv();
   if (!env.OPENAI_API_KEY) return { ok: false, error: "OPENAI_API_KEY is not configured" };

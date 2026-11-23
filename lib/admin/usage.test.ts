@@ -90,3 +90,26 @@ describe("summarizeUsage", () => {
     expect(tr.costPerAction).toBeCloseTo(0.14, 6);
   });
 });
+
+describe("chat follow-ups in the usage view", () => {
+  const runs: RunRow[] = [
+    run({ user_id: "u1", tool_name: "mos_translator", created_at: daysAgo(1) }),
+    run({ user_id: "u1", tool_name: "mos_translator", created_at: daysAgo(1), input_json: { _chat: true, _model: "gpt-6-luna" } }),
+    run({ user_id: "u2", tool_name: "mos_translator", created_at: daysAgo(2), input_json: { _chat: true, _model: "gpt-6-luna" } }),
+  ];
+  const summary = summarizeUsage({ runs, profiles: [], now, models, labels: { mos_translator: "MOS Translator" } });
+  const week = summary.windows.find((w) => w.days === 7)!;
+
+  it("shows follow-ups as their own row, not as tool runs", () => {
+    expect(summary.tools.map((t) => [t.tool, t.label, t.actions])).toEqual([
+      ["mos_translator:chat", "MOS Translator follow-ups", 2],
+      ["mos_translator", "MOS Translator", 1],
+    ]);
+  });
+
+  it("counts tool runs as actions, but a member who only asked questions is still active, and every call is priced", () => {
+    expect(week.actions).toBe(1);
+    expect(week.activeMembers).toBe(2);
+    expect(week.cost).toBeCloseTo(0.0018, 6);
+  });
+});

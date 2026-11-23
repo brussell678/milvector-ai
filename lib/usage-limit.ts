@@ -8,7 +8,8 @@ import { getEnv } from "@/lib/env";
 // Counted from tool_runs, which every AI route already writes, so there is no
 // separate counter to keep in sync. A run is one member action: the internal
 // calls inside it (logged with _step, such as the Targeted Resume Builder's
-// rewrite batches) are not counted again.
+// rewrite batches) are not counted again. Follow-up questions in the chat
+// tools (logged with _chat) have their own budget in lib/chat/limit.ts.
 
 const WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -52,7 +53,8 @@ export async function enforceAiUsageLimit(args: {
     .select("id", { count: "exact", head: true })
     .eq("user_id", args.userId)
     .gte("created_at", since)
-    .is("input_json->>_step", null);
+    .is("input_json->>_step", null)
+    .is("input_json->>_chat", null);
 
   if (error) return null;
 

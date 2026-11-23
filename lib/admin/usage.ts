@@ -63,6 +63,18 @@ export function runCost(row: RunRow, models: Models): number | null {
 /** A member action, not an internal call inside one (see lib/usage-limit.ts). */
 export const isAction = (row: RunRow) => !row.input_json?._step;
 
+/** A follow-up question in a chat tool (lib/chat/limit.ts): its own budget, so its own row. */
+export const isChat = (row: RunRow) => !!row.input_json?._chat;
+
+/** The usage row a run belongs to: the tool, or the tool's chat follow-ups. */
+export const usageKey = (row: RunRow) => (isChat(row) ? `${row.tool_name}:chat` : row.tool_name);
+
+function labelFor(key: string, labels: Record<string, string>): string {
+  if (labels[key]) return labels[key];
+  const chat = /^(.+):chat$/.exec(key);
+  return chat ? `${labels[chat[1]] ?? chat[1]} follow-ups` : key;
+}
+
 function percentile(sorted: number[], p: number): number | null {
   if (!sorted.length) return null;
   const i = Math.min(sorted.length - 1, Math.max(0, Math.ceil((p / 100) * sorted.length) - 1));
@@ -85,7 +97,8 @@ export function summarizeUsage(args: {
 
   const windows = [7, 30].map((days) => {
     const inWindow = runs.filter((row) => within(row.created_at, days));
-    const actions = inWindow.filter(isAction);
+    // Tool runs only; follow-up questions show in their own tool rows.
+    const actions = inWindow.filter((row) => isAction(row) && !isChat(row));
     let cost = 0;
     let unpricedRuns = 0;
     for (const row of inWindow) {
@@ -96,7 +109,7 @@ export function summarizeUsage(args: {
     return {
       days,
       newMembers: profiles.filter((row) => within(row.created_at, days)).length,
-      activeMembers: new Set(actions.map((row) => row.user_id)).size,
+      activeMembers: new Set(inWindow.filter(isAction).map((row) => row.user_id)).size,
       actions: actions.length,
       failedActions: actions.filter((row) => row.status === "error").length,
       cost,
@@ -106,7 +119,7 @@ export function summarizeUsage(args: {
 
   const month = runs.filter((row) => within(row.created_at, 30));
   const byTool = new Map<string, RunRow[]>();
-  for (const row of month) byTool.set(row.tool_name, [...(byTool.get(row.tool_name) ?? []), row]);
+  for (const row of month) byTool.set(usageKey(row), [...(byTool.get(usageKey(row)) ?? []), row]);
   const tools = [...byTool].map(([tool, rows]) => {
     const actions = rows.filter(isAction);
     const latencies = actions.map((row) => row.latency_ms).filter((ms): ms is number => typeof ms === "number").sort((a, b) => a - b);
@@ -115,7 +128,7 @@ export function summarizeUsage(args: {
     const p90 = percentile(latencies, 90);
     return {
       tool,
-      label: args.labels[tool] ?? tool,
+      label: labelFor(tool, args.labels),
       actions: actions.length,
       members: new Set(actions.map((row) => row.user_id)).size,
       failedActions: actions.filter((row) => row.status === "error").length,
