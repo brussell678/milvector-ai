@@ -98,9 +98,26 @@ export function VaChat(props: Props) {
   return <VaChatSession {...props} />;
 }
 
+// D9 amended: the member may keep this chat on this device for 30 days. The
+// choice itself is remembered on the device.
+const KEEP_DAYS = 30;
+const keepKey = (userId: string) => `mv.chat.keep.va_rating_navigator.${userId}`;
+function readKeep(userId: string): boolean {
+  try {
+    return window.localStorage.getItem(keepKey(userId)) === "1";
+  } catch {
+    return false;
+  }
+}
+
 function VaChatSession({ userId }: Props) {
-  // D9: this tab only. A new tab, or a closed one, starts empty.
-  const [stored] = useState(() => readChat<VaResult, VaRun, Extra>("va_rating_navigator", userId, "session"));
+  // D9: this tab only, unless the member chose to keep it on this device.
+  const [keep, setKeep] = useState(() => readKeep(userId));
+  const [stored] = useState(() =>
+    keep
+      ? (readChat<VaResult, VaRun, Extra>("va_rating_navigator", userId, "local", KEEP_DAYS) ?? readChat<VaResult, VaRun, Extra>("va_rating_navigator", userId, "session"))
+      : readChat<VaResult, VaRun, Extra>("va_rating_navigator", userId, "session"),
+  );
   const [conditionsText, setConditionsText] = useState(() => stored?.extra.conditionsText ?? "");
   const [collapsed, setCollapsed] = useState(() => !!stored?.extra.collapsed);
   const [describing, setDescribing] = useState<Describing>(() => stored?.extra.describing ?? null);
@@ -119,7 +136,7 @@ function VaChatSession({ userId }: Props) {
     userId,
     initial: stored,
     extra,
-    storage: "session",
+    storage: keep ? "local" : "session",
     context: () => {
       const current: Msg[] = chat.messages;
       const list = latestList(current);
@@ -253,6 +270,16 @@ function VaChatSession({ userId }: Props) {
       setDescribing(null);
     }
     void chat.ask(text, undefined, crisisSignal(text) ? crisisCard() : undefined);
+  }
+
+  function changeKeep(on: boolean) {
+    setKeep(on);
+    try {
+      if (on) window.localStorage.setItem(keepKey(userId), "1");
+      else window.localStorage.removeItem(keepKey(userId));
+    } catch {
+      // storage blocked: the choice lasts for this visit
+    }
   }
 
   async function exportChat() {
@@ -492,6 +519,12 @@ function VaChatSession({ userId }: Props) {
             <p className="mt-1 text-xs text-[var(--muted)]">Approximate. It uses the ratings you pick, and VA decides the real ones.</p>
           </div>
         )}
+        <label className="flex items-start gap-2 text-xs text-[var(--muted)]">
+          <input type="checkbox" className="mt-0.5" checked={keep} onChange={(e) => changeKeep(e.target.checked)} />
+          <span>
+            <span className="font-semibold text-[var(--foreground)]">Keep this chat on this device for 30 days</span>, so you can work through your conditions over several days. Off, it stays only in this tab. MilVector does not save it either way; anyone who uses this browser could see it.
+          </span>
+        </label>
       </section>
 
       {/* ── Chat ───────────────────────────────────────────────── */}
@@ -523,7 +556,7 @@ function VaChatSession({ userId }: Props) {
             <li>
               Criteria come from 38 CFR Part 4{list?.result.source ? `, as of ${list.result.source.asOf}` : ""}. Confirm current criteria before relying on this.
             </li>
-            <li>This chat stays only in this browser tab, and MilVector does not save it. Download a copy to keep one.</li>
+            <li>This chat stays only in this browser tab unless you choose to keep it on this device (under your conditions). MilVector does not save it. Download a copy to keep one.</li>
           </ul>
         </BotMessage>
 

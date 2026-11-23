@@ -26,6 +26,9 @@ that reporter), use the admin composer at /app/admin/updates instead — it can
 link the case. This file is for the general changelog.
 -->
 
+## Work through every condition you claim in one sitting {improvement} {draft}
+The VA Rating Navigator now has its own daily allowance: 150 analyses and code lookups a day, apart from your other tools. If you are claiming 25 or 40 conditions, you can match and analyze all of them in one sitting, and still have your runs for your resume and job search.
+
 ## Your resume review is saved, and the Word file waits for it {improvement} {draft}
 In the Targeted Resume Builder, each line you mark Correct or fix is now saved, so you can leave and pick up where you stopped. A new targeted resume downloads, from the builder or from My Files, and goes on your business card, only once every line is checked, so a resume never goes out with a figure you have not confirmed. If you open one too early, MilVector takes you straight to the lines still waiting.
 

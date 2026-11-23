@@ -49,7 +49,7 @@ async function handlePOST(req: Request, ctx: Ctx) {
   }
 
   const supabase = await supabaseServer();
-  const overLimit = await enforceChatLimit({ supabase, userId, email });
+  const overLimit = await enforceChatLimit({ supabase, userId, email, toolName: info.toolName });
   if (overLimit) return overLimit;
 
   const env = getEnv();

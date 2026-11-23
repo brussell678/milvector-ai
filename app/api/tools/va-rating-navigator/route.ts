@@ -31,7 +31,8 @@ async function handlePOST(req: Request) {
   if (!parsed.success) return NextResponse.json({ error: "List at least one condition, one per line, each under 160 characters." }, { status: 400 });
   const input = parsed.data;
 
-  const overLimit = await enforceAiUsageLimit({ supabase, userId, email });
+  // Its own daily budget, apart from the other tools' runs (D18).
+  const overLimit = await enforceAiUsageLimit({ supabase, userId, email, tool: TOOL });
   if (overLimit) return overLimit;
 
   const env = getEnv();

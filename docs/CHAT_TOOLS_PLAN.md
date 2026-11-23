@@ -29,6 +29,10 @@ the status board at the end of each phase.
 | 2026-11-23 | Phase 3 works well enough to move on; tweaks may come once all five are running. The Targeted Resume Builder is the premier tool: outshining paid competitors there matters most. |
 | 2026-11-23 | D9 decided: the VA chat is kept only in the open browser tab (it survives a refresh and is gone when the tab closes), downloads as a Word file to the member's own device, and is never saved to My Files. The page's promise that MilVector does not save symptom details stays true as written. |
 | 2026-11-23 | VA Navigator: "Talk me through this one" is guided by the page (D16). The chat lists what to cover; the member answers in their own words; Analyze runs today's analysis, whose "what appears to be missing" says what to add next. No extra AI calls and no AI-written questions. |
+| 2026-11-23 | Brandon: a retiree claims 25 to 40 conditions, with a handful of questions each, so the shared 100 follow-ups a day runs out and they never get the full picture. Three changes follow (D17, D18, D9 amended). |
+| 2026-11-23 | D17: follow-up questions are counted per tool. The VA Rating Navigator allows 300 a day (`CHAT_VA_DAILY_MESSAGE_LIMIT`), each other chat 100 (`CHAT_DAILY_MESSAGE_LIMIT`), so a long VA session never blocks another tool's chat. |
+| 2026-11-23 | D18: VA Rating Navigator analyses and code lookups have their own budget, 150 a day (`VA_DAILY_RUN_LIMIT`), apart from the 60 runs the other tools share, so a big claim fits in one sitting and the costly Targeted Resume Builder keeps its tight cap. Applies to the classic VA page too. |
+| 2026-11-23 | D9 amended: the VA chat stays in the open tab by default, and the member may switch on "Keep this chat on this device for 30 days", worded so it is clear MilVector still does not save it and anyone using that browser could see it. Switching it off removes the kept copy. No Save to My Files, as before. |
 | Later | D8 (Phase 3) editing a resume by chat, D9 (Phase 4) saving a VA chat, D10 (Phase 5) saving an SBP chat, D11 (Phase 2 on) a typed sentence filling the top inputs. Brandon decides each at its milestone. |
 
 ## How the chat works
@@ -268,6 +272,17 @@ Found and fixed on the way:
   says where the next message goes.
 - The crisis card first appeared above the words that called for it. It now
   follows them, for a question, a description, and the conditions list.
+
+**Many conditions (D17, D18, D9 amended), built 2026-11-23:** follow-ups
+counted per tool (VA 300, others 100); VA analyses and code lookups on their
+own 150 a day, with every other tool's runs counted without them, on the chat
+and the classic page; the VA chat's "Keep this chat on this device for 30
+days" switch (off by default; one copy at a time, so switching off removes the
+kept copy). 494 unit tests; `chat-va-verify` 45/45 (adds the switch, a new tab
+picking up a kept chat, and both budgets); the other chat walkthroughs and all
+nine older walkthroughs green as members see it (`card-upgrades-verify` on a
+warm server, below). Members notice D18 on the classic VA page, so a What's New
+entry is drafted.
 
 Harness note: `card-upgrades-verify` can count one card visit twice when it
 is the first to open a card page on a freshly started dev server (the page

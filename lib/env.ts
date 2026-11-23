@@ -46,9 +46,15 @@ const ServerEnvSchema = PublicEnvSchema.extend({
   // A run is a member action: a targeted resume's fit check and build are two,
   // however many AI calls the build makes inside.
   AI_DAILY_RUN_LIMIT: z.coerce.number().int().min(1).max(10000).default(60),
+  // The VA Rating Navigator's analyses and code lookups have their own budget
+  // (docs/CHAT_TOOLS_PLAN.md, D18): a retiree claims 25 to 40 conditions, and
+  // they run on the low-cost model, so they do not use up the 60 runs.
+  VA_DAILY_RUN_LIMIT: z.coerce.number().int().min(1).max(10000).default(150),
   // Follow-up questions in the chat tools (docs/CHAT_TOOLS_PLAN.md): their own
   // budget per member in a rolling 24 hours, apart from the run limit above.
   CHAT_DAILY_MESSAGE_LIMIT: z.coerce.number().int().min(1).max(10000).default(100),
+  // Counted per tool (D17); the VA chat's own, for a claim with many conditions.
+  CHAT_VA_DAILY_MESSAGE_LIMIT: z.coerce.number().int().min(1).max(10000).default(300),
   // The model and effort for follow-up answers. Fall back to TOOLS_MODEL and
   // LLM_REASONING_EFFORT.
   CHAT_MODEL: z.string().min(1).optional(),

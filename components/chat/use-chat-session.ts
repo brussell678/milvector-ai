@@ -26,7 +26,7 @@ export type Busy = { kind: "run" | "reply"; label: string; detail?: string } | n
 
 export type StoredChat<Result, Run, Extra> = { v: 1; savedAt: number; messages: ChatMessage<Result, Run>[]; extra: Extra };
 
-const KEEP_MS = 7 * 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 const KEEP_MESSAGES = 120;
 const FRIENDLY = "Something went wrong on our end. Your chat is still here. Try again in a few seconds.";
 const OFFLINE = "That didn't go through. Check your connection and try again.";
@@ -35,23 +35,24 @@ export const newId = () => Math.random().toString(36).slice(2, 10) + Date.now().
 
 const storageKey = (tool: ChatToolId, userId: string) => `mv.chat.v1.${tool}.${userId}`;
 
-// "local": kept in the browser for 7 days. "session": kept only in the open
-// tab, gone when it closes (the VA chat, D9: symptom details stay off shared
-// computers).
+// "local": kept in the browser (7 days unless a tool says otherwise).
+// "session": kept only in the open tab, gone when it closes (the VA chat by
+// default, D9). A chat lives in one of them at a time.
 export type ChatStorage = "local" | "session";
 const storeFor = (storage: ChatStorage) => (storage === "session" ? window.sessionStorage : window.localStorage);
+const otherStore = (storage: ChatStorage) => (storage === "session" ? window.localStorage : window.sessionStorage);
 
 /**
  * The chat this member left on this device, if any and under 7 days old. Read
  * only in the browser, when the chat's state is first created; an answer cut
  * off by a reload is kept as stopped.
  */
-export function readChat<Result, Run, Extra>(tool: ChatToolId, userId: string, storage: ChatStorage = "local"): StoredChat<Result, Run, Extra> | null {
+export function readChat<Result, Run, Extra>(tool: ChatToolId, userId: string, storage: ChatStorage = "local", keepDays = 7): StoredChat<Result, Run, Extra> | null {
   try {
     const raw = storeFor(storage).getItem(storageKey(tool, userId));
     if (!raw) return null;
     const value = JSON.parse(raw) as StoredChat<Result, Run, Extra>;
-    if (value?.v !== 1 || !Array.isArray(value.messages) || Date.now() - value.savedAt > KEEP_MS) return null;
+    if (value?.v !== 1 || !Array.isArray(value.messages) || Date.now() - value.savedAt > keepDays * DAY_MS) return null;
     return {
       ...value,
       messages: value.messages.map((m) => (m.role === "assistant" && m.kind === "text" && m.streaming ? { ...m, streaming: false, stopped: true } : m)),
@@ -88,8 +89,11 @@ export function useChatSession<Result, Run, Extra>(args: {
     latest.current = messages;
   }, [messages]);
 
+  // Kept in one place only: switching where it lives moves it, and turning
+  // off "keep on this device" removes the long-term copy.
   useEffect(() => {
     try {
+      otherStore(storage).removeItem(key);
       if (messages.length === 0) storeFor(storage).removeItem(key);
       else storeFor(storage).setItem(key, JSON.stringify({ v: 1, savedAt: Date.now(), messages: messages.slice(-KEEP_MESSAGES), extra: args.extra }));
     } catch {
