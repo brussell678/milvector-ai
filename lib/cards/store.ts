@@ -85,6 +85,32 @@ export async function loadCardResume(supabase: SupabaseClient, slug: string): Pr
   return { name: own.resume_name, mime: own.resume_mime, data: own.resume_data };
 }
 
+// The banner's version (its last change) for a card the viewer may see, or
+// null when it has none. Lets the page show a banner without loading it.
+// Also null before migration 0041, so the card keeps its color band.
+export async function loadCardBannerVersion(supabase: SupabaseClient, slug: string): Promise<string | null> {
+  const clean = slug.toLowerCase();
+  const { data } = await supabase.rpc("get_public_card_banner_version", { p_slug: clean });
+  if (typeof data === "string" && data) return data;
+  // Draft preview for the owner.
+  const { data: own } = await supabase
+    .from("business_cards")
+    .select("banner_updated_at")
+    .eq("slug", clean)
+    .not("banner_jpeg", "is", null)
+    .maybeSingle<{ banner_updated_at: string | null }>();
+  return own?.banner_updated_at ?? null;
+}
+
+export async function loadCardBanner(supabase: SupabaseClient, slug: string): Promise<string | null> {
+  const clean = slug.toLowerCase();
+  const { data } = await supabase.rpc("get_public_card_banner", { p_slug: clean });
+  if (typeof data === "string" && data) return data;
+  // Draft preview for the owner.
+  const { data: own } = await supabase.from("business_cards").select("banner_jpeg").eq("slug", clean).maybeSingle<{ banner_jpeg: string | null }>();
+  return own?.banner_jpeg ?? null;
+}
+
 // Photo bytes for a card the viewer is allowed to see.
 export async function loadCardPhoto(supabase: SupabaseClient, slug: string, format: "jpeg" | "png"): Promise<string | null> {
   const clean = slug.toLowerCase();

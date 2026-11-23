@@ -29,7 +29,9 @@ export function googleConfig(env: NodeJS.ProcessEnv = process.env): GoogleConfig
   return { issuerId, serviceAccountEmail, privateKeyPem };
 }
 
-type PassArgs = { card: CardData; slug: string; cardId: string; hasPhoto: boolean; issuerId: string };
+// bannerVersion: when the card has a banner, the time it last changed. The
+// pass then shows it as its wide hero image.
+type PassArgs = { card: CardData; slug: string; cardId: string; hasPhoto: boolean; issuerId: string; bannerVersion?: string | null };
 
 const localized = (value: string) => ({ defaultValue: { language: "en-US", value } });
 const b64url = (input: Buffer | string) => Buffer.from(input).toString("base64url");
@@ -39,7 +41,7 @@ export const googleObjectId = (issuerId: string, cardId: string) => `${issuerId}
 
 // `full` is the pass registered through the API. The trimmed form is what fits
 // inside a save link when the API cannot be reached.
-export function buildGoogleObject({ card, slug, cardId, hasPhoto, issuerId }: PassArgs, full: boolean) {
+export function buildGoogleObject({ card, slug, cardId, hasPhoto, issuerId, bannerVersion }: PassArgs, full: boolean) {
   const text = [
     card.phone && { id: "phone", header: "Phone", body: card.phone },
     card.email && { id: "email", header: "Email", body: card.email },
@@ -60,6 +62,15 @@ export function buildGoogleObject({ card, slug, cardId, hasPhoto, issuerId }: Pa
     ...(card.title ? { subheader: localized(card.title) } : {}),
     hexBackgroundColor: card.accent,
     logo: { sourceUri: { uri: hasPhoto ? `${siteUrl}/c/${slug}/photo` : `${siteUrl}/assets/milvector-ai-logo.png` } },
+    // Registered passes only: the save link that carries the whole pass has to stay short.
+    ...(full && bannerVersion
+      ? {
+          heroImage: {
+            sourceUri: { uri: `${siteUrl}/c/${slug}/banner?v=wallet&t=${encodeURIComponent(bannerVersion)}` },
+            contentDescription: localized(`Banner for ${card.name}`),
+          },
+        }
+      : {}),
     barcode: { type: "QR_CODE", value: cardUrl(slug, "wallet") },
     textModulesData: text,
     linksModuleData: { uris },

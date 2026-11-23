@@ -179,7 +179,8 @@ describe("contact exchange", () => {
       { name: '=HYPERLINK("http://evil")', email: "a@b.co", phone: null, company: 'Acme "East"', note: "+1 back", source: "qr", created_at: "2026-11-14T10:00:00Z" },
     ]);
     const [header, row] = csv.split("\r\n");
-    expect(header).toBe("Name,Email,Phone,Organization,Note,Came from,Date");
+    expect(header).toBe("Name,Email,Phone,Organization,Their note,My notes,Event,Came from,Date");
+    expect(row).toContain(`"QR code"`);
     expect(row.startsWith(`"'=HYPERLINK(""http://evil"")"`)).toBe(true);
     expect(row).toContain(`"Acme ""East"""`);
     expect(row).toContain(`"'+1 back"`);
@@ -417,6 +418,14 @@ describe("Google Wallet pass", () => {
     const claims = decode(jwt);
     expect(claims.payload.genericClasses).toEqual([{ id: "3388000000012345678.milvector_business_card" }]);
     expect(claims.payload.genericObjects[0].header.defaultValue.value).toBe("Jordan A. Reyes");
+  });
+
+  it("shows the banner as the pass's wide image when the card has one", () => {
+    const withBanner = buildGoogleObject({ ...args, issuerId: config.issuerId, bannerVersion: "2026-11-23T03:00:00.000Z" }, true);
+    expect(withBanner.heroImage?.sourceUri.uri).toBe("https://www.milvector.org/c/jordan/banner?v=wallet&t=2026-11-23T03%3A00%3A00.000Z");
+    expect(buildGoogleObject({ ...args, issuerId: config.issuerId }, true).heroImage).toBeUndefined();
+    // The trimmed pass inside a save link stays short: no banner.
+    expect(buildGoogleObject({ ...args, issuerId: config.issuerId, bannerVersion: "2026-11-23T03:00:00.000Z" }, false).heroImage).toBeUndefined();
   });
 
   it("signs the save link so Google can verify it", () => {

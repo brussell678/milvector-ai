@@ -1,4 +1,4 @@
-import { EVENT_SOURCES, type EventKind, type EventSource } from "@/lib/cards/schema";
+import { EVENT_SOURCES, SOURCE_LABELS, type EventKind, type EventSource } from "@/lib/cards/schema";
 
 export type StatRow = { day: string; kind: EventKind; source: EventSource; count: number };
 
@@ -65,15 +65,39 @@ export function summarizeStats(rows: StatRow[], today: Date): Insights {
 
 // Contacts as a CSV a spreadsheet or CRM can import. Cells that start with a
 // formula character are prefixed so a spreadsheet never runs them.
-export function leadsCsv(leads: { name: string; email: string | null; phone: string | null; company: string | null; note: string | null; source: string; created_at: string }[]): string {
-  const cell = (value: string | null) => {
+export type CsvLead = {
+  name: string;
+  email: string | null;
+  phone: string | null;
+  company: string | null;
+  note: string | null;
+  source: string;
+  created_at: string;
+  event_name?: string | null;
+  owner_note?: string | null;
+};
+
+export function leadsCsv(leads: CsvLead[]): string {
+  const cell = (value: string | null | undefined) => {
     let text = value ?? "";
     if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
     return `"${text.replace(/"/g, '""')}"`;
   };
-  const header = ["Name", "Email", "Phone", "Organization", "Note", "Came from", "Date"].join(",");
+  const header = ["Name", "Email", "Phone", "Organization", "Their note", "My notes", "Event", "Came from", "Date"].join(",");
   const lines = leads.map((lead) =>
-    [lead.name, lead.email, lead.phone, lead.company, lead.note, lead.source, lead.created_at.slice(0, 10)].map(cell).join(","),
+    [
+      lead.name,
+      lead.email,
+      lead.phone,
+      lead.company,
+      lead.note,
+      lead.owner_note,
+      lead.event_name,
+      SOURCE_LABELS[lead.source as EventSource] ?? lead.source,
+      lead.created_at.slice(0, 10),
+    ]
+      .map(cell)
+      .join(","),
   );
   return [header, ...lines].join("\r\n") + "\r\n";
 }

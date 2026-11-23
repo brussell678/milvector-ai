@@ -42,11 +42,14 @@ const telHref = (phone: string) => phone.replace(/[^\d+]/g, "");
 export function CardView({
   card,
   photoSrc,
+  bannerSrc,
   resume,
   children,
 }: {
   card: CardData;
   photoSrc?: string | null;
+  // The banner image (LinkedIn's 4:1 shape). It replaces the color band.
+  bannerSrc?: string | null;
   // The attached resume. `href` is omitted in the editor preview.
   resume?: { href?: string; isPdf: boolean } | null;
   children?: ReactNode;
@@ -65,7 +68,13 @@ export function CardView({
       style={{ ...palette(card), background: "var(--card-bg)", color: "var(--card-fg)", borderColor: "var(--card-line)" }}
       className="w-full overflow-hidden rounded-3xl border shadow-xl"
     >
-      {card.style === "clean" ? (
+      {bannerSrc ? (
+        // Exactly 4:1, LinkedIn's banner shape, so a LinkedIn banner shows whole.
+        <div className="w-full" style={{ aspectRatio: "4 / 1", background: "var(--card-soft)" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- member banner served from a card route or a local preview */}
+          <img src={bannerSrc} alt="" width={1584} height={396} className="block h-full w-full object-cover" data-card-banner="" />
+        </div>
+      ) : card.style === "clean" ? (
         <div className="h-14" style={{ borderTop: "6px solid var(--card-accent)" }} />
       ) : (
         <div
@@ -79,7 +88,7 @@ export function CardView({
         />
       )}
 
-      <div className={`px-6 pb-7 ${card.style === "clean" ? "-mt-6" : "-mt-14"}`}>
+      <div className={`relative px-6 pb-7 ${card.style === "clean" && !bannerSrc ? "-mt-6" : "-mt-14"}`}>
         {photoSrc ? (
           // eslint-disable-next-line @next/next/no-img-element -- member photo served from a card route or a local preview
           <img

@@ -40,7 +40,7 @@ const privacyPoints = [
   {
     title: "Digital Business Cards",
     detail:
-      "A business card you publish is a public page: anyone with its link or QR code can see what you put on it, so include only what you would hand to a stranger. Cards are kept out of search engines and are not covered by site analytics. MilVector counts views and contact saves as totals only, with no record of who the visitor was. Details a visitor chooses to send you go only to you, and you can unpublish or delete a card at any time.",
+      "A business card you publish is a public page: anyone with its link or QR code can see what you put on it, so include only what you would hand to a stranger. Cards are kept out of search engines and are not covered by site analytics. MilVector counts views and contact saves as totals only, with no record of who the visitor was. Details a visitor chooses to send you go only to you, and you can unpublish or delete a card at any time. If you use Draft Follow-up on one of those contacts, their first name and organization, the notes, and the event where you met are sent to OpenAI to write the draft; their email address and phone number are not, and MilVector does not keep the draft.",
   },
   {
     title: "Retirement Invitations And Their Guests",

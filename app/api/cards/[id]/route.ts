@@ -3,7 +3,8 @@ import { cardBuilderEnabled } from "@/lib/cards/access";
 import { summarizeStats, type StatRow } from "@/lib/cards/insights";
 import { piiProblem } from "@/lib/cards/opsec";
 import { isResumeMime, matchesMime, PDF_MIME, RESUME_DOC_TYPES, RESUME_MAX_BYTES, resumeDownloadName } from "@/lib/cards/resume";
-import { CardDataSchema, readCardData, slugProblem, validPhoto } from "@/lib/cards/schema";
+import { normalizeBanner } from "@/lib/cards/banner";
+import { CardDataSchema, EventModeSchema, readCardData, slugProblem, validBannerUpload, validPhoto } from "@/lib/cards/schema";
 import { supabaseServer } from "@/lib/supabase/server";
 
 type Row = { id: string; slug: string; data: unknown; photo_jpeg: string | null; published: boolean; suspended: boolean; updated_at: string };
@@ -43,19 +44,19 @@ export async function GET(_req: Request, { params }: Params) {
   if (!card) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const since = new Date(Date.now() - 89 * 86_400_000).toISOString().slice(0, 10);
-  const [{ data: stats }, { data: leads }] = await Promise.all([
+  const leadsQuery = (columns: string) =>
+    supabase.from("business_card_leads").select(columns).eq("card_id", id).order("created_at", { ascending: false }).limit(500);
+  const [{ data: stats }, withNotes] = await Promise.all([
     supabase.from("business_card_stats").select("day,kind,source,count").eq("card_id", id).gte("day", since),
-    supabase
-      .from("business_card_leads")
-      .select("id,name,email,phone,company,note,source,created_at")
-      .eq("card_id", id)
-      .order("created_at", { ascending: false })
-      .limit(500),
+    leadsQuery("id,name,email,phone,company,note,source,created_at,event_name,owner_note"),
   ]);
+  // Before migration 0041 the event and note columns do not exist yet.
+  const leads = withNotes.error ? (await leadsQuery("id,name,email,phone,company,note,source,created_at")).data : withNotes.data;
 
   return NextResponse.json({
     insights: summarizeStats((stats ?? []) as StatRow[], new Date()),
     leads: leads ?? [],
+    notesReady: !withNotes.error,
   });
 }
 
@@ -71,6 +72,8 @@ export async function PATCH(req: Request, { params }: Params) {
     published?: unknown;
     photo?: { jpeg?: unknown; png?: unknown } | null;
     resume?: { documentId?: unknown } | null;
+    banner?: { jpeg?: unknown; linkedinId?: unknown } | null;
+    event?: { name?: unknown; hours?: unknown } | null;
   } | null;
   if (!body) return NextResponse.json({ error: "Nothing to save." }, { status: 400 });
 
@@ -147,9 +150,62 @@ export async function PATCH(req: Request, { params }: Params) {
     resume = { name, isPdf: doc.mime_type === PDF_MIME, updatedAt };
   }
 
+  // Banner: an upload, one of the member's LinkedIn Builder banners, or removal.
+  // Either source is re-encoded to 1584 x 396 on the server.
+  let bannerVersion: string | null | undefined;
+  if (body.banner === null) {
+    Object.assign(update, { banner_jpeg: null, banner_updated_at: null });
+    bannerVersion = null;
+  } else if (body.banner) {
+    let source: Uint8Array | null = null;
+    if (body.banner.linkedinId !== undefined) {
+      const linkedinId = String(body.banner.linkedinId ?? "");
+      if (!UUID_RE.test(linkedinId)) return NextResponse.json({ error: "Pick a banner from the list." }, { status: 400 });
+      const { data: profile } = await supabase
+        .from("linkedin_profiles")
+        .select("banner_image_path")
+        .eq("id", linkedinId)
+        .eq("user_id", user.id)
+        .maybeSingle<{ banner_image_path: string | null }>();
+      if (!profile?.banner_image_path) {
+        return NextResponse.json({ error: "That banner was not found. Refresh the page and pick again." }, { status: 404 });
+      }
+      const { data: file } = await supabase.storage.from("linkedin-banners").download(profile.banner_image_path);
+      if (!file) return NextResponse.json({ error: "That banner could not be read. Try again in a moment." }, { status: 500 });
+      source = new Uint8Array(await file.arrayBuffer());
+    } else {
+      const jpeg = String(body.banner.jpeg ?? "");
+      if (!validBannerUpload(jpeg)) return NextResponse.json({ error: "That image could not be used. Try a different JPEG or PNG." }, { status: 400 });
+      source = Buffer.from(jpeg, "base64");
+    }
+    const normalized = await normalizeBanner(source);
+    if (!normalized) return NextResponse.json({ error: "That image could not be used. Try a different one." }, { status: 400 });
+    bannerVersion = new Date().toISOString();
+    Object.assign(update, { banner_jpeg: normalized, banner_updated_at: bannerVersion });
+  }
+
+  // Event mode: contacts that arrive while it is on are tagged with the event.
+  let event: { name: string; until: string } | null | undefined;
+  if (body.event === null) {
+    Object.assign(update, { event_name: null, event_until: null });
+    event = null;
+  } else if (body.event) {
+    const parsed = EventModeSchema.safeParse(body.event);
+    if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Check the event details.", field: "event" }, { status: 400 });
+    const until = new Date(Date.now() + parsed.data.hours * 3_600_000).toISOString();
+    Object.assign(update, { event_name: parsed.data.name, event_until: until });
+    event = { name: parsed.data.name, until };
+  }
+
   if (Object.keys(update).length === 0) return NextResponse.json({ error: "Nothing to save." }, { status: 400 });
 
   const { data, error } = await supabase.from("business_cards").update(update).eq("id", id).eq("user_id", user.id).select(COLUMNS).maybeSingle<Row>();
+  if (error && (bannerVersion !== undefined || event !== undefined) && /banner_|event_/.test(error.message)) {
+    return NextResponse.json(
+      { error: "Banners and event mode are not set up yet. Run migration 0041_business_card_upgrades.sql in the Supabase SQL editor." },
+      { status: 503 },
+    );
+  }
   if (error?.code === "23505") {
     return NextResponse.json({ error: "That address is already taken. Pick another.", field: "slug" }, { status: 409 });
   }
@@ -158,8 +214,13 @@ export async function PATCH(req: Request, { params }: Params) {
   }
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  // `resume` is included only when this request changed it.
-  return NextResponse.json({ card: present(data), ...(resume !== undefined ? { resume } : {}) });
+  // `resume`, `bannerVersion`, and `event` are included only when this request changed them.
+  return NextResponse.json({
+    card: present(data),
+    ...(resume !== undefined ? { resume } : {}),
+    ...(bannerVersion !== undefined ? { bannerVersion } : {}),
+    ...(event !== undefined ? { event } : {}),
+  });
 }
 
 // Deletes the card, or one contact when ?lead=<id> is given.

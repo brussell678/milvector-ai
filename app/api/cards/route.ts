@@ -5,7 +5,7 @@ import { appleConfig } from "@/lib/cards/apple-pass";
 import { googleConfig } from "@/lib/cards/google-pass";
 import { piiProblem } from "@/lib/cards/opsec";
 import { PDF_MIME, RESUME_DOC_TYPES, RESUME_MIMES, resumeOptions } from "@/lib/cards/resume";
-import { CardDataSchema, MAX_CARDS_PER_USER, readCardData, slugFromName } from "@/lib/cards/schema";
+import { activeEvent, CardDataSchema, MAX_CARDS_PER_USER, readCardData, slugFromName } from "@/lib/cards/schema";
 import { isMissingSchema, MIGRATION_MESSAGE } from "@/lib/cards/store";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -52,6 +52,33 @@ export async function GET() {
   const attachedById = new Map(
     ((attached ?? []) as { id: string; resume_name: string | null; resume_mime: string | null; resume_updated_at: string | null }[]).map((row) => [row.id, row]),
   );
+  // Banners and event mode arrive with migration 0041; until then this query
+  // fails and the editor shows both as not set up yet.
+  const { data: extras, error: extrasError } = await supabase
+    .from("business_cards")
+    .select("id,banner_updated_at,event_name,event_until")
+    .eq("user_id", user.id);
+  const extrasById = new Map(
+    ((extras ?? []) as { id: string; banner_updated_at: string | null; event_name: string | null; event_until: string | null }[]).map((row) => [row.id, row]),
+  );
+
+  // Banners the member made in the LinkedIn Builder, newest first, to reuse on a card.
+  const { data: linkedinRows } = await supabase
+    .from("linkedin_profiles")
+    .select("id,version_label,banner_image_path,created_at")
+    .eq("user_id", user.id)
+    .not("banner_image_path", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(6);
+  const linkedinBanners = (
+    await Promise.all(
+      ((linkedinRows ?? []) as { id: string; version_label: string | null; banner_image_path: string; created_at: string }[]).map(async (row) => {
+        const { data: signed } = await supabase.storage.from("linkedin-banners").createSignedUrl(row.banner_image_path, 60 * 60);
+        return signed?.signedUrl ? { id: row.id, label: row.version_label || "LinkedIn banner", createdAt: row.created_at, url: signed.signedUrl } : null;
+      }),
+    )
+  ).filter(Boolean);
+
   const { data: docs } = await supabase
     .from("documents")
     .select("id,filename,doc_type,mime_type,size_bytes,created_at")
@@ -77,8 +104,12 @@ export async function GET() {
             updatedAt: attachedById.get(row.id)!.resume_updated_at,
           }
         : null,
+      bannerVersion: extrasById.get(row.id)?.banner_updated_at ?? null,
+      event: activeEvent(extrasById.get(row.id)?.event_name, extrasById.get(row.id)?.event_until),
     })),
     resumeReady: !attachedError,
+    upgradesReady: !extrasError,
+    linkedinBanners,
     resumeOptions: resumeOptions(docs ?? []),
     maxCards: MAX_CARDS_PER_USER,
     wallet: { apple: !!appleConfig(), google: !!googleConfig() },
@@ -128,7 +159,18 @@ export async function POST(req: Request) {
       .single<Row>();
     if (!error && data) {
       return NextResponse.json({
-        card: { id: data.id, slug: data.slug, card: readCardData(data.data), photo: null, published: false, suspended: false, updatedAt: data.updated_at, resume: null },
+        card: {
+          id: data.id,
+          slug: data.slug,
+          card: readCardData(data.data),
+          photo: null,
+          published: false,
+          suspended: false,
+          updatedAt: data.updated_at,
+          resume: null,
+          bannerVersion: null,
+          event: null,
+        },
       });
     }
     if (error?.code !== "23505") return NextResponse.json({ error: error?.message ?? "The card could not be created." }, { status: 500 });

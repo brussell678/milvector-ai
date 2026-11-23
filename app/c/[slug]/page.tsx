@@ -7,7 +7,7 @@ import { CardActions } from "@/components/cards/card-actions";
 import { CardView } from "@/components/cards/card-view";
 import { cardUrl } from "@/lib/cards/access";
 import { qrColor, readSource } from "@/lib/cards/schema";
-import { loadCardForViewer, loadCardResumeName } from "@/lib/cards/store";
+import { loadCardBannerVersion, loadCardForViewer, loadCardResumeName } from "@/lib/cards/store";
 import { supabaseServer } from "@/lib/supabase/server";
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ s?: string }> };
@@ -42,7 +42,7 @@ export default async function CardPage({ params, searchParams }: Props) {
   if (!loaded) notFound();
 
   const { card } = loaded;
-  const resumeName = await loadCardResumeName(supabase, loaded.slug);
+  const [resumeName, bannerVersion] = await Promise.all([loadCardResumeName(supabase, loaded.slug), loadCardBannerVersion(supabase, loaded.slug)]);
   const qrSvg = await QRCode.toString(cardUrl(loaded.slug, "qr"), {
     type: "svg",
     margin: 1,
@@ -67,6 +67,7 @@ export default async function CardPage({ params, searchParams }: Props) {
       <CardView
         card={card}
         photoSrc={loaded.hasPhoto ? `/c/${loaded.slug}/photo` : null}
+        bannerSrc={bannerVersion ? `/c/${loaded.slug}/banner?t=${encodeURIComponent(bannerVersion)}` : null}
         resume={resumeName ? { href: `/c/${loaded.slug}/resume`, isPdf: resumeName.toLowerCase().endsWith(".pdf") } : null}
       >
         <CardActions
@@ -86,6 +87,12 @@ export default async function CardPage({ params, searchParams }: Props) {
             Made with MilVector AI
           </Link>
           , free career tools for transitioning service members.
+        </p>
+        <p className="mt-1">
+          Built by{" "}
+          <a href="https://www.russell-innovation-group.com" target="_blank" rel="noopener noreferrer" className="font-bold underline">
+            Russell Innovation Group
+          </a>
         </p>
         <p className="mt-2">
           <Link href={`/feedback?card=${encodeURIComponent(loaded.slug)}`} className="underline">

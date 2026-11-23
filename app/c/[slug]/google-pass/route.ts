@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { googleConfig, googleSaveUrl } from "@/lib/cards/google-pass";
-import { loadCardForViewer } from "@/lib/cards/store";
+import { loadCardBannerVersion, loadCardForViewer } from "@/lib/cards/store";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -15,7 +15,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   if (!loaded || loaded.state !== "live") return new Response("Not found", { status: 404 });
 
   try {
-    const { url } = await googleSaveUrl({ card: loaded.card, slug: loaded.slug, cardId: loaded.id, hasPhoto: loaded.hasPhoto, config });
+    const bannerVersion = await loadCardBannerVersion(supabase, loaded.slug);
+    const { url } = await googleSaveUrl({ card: loaded.card, slug: loaded.slug, cardId: loaded.id, hasPhoto: loaded.hasPhoto, bannerVersion, config });
     await supabase.rpc("record_card_event", { p_slug: loaded.slug, p_kind: "google", p_source: "direct" });
     return NextResponse.redirect(url, { status: 302, headers: { "Cache-Control": "no-store" } });
   } catch (error) {

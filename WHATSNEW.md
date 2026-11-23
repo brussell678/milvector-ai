@@ -26,7 +26,10 @@ that reporter), use the admin composer at /app/admin/updates instead — it can
 link the case. This file is for the general changelog.
 -->
 
-## Your High-3 now uses the real pay table for every month {improvement} {draft}
+## Your business card gets a banner, a video call background, and printed cards {new} {draft}
+Your digital business card can now carry a banner across the top. Use the banner you made in the LinkedIn Builder with one tap, or upload any image; LinkedIn's 1584 x 396 size fits exactly. From the Share tab, download a video call background and a phone lock screen that carry your QR code, and print paper cards ten to a sheet or as a file for a print shop. At a career fair, turn on event mode so everyone who shares their details is tagged with the event, add your own notes to each contact, and get a follow-up email drafted for you to edit and send.
+
+## Your High-3 now uses the real pay table for every month {improvement}
 Your High-3 is the average of your last 36 months of basic pay, and those months usually cross three or four pay years and two or three longevity steps. The Retirement Pay Calculator now takes each month from that year's DFAS pay table, at the step you had reached that month, to the cent. It also applies the legal cap on O-6 pay over 30 years in 2026, which it had shown about $85 a month too high. A month in a year whose table is not out yet, like 2027, uses the raise you choose and says so.
 
 ## Travel and schedule no longer count against your fit {improvement}

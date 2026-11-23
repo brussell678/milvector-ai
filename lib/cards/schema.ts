@@ -168,6 +168,11 @@ export const PHOTO_PNG_MAX_CHARS = 320_000;
 
 const BASE64_RE = /^[A-Za-z0-9+/]+={0,2}$/;
 
+/** A JPEG banner upload before the server normalizes it. */
+export function validBannerUpload(base64: string): boolean {
+  return !!base64 && base64.length <= BANNER_UPLOAD_MAX_CHARS && BASE64_RE.test(base64) && base64.startsWith("/9j/");
+}
+
 export function validPhoto(base64: string, kind: "jpeg" | "png"): boolean {
   const max = kind === "jpeg" ? PHOTO_JPEG_MAX_CHARS : PHOTO_PNG_MAX_CHARS;
   if (!base64 || base64.length > max || !BASE64_RE.test(base64)) return false;
@@ -175,9 +180,18 @@ export function validPhoto(base64: string, kind: "jpeg" | "png"): boolean {
   return kind === "jpeg" ? base64.startsWith("/9j/") : base64.startsWith("iVBORw0KGgo");
 }
 
+// The banner across the top of the card: LinkedIn's banner size, so a member's
+// LinkedIn banner fits with nothing cut off. Stored as JPEG base64.
+export const BANNER_WIDTH = 1584;
+export const BANNER_HEIGHT = 396;
+export const BANNER_JPEG_MAX_CHARS = 400_000;
+// What the browser may send before the server re-encodes it (it strips
+// EXIF data such as a photo's GPS location and fixes the size).
+export const BANNER_UPLOAD_MAX_CHARS = 1_400_000;
+
 export const EVENT_KINDS = ["view", "save", "link", "apple", "google", "resume"] as const;
 export type EventKind = (typeof EVENT_KINDS)[number];
-export const EVENT_SOURCES = ["direct", "qr", "wallet", "nfc", "sig"] as const;
+export const EVENT_SOURCES = ["direct", "qr", "wallet", "nfc", "sig", "video", "print", "lock"] as const;
 export type EventSource = (typeof EVENT_SOURCES)[number];
 
 export const SOURCE_LABELS: Record<EventSource, string> = {
@@ -186,7 +200,40 @@ export const SOURCE_LABELS: Record<EventSource, string> = {
   wallet: "Wallet pass",
   nfc: "NFC tap",
   sig: "Email signature",
+  video: "Video call background",
+  print: "Printed card",
+  lock: "Lock screen",
 };
+
+// Event mode: contacts that arrive before `until` are tagged with the event.
+export const EVENT_NAME_MAX = 80;
+export const EVENT_DURATIONS = [
+  { hours: 8, label: "8 hours" },
+  { hours: 24, label: "1 day" },
+  { hours: 48, label: "2 days" },
+  { hours: 72, label: "3 days" },
+] as const;
+
+export const EventModeSchema = z.object({
+  name: text(EVENT_NAME_MAX).refine((v) => v.length >= 2, "Name the event, for example Hiring Our Heroes, Camp Lejeune."),
+  hours: z.number().int().refine((h) => EVENT_DURATIONS.some((d) => d.hours === h), "Pick how long event mode stays on."),
+});
+
+/** The event a card is tagging contacts with right now, or null. */
+export function activeEvent(name: string | null | undefined, until: string | null | undefined, now = new Date()): { name: string; until: string } | null {
+  if (!name?.trim() || !until) return null;
+  const end = Date.parse(until);
+  if (Number.isNaN(end) || end <= now.getTime()) return null;
+  return { name: name.trim(), until: new Date(end).toISOString() };
+}
+
+// The owner's private note on a contact, and the event tag they can correct.
+export const LeadUpdateSchema = z
+  .object({
+    ownerNote: text(500).optional(),
+    eventName: text(EVENT_NAME_MAX).optional(),
+  })
+  .refine((v) => v.ownerNote !== undefined || v.eventName !== undefined, "Nothing to save.");
 
 export function readSource(value: string | null | undefined): EventSource {
   return (EVENT_SOURCES as readonly string[]).includes(value ?? "") ? (value as EventSource) : "direct";
