@@ -57,14 +57,19 @@ export function ChatShell(props: Props) {
     return () => observer.disconnect();
   }, [toBottom]);
 
-  // The thread leaves room under its last message for the hovering dock.
+  // The thread leaves room under its last message for the hovering dock. When
+  // the dock grows (the suggestion chips arrive as an answer finishes), the
+  // thread follows, so the chips never sit on the end of the answer.
   useLayoutEffect(() => {
     const el = dock.current;
     if (!el || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(() => box.current?.style.setProperty("--dock-h", `${el.offsetHeight}px`));
+    const observer = new ResizeObserver(() => {
+      box.current?.style.setProperty("--dock-h", `${el.offsetHeight}px`);
+      if (atBottom.current) toBottom();
+    });
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [toBottom]);
 
   // On a phone the box is as tall as what is visible, so the keyboard never hides the reply box.
   useEffect(() => {

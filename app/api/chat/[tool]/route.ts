@@ -60,13 +60,21 @@ async function handlePOST(req: Request, ctx: Ctx) {
   const started = Date.now();
   const encoder = new TextEncoder();
 
-  const log = async (row: { status: "success" | "error"; tokensIn?: number; tokensOut?: number; error?: string }) => {
+  // Besides the size of the turn, the log keeps how many suggestions the model
+  // gave and whether it wrote the mark, to see how often it leaves them out.
+  const log = async (row: { status: "success" | "error"; tokensIn?: number; tokensOut?: number; error?: string; suggestions?: number; marked?: boolean }) => {
     try {
       await supabase.from("tool_runs").insert({
         user_id: userId,
         tool_name: info.toolName,
         status: row.status,
-        input_json: { _chat: true, _model: model, turns: turns.length, chars: parsed.data.message.length },
+        input_json: {
+          _chat: true,
+          _model: model,
+          turns: turns.length,
+          chars: parsed.data.message.length,
+          ...(row.suggestions === undefined ? {} : { suggestions: row.suggestions, marked: !!row.marked }),
+        },
         latency_ms: Date.now() - started,
         tokens_in: row.tokensIn ?? null,
         tokens_out: row.tokensOut ?? null,
@@ -112,7 +120,7 @@ async function handlePOST(req: Request, ctx: Ctx) {
         }
         if (!answered.trim()) throw new ChatStreamError(AI_MESSAGES.outage, "The model returned no answer text.");
         const { suggestions, run } = parseMeta(meta, MosRunSchema);
-        await log({ status: "success", tokensIn, tokensOut });
+        await log({ status: "success", tokensIn, tokensOut, suggestions: suggestions.length, marked: meta !== null });
         send({ type: "done", suggestions, run });
       } catch (error) {
         const failure = error instanceof ChatStreamError ? error : new ChatStreamError(AI_MESSAGES.outage, error instanceof Error ? error.message : String(error));

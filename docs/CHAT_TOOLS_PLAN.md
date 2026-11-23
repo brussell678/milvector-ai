@@ -107,6 +107,25 @@ What the walkthrough caught, for the phases after this one:
   the thread read that as the member scrolling up and stopped following the
   answer. Only an upward scroll unpins it now.
 
+**Brandon's first live look (2026-11-23), fixed the same day:**
+
+- The logo replaces "MV" beside MilVector's messages (shared `BotMessage`,
+  lifted and ringed in the accent on the dark theme).
+- The suggestion chips covered the end of an answer: they arrive as the
+  answer finishes, and the thread made room without scrolling to it. The
+  thread now follows when the reply area grows.
+- Fewer chips after the first answer: the first three come from the page, and
+  the model was asked for "up to 3" and can return fewer. It is now asked for
+  exactly three, and the page tops up to three from its own list, leaving out
+  anything already asked. Each follow-up's log row now records how many
+  suggestions the model gave and whether it wrote the mark.
+- No model changed between his runs. Answers vary run to run, and each one is
+  grounded on that run's translation and the chat so far. The model had begun
+  calling the translation "the result"; it is now told to talk about the
+  member's inputs and the jobs on their screen. If answers still read thin,
+  `CHAT_EFFORT=medium` on Vercel is the next lever (slower first word, a little
+  more cost).
+
 Not testable in the harness, so it is on Brandon's walk: the reply box staying
 above the keyboard on a real iPhone and Android phone, and answers streaming
 through Cloudflare on the live site.

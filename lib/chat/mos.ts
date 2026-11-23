@@ -64,6 +64,35 @@ export function mosSummary(payload: MosPayload): string {
   return parts.join("; ");
 }
 
+const withArticle = (title: string) => `${/^[aeiou]/i.test(title) ? "an" : "a"} ${title}`;
+
+/**
+ * Three questions to tap: the model's own suggestions first, then the page's
+ * list, leaving out anything the member already asked. The model is asked for
+ * three but can return fewer, so the chips never run dry.
+ */
+export function mosSuggestions(args: { fromModel: string[]; roles: string[]; asked: string[] }): string[] {
+  const [first, second] = args.roles;
+  const pool = [
+    ...args.fromModel,
+    "Which of these fits me best, and why?",
+    ...(first ? [`What does ${withArticle(first)} do all day?`] : []),
+    "Which certification should I start with?",
+    ...(second ? [`What does ${withArticle(second)} do all day?`] : []),
+    "How do I describe my experience for these jobs?",
+  ];
+  const seen = new Set(args.asked.map((q) => q.trim().toLowerCase()));
+  const out: string[] = [];
+  for (const q of pool) {
+    const key = q.trim().toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(q);
+    if (out.length === 3) break;
+  }
+  return out;
+}
+
 /** What a proposed run changes from the last one, in words, for its button. */
 export function mosChanges(from: MosPayload | null, to: MosPayload): string {
   if (!from) return mosSummary(to);

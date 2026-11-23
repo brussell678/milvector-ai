@@ -3,7 +3,7 @@ import mammoth from "mammoth";
 import { AnswerSplitter, encodeEvent, NEXT_MARK, readEvents } from "@/lib/chat/stream";
 import { cleanSuggestions, MosRunSchema, parseMeta } from "@/lib/chat/meta";
 import { boldRuns, textBlocks, tidyChatText } from "@/lib/chat/text";
-import { matchBadge, mosChanges, mosFormFrom, mosPayload, mosSummary } from "@/lib/chat/mos";
+import { matchBadge, mosChanges, mosFormFrom, mosPayload, mosSuggestions, mosSummary } from "@/lib/chat/mos";
 import { mosTranscript } from "@/lib/chat/mos-transcript";
 import { transcriptFilename, transcriptText } from "@/lib/chat/transcript";
 import { renderTranscriptDocx } from "@/lib/chat/transcript-docx";
@@ -232,5 +232,35 @@ describe("who sees the chat", () => {
     expect(chatToolFor("mos_translator")?.toolName).toBe("mos_translator");
     expect(chatToolFor("constructor")).toBeNull();
     expect(chatToolFor("va_rating_navigator")).toBeNull();
+  });
+});
+
+describe("suggestions to tap", () => {
+  const roles = ["Operations Manager", "Fleet Maintenance Manager"];
+
+  it("always offers three once there is a translation, the model's first", () => {
+    expect(mosSuggestions({ fromModel: ["Is it remote friendly?"], roles, asked: [] })).toEqual([
+      "Is it remote friendly?",
+      "Which of these fits me best, and why?",
+      "What does an Operations Manager do all day?",
+    ]);
+    expect(mosSuggestions({ fromModel: [], roles, asked: [] })).toHaveLength(3);
+  });
+
+  it("leaves out what the member already asked, and repeats", () => {
+    const asked = ["Which of these fits me best, and why?", "what does an operations manager do all day?"];
+    expect(mosSuggestions({ fromModel: ["Which certification should I start with?"], roles, asked })).toEqual([
+      "Which certification should I start with?",
+      "What does a Fleet Maintenance Manager do all day?",
+      "How do I describe my experience for these jobs?",
+    ]);
+  });
+});
+
+describe("chat voice", () => {
+  const prompt = promptChatSystem("mos_translator", { inputs: INPUTS, result: RESULT });
+  it("asks for three suggestions and talks to the member, not about the result", () => {
+    expect(prompt).toContain("exactly 3 short questions");
+    expect(prompt).toContain('Never call them "the result"');
   });
 });

@@ -3,11 +3,12 @@
 import { FormEvent, useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { MessageCircleQuestion, Play } from "lucide-react";
+import { BotMessage } from "@/components/chat/bot-message";
 import { ChatShell } from "@/components/chat/chat-shell";
 import { ChatText } from "@/components/chat/chat-text";
 import { CHAT_ERRORS, newId, readChat, useBrowserReady, useChatSession, type ChatMessage } from "@/components/chat/use-chat-session";
 import { LoadingBlock } from "@/components/tools/loading-block";
-import { EMPTY_MOS_FORM, matchBadge, mosChanges, mosFormFrom, mosPayload, mosSummary, type CivilianRole, type MosForm, type MosPayload, type MosResult } from "@/lib/chat/mos";
+import { EMPTY_MOS_FORM, matchBadge, mosChanges, mosFormFrom, mosPayload, mosSuggestions, mosSummary, type CivilianRole, type MosForm, type MosPayload, type MosResult } from "@/lib/chat/mos";
 import { mosTranscript } from "@/lib/chat/mos-transcript";
 
 // The MOS Translator as a chat (docs/CHAT_TOOLS_PLAN.md, Phase 1). Translate
@@ -98,17 +99,6 @@ function ResultView({ result, onAsk, disabled }: { result: MosResult; onAsk: (q:
         </div>
       )}
     </>
-  );
-}
-
-function Bot({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="chat-msg-bot">
-      <span className="chat-avatar" aria-hidden="true">
-        MV
-      </span>
-      <div className="chat-msg-body">{children}</div>
-    </div>
   );
 }
 
@@ -239,17 +229,18 @@ function MosChatSession({ userId, initialMos, welcome }: Props) {
     setInputError(null);
   }
 
-  // Suggestions: the latest answer's, or after a translation, three to start with.
-  const last = messages[messages.length - 1];
+  // Always three to tap once there is a translation: the latest answer's own
+  // suggestions first, topped up from the page's list (a saved or stopped
+  // notice does not take them away; a failed answer shows Try again instead).
+  const last = [...messages].reverse().find((m) => !(m.role === "assistant" && m.kind === "notice" && m.tone !== "error"));
   const result = latestResult(messages);
+  const asked = messages.flatMap((m) => (m.role === "user" ? [m.text] : []));
   const suggestions =
-    last?.role === "assistant" && last.kind === "text" && !last.streaming
-      ? last.error
+    !result || result.result.civilian_roles.length === 0 || working || !last || last.role === "user" || (last.role === "assistant" && last.kind === "notice")
+      ? []
+      : last.role === "assistant" && last.kind === "text" && last.error
         ? []
-        : (last.suggestions ?? [])
-      : last?.role === "assistant" && last.kind === "result" && result && result.result.civilian_roles.length > 0
-        ? ["Which of these fits me best, and why?", `What does a ${result.result.civilian_roles[0].title} do all day?`, "Which certification should I start with?"]
-        : [];
+        : mosSuggestions({ fromModel: last.role === "assistant" && last.kind === "text" ? (last.suggestions ?? []) : [], roles: result.result.civilian_roles.map((r) => r.title), asked });
 
   const canExport = messages.some((m) => m.role === "user" || (m.role === "assistant" && m.kind !== "notice"));
   const ask = (q: string) => void chat.ask(q);
@@ -325,7 +316,7 @@ function MosChatSession({ userId, initialMos, welcome }: Props) {
         onNew={newChat}
         focusKey={focusKey}
       >
-        <Bot>
+        <BotMessage>
           {welcome && form.mos.trim() && messages.length === 0 ? (
             <p>
               Welcome aboard. Your MOS ({form.mos.trim()}) is loaded above. Tap <strong>Translate</strong> to see the civilian jobs that match your experience. It takes about 30 seconds.
@@ -336,7 +327,7 @@ function MosChatSession({ userId, initialMos, welcome }: Props) {
             </p>
           )}
           <p className="text-[var(--muted)]">Then ask me anything about the results: what a job is like day to day, how your experience fits, or which certification to start with.</p>
-        </Bot>
+        </BotMessage>
 
         {messages.map((m) => {
           if (m.role === "user") {
@@ -363,14 +354,14 @@ function MosChatSession({ userId, initialMos, welcome }: Props) {
           }
           if (m.kind === "result") {
             return (
-              <Bot key={m.id}>
+              <BotMessage key={m.id}>
                 <ResultView result={m.result} onAsk={ask} disabled={working} />
-              </Bot>
+              </BotMessage>
             );
           }
           const proposed = m.run ?? null;
           return (
-            <Bot key={m.id}>
+            <BotMessage key={m.id}>
               {m.text ? <ChatText text={m.text} streaming={m.streaming} /> : m.streaming ? <span className="chat-typing" aria-label="Writing"><span /><span /><span /></span> : null}
               {m.stopped && <p className="text-xs text-[var(--muted)]">Stopped.</p>}
               {m.error && (
@@ -397,7 +388,7 @@ function MosChatSession({ userId, initialMos, welcome }: Props) {
                   </div>
                 </div>
               )}
-            </Bot>
+            </BotMessage>
           );
         })}
 
