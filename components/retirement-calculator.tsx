@@ -21,7 +21,10 @@ const num = (value: string) => {
 const GRADE_LABELS: Record<string, string> = { E: "Enlisted", W: "Warrant Officer", O: "Officer" };
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 // Retirement years offered: the newest pay table year and the five after it.
+// Reserve and Guard retired pay usually starts at 60, often decades after the
+// last drill, so that list runs 30 years out.
 const YEARS = Array.from({ length: 6 }, (_, i) => PAY_TABLE_YEAR + i);
+const RESERVE_YEARS = Array.from({ length: 31 }, (_, i) => PAY_TABLE_YEAR + i);
 const NEXT_RAISE_YEAR = PAY_TABLE_YEAR + 1;
 const longDate = (iso: string) => {
   const [y, m, d] = iso.split("-").map(Number);
@@ -98,14 +101,15 @@ export function RetirementCalculator() {
     return (
       estimateHigh3({
         grade,
-        yearsOfService: component === "active" ? yearsOfService : num(years),
+        // Reserve: years for the pay table (with months), not the points-based years in the formula.
+        yearsOfService: component === "active" ? yearsOfService : num(years) + Math.min(11, num(months)) / 12,
         retirementDate: new Date(retireYear, retireMonth, 1),
         monthsInGrade: promotedRecently ? Math.min(36, Math.max(0, num(monthsInGrade))) : 36,
         previousGrade: promotedRecently ? previousGrade : null,
         assumedFutureRaisePct: num(futureRaise),
       }) ?? 0
     );
-  }, [high3Mode, high3Entered, grade, component, yearsOfService, years, retireYear, retireMonth, promotedRecently, monthsInGrade, previousGrade, futureRaise]);
+  }, [high3Mode, high3Entered, grade, component, yearsOfService, years, months, retireYear, retireMonth, promotedRecently, monthsInGrade, previousGrade, futureRaise]);
 
   // Phone only: hide the bottom total bar once the full result is on screen.
   const resultRef = useRef<HTMLDivElement>(null);
@@ -149,7 +153,15 @@ export function RetirementCalculator() {
           <p className="tool-kicker">1. YOUR SERVICE</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Component">
-              <select className="input" value={component} onChange={(e) => setComponent(e.target.value as "active" | "reserve")}>
+              <select
+                className="input"
+                value={component}
+                onChange={(e) => {
+                  const next = e.target.value as "active" | "reserve";
+                  setComponent(next);
+                  if (next === "active" && !YEARS.includes(retireYear)) setRetireYear(NEXT_RAISE_YEAR);
+                }}
+              >
                 <option value="active">Active duty</option>
                 <option value="reserve">Reserve or National Guard</option>
               </select>
@@ -171,12 +183,18 @@ export function RetirementCalculator() {
               </Field>
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Total retirement points" hint="From your points statement. Points divided by 360 is your years for pay.">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Field
+                label="Total retirement points"
+                hint={`From your points statement. Divided by 360 and rounded to two decimals, that is ${reserveYearsOfService(num(points)).toFixed(2)} years in the formula.`}
+              >
                 <input className="input" inputMode="numeric" value={points} onChange={(e) => setPoints(e.target.value)} />
               </Field>
               <Field label="Years of service for the pay table" hint="Total years since your pay entry date, including time in the gray area.">
                 <input className="input" inputMode="numeric" value={years} onChange={(e) => setYears(e.target.value)} />
+              </Field>
+              <Field label="Plus months" hint="Each full month counts.">
+                <input className="input" inputMode="numeric" value={months} onChange={(e) => setMonths(e.target.value)} />
               </Field>
             </div>
           )}
@@ -190,7 +208,10 @@ export function RetirementCalculator() {
 
         <section className="tool-section">
           <p className="tool-kicker">2. YOUR HIGH-3</p>
-          <p className="section-description">The average of your highest 36 months of basic pay. Usually your last three years.</p>
+          <p className="section-description">
+            The average of your highest 36 months of basic pay.{" "}
+            {component === "reserve" ? "Usually the three years before your retired pay starts." : "Usually your last three years."}
+          </p>
           <div className="flex flex-wrap gap-2">
             <button type="button" className={`btn text-sm ${high3Mode === "estimate" ? "btn-primary" : "btn-secondary"}`} onClick={() => setHigh3Mode("estimate")}>
               Estimate it for me
@@ -219,7 +240,14 @@ export function RetirementCalculator() {
                     ))}
                   </select>
                 </Field>
-                <Field label="Retirement month" hint="The month your retirement starts, the day after your last day of service. Last day January 31? Choose February.">
+                <Field
+                  label={component === "reserve" ? "Month retired pay starts" : "Retirement month"}
+                  hint={
+                    component === "reserve"
+                      ? "Usually the month you turn 60. Qualifying active duty after January 28, 2008 moves it 3 months earlier for each 90 days in a fiscal year, but not before 50. Your High-3 is the 36 months before this date."
+                      : "The month your retirement starts, the day after your last day of service. Last day January 31? Choose February."
+                  }
+                >
                   <select className="input" value={retireMonth} onChange={(e) => setRetireMonth(Number(e.target.value))}>
                     {MONTHS.map((m, i) => (
                       <option key={m} value={i}>
@@ -230,7 +258,7 @@ export function RetirementCalculator() {
                 </Field>
                 <Field label="Year">
                   <select className="input" value={retireYear} onChange={(e) => setRetireYear(Number(e.target.value))}>
-                    {YEARS.map((y) => (
+                    {(component === "reserve" ? RESERVE_YEARS : YEARS).map((y) => (
                       <option key={y} value={y}>
                         {y}
                       </option>
@@ -240,7 +268,11 @@ export function RetirementCalculator() {
               </div>
               <label className="flex items-start gap-2 text-sm">
                 <input type="checkbox" className="mt-1" checked={promotedRecently} onChange={(e) => setPromotedRecently(e.target.checked)} />
-                <span>I will have less than 3 years in this grade when I retire</span>
+                <span>
+                  {component === "reserve"
+                    ? "I will have held this grade less than 3 years when my retired pay starts"
+                    : "I will have less than 3 years in this grade when I retire"}
+                </span>
               </label>
               {promotedRecently && (
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -269,7 +301,9 @@ export function RetirementCalculator() {
               </p>
               {futureEstimated.length > 0 && (
                 <p className="text-xs text-[var(--muted)]">
-                  Your months in {futureEstimated.join(" and ")} use the assumed raise above until DFAS publishes that year&apos;s pay table.
+                  Your months in {futureEstimated.length > 2 ? `${futureEstimated[0]} to ${futureEstimated[futureEstimated.length - 1]}` : futureEstimated.join(" and ")}{" "}
+                  use the assumed raise above until DFAS publishes {futureEstimated.length > 1 ? "those years' pay tables" : "that year's pay table"}.
+                  {futureEstimated[0] > PAY_TABLE_YEAR + 2 && " That is a projection years ahead, so treat it as a rough estimate in future dollars."}
                 </p>
               )}
             </>
@@ -351,6 +385,13 @@ export function RetirementCalculator() {
               <option value="custom">Reduced coverage</option>
             </select>
           </Field>
+          {component === "reserve" && sbpChoice !== "none" && (
+            <p className="text-xs text-[var(--muted)]">
+              Reserve and Guard: if you chose RCSBP Option B or C on your 20-year letter, DFAS also takes a Reserve Component premium from your retired
+              pay, on top of the standard 6.5 percent shown here. Its rate depends on your age and your spouse&apos;s age, so this estimate leaves it out.
+              With Option A, the standard premium is all you pay.
+            </p>
+          )}
           {sbpChoice === "custom" && (
             <Field label="Covered amount of retired pay (monthly)">
               <input className="input" inputMode="decimal" value={sbpCustom} onChange={(e) => setSbpCustom(e.target.value)} placeholder="e.g. 2,000" />
@@ -469,6 +510,14 @@ export function RetirementCalculator() {
               VA compensation: VA&apos;s published {VA_RATES_LABEL} rates (effective {VA_RATES_EFFECTIVE})
               {VA_PENDING_COLA ? `, with the announced ${VA_PENDING_COLA.pct}% increase if you checked it` : ""}.
             </li>
+            {component === "reserve" && (
+              <li>
+                Reserve and Guard: the High-3 is the 36 months before your retired pay starts, figured as if you had served on active duty in your
+                grade, even if you were not drilling then (DoD Financial Management Regulation, Volume 7B, Chapter 3). Years in the formula are your
+                points divided by 360, rounded to two decimals. If you leave the Retired Reserve before your pay starts, only months before you left
+                count, which this does not model.
+              </li>
+            )}
             <li>Federal tax: {TAX_YEAR} brackets and standard deduction only. No credits, itemizing, or other taxes.</li>
             <li>
               Not included: medical (Chapter 61) retirement, REDUX, the BRS lump sum, Special Monthly Compensation, TSP, and Social

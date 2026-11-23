@@ -32,8 +32,11 @@ export function grossRetiredPay(high3Average: number, yearsOfService: number, pl
   return Math.floor(high3Average * yearsOfService * PLAN_MULTIPLIER[plan]);
 }
 
+// DoD FMR Volume 7B, Chapter 3, 2.5.2: points divided by 360, carried to
+// three decimal places and rounded to two (4,735 points = 13.152 = 13.15).
 export function reserveYearsOfService(points: number) {
-  return Math.max(0, points) / 360;
+  const carried = Math.floor((Math.max(0, points) / 360) * 1000) / 1000;
+  return Math.round(carried * 100) / 100;
 }
 
 export type IncomeInputs = {

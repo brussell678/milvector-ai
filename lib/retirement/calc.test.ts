@@ -146,6 +146,14 @@ describe("grossRetiredPay", () => {
     expect(reserveYearsOfService(3600)).toBe(10);
     expect(grossRetiredPay(6000, reserveYearsOfService(3600), "high3")).toBe(1500);
   });
+
+  it("rounds reserve years the way DFAS does: three places carried, two kept", () => {
+    // The DoD FMR's own example: 4,735 points / 360 = 13.152, so 13.15 years.
+    expect(reserveYearsOfService(4735)).toBe(13.15);
+    // 5,000 / 360 = 13.888..., carried to 13.888, kept as 13.89.
+    expect(reserveYearsOfService(5000)).toBe(13.89);
+    expect(reserveYearsOfService(-10)).toBe(0);
+  });
 });
 
 describe("VA compensation table (2026 rates, effective 1 December 2025)", () => {

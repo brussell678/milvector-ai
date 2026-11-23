@@ -26,6 +26,9 @@ that reporter), use the admin composer at /app/admin/updates instead — it can
 link the case. This file is for the general changelog.
 -->
 
+## Reserve and Guard retirement estimates follow DFAS more closely {improvement} {draft}
+In the Retirement Pay Calculator, Reserve and Guard members now pick the month their retired pay starts, usually the month they turn 60, and the High-3 comes from the 36 months before it, the way DFAS figures it. You can add months to your years of service, plan a start date up to 30 years out, and see your points turned into years the way DFAS rounds them. If you chose RCSBP Option B or C, it also reminds you of the extra premium DFAS takes.
+
 ## Saved contacts lead back to your card {improvement} {draft}
 When someone saves your contact from your digital business card, your card's link now sits at the top of their contact, labeled Digital card, with a note saying the day they saved it. After a career fair full of scans, they can find you and get back to your card in one tap, and when they do, your Insights show it as a Saved contact visit, so you know they are following up.
 
