@@ -86,6 +86,21 @@ Free. Needs a Google account.
    live for everyone, request publishing access in the Wallet console. Google
    reviews the request.
 
+6. Going live: finish the Business Profile in the Pay & Wallet Console (left
+   menu), then on the Google Wallet API page use Request publishing access in
+   the "Get publishing access" box. Google reviews the issuer account and
+   emails when it is approved; the "[TEST ONLY]" label then leaves the passes.
+
+## The wallet buttons
+
+Both companies require their own button artwork, unaltered. The Google button
+is Google's US English "Add to Google Wallet" SVG, as downloaded from
+https://developers.google.com/wallet/generic/resources/brand-guidelines, at
+`public/assets/wallet/add-to-google-wallet.svg`, shown at its full 283 x 50
+size with 8 px of clear space. Do not recolor, redraw, or shrink it below 48 px
+tall. When Apple Wallet is set up, swap the Apple button for Apple's "Add to
+Apple Wallet" badge the same way.
+
 ## How to check it worked
 
 Open the Share tab of a published card on the phone itself and tap the wallet
