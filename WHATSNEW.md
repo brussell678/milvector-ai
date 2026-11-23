@@ -26,9 +26,6 @@ that reporter), use the admin composer at /app/admin/updates instead — it can
 link the case. This file is for the general changelog.
 -->
 
-## The Retirement Pay Calculator opens inside your workspace {improvement} {draft}
-When you are signed in, the calculator now opens in your workspace with your usual menus, and the buttons at the bottom take you to the SBP Decision Advisor and the VA Rating Navigator instead of offering you an account you already have.
-
 ## See a far-off retirement estimate in today's dollars {improvement} {draft}
 If your retired pay starts years from now, the Retirement Pay Calculator shows your monthly income in today's dollars, using today's pay table, VA rates, and tax brackets, so you can weigh it against your budget now. The future-years table shows the same income in the dollars of each year. It also makes clear that your years in the Retired Reserve count toward your pay.
 
