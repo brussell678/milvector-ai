@@ -12,7 +12,11 @@ FORMAT (one entry):
 
   - category is one of: new | improvement | fix     (default: improvement)
   - add {requested} if a user asked for it           (shows the "Requested by a user" badge)
-  - already-published entries are skipped automatically (matched by title)
+  - add {draft} to hold it for Brandon: it lands on the admin portal (/app/admin
+    and /app/admin/updates) unpublished, where he can edit the wording, publish,
+    or delete it. Members see nothing until he publishes.
+  - only entries new in each push are added, and titles already in the table are
+    skipped, so a draft deleted or retitled on the portal stays that way
 
 WRITE FOR THE USER, NOT THE CODE. This feed is read by transitioning service
 members — describe what changed and why it helps them, not the implementation.
@@ -21,6 +25,9 @@ For an update that resolves a specific in-app support ticket (and should email
 that reporter), use the admin composer at /app/admin/updates instead — it can
 link the case. This file is for the general changelog.
 -->
+
+## Your High-3 now uses the real pay table for every month {improvement} {draft}
+Your High-3 is the average of your last 36 months of basic pay, and those months usually cross three or four pay years and two or three longevity steps. The Retirement Pay Calculator now takes each month from that year's DFAS pay table, at the step you had reached that month, to the cent. It also applies the legal cap on O-6 pay over 30 years in 2026, which it had shown about $85 a month too high. A month in a year whose table is not out yet, like 2027, uses the raise you choose and says so.
 
 ## Travel and schedule no longer count against your fit {improvement}
 When the JD Decoder or the Targeted Resume Builder checks your fit, conditions of the job, like travel, relocation, schedule, or a background check, now show as things to confirm instead of gaps. They no longer turn a good fit into a pass.

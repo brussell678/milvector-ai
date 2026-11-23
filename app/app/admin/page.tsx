@@ -133,7 +133,7 @@ export default async function AdminPage() {
   if (!isAdminEmail(user.email)) redirect("/app");
   const usage = await loadUsage(user.id);
 
-  const [{ data: feedback }, { data: submissions }, { data: reports }, { data: blockedUsers }] = await Promise.all([
+  const [{ data: feedback }, { data: submissions }, { data: reports }, { data: blockedUsers }, { data: draftUpdates }] = await Promise.all([
     supabase
       .from("feedback")
       .select("id,created_at,name,email,branch,mos,feedback_type,message,suggested_tool,status,attachment_url,admin_response,admin_response_updated_at")
@@ -150,7 +150,10 @@ export default async function AdminPage() {
       .from("message_board_blocked_users")
       .select("user_id,reason,created_at")
       .order("created_at", { ascending: false }),
+    // What's New drafts (WHATSNEW.md entries tagged {draft}) waiting to be published.
+    supabase.from("product_updates").select("id,title").eq("published", false).order("published_at", { ascending: false }),
   ]);
+  const drafts = (draftUpdates ?? []) as Array<{ id: string; title: string }>;
 
   const feedbackRows = ((feedback ?? []) as FeedbackRow[]).slice();
   const submissionRows = ((submissions ?? []) as SubmissionRow[]).slice();
@@ -207,6 +210,20 @@ export default async function AdminPage() {
           </aside>
         </div>
       </section>
+
+      {drafts.length > 0 && (
+        <div className="alert-base alert-info mt-6 flex flex-wrap items-center justify-between gap-3" role="status">
+          <p className="min-w-0">
+            <strong>
+              {drafts.length === 1 ? "1 What's New draft is" : `${drafts.length} What's New drafts are`} waiting for you.
+            </strong>{" "}
+            {drafts.map((draft) => `"${draft.title}"`).join(", ")}. Members see nothing until you publish.
+          </p>
+          <Link href="/app/admin/updates#drafts" className="btn btn-primary shrink-0 text-sm">
+            Review drafts
+          </Link>
+        </div>
+      )}
 
       <UsagePanel summary={usage.summary} note={usage.note} />
 

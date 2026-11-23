@@ -1,7 +1,8 @@
 name: Publish What's New
 
 # Publishes new WHATSNEW.md entries to the live feed whenever the file changes on
-# main. Also runnable on demand from the Actions tab (Run workflow).
+# main. Entries tagged {draft} go to the admin portal unpublished instead. Also
+# runnable on demand from the Actions tab (Run workflow).
 on:
   push:
     branches: [main]
@@ -14,6 +15,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The script compares WHATSNEW.md with the commit before this push,
+          # so it only adds entries that are new in the push.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
@@ -22,3 +27,4 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          BEFORE_SHA: ${{ github.event.before }}
