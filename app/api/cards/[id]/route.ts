@@ -6,6 +6,7 @@ import { isResumeMime, matchesMime, PDF_MIME, RESUME_DOC_TYPES, RESUME_MAX_BYTES
 import { normalizeBanner } from "@/lib/cards/banner";
 import { CardDataSchema, EventModeSchema, readCardData, slugProblem, validBannerUpload, validPhoto } from "@/lib/cards/schema";
 import { supabaseServer } from "@/lib/supabase/server";
+import { lockedTargetedDocs } from "@/lib/resume/review-lock";
 
 type Row = { id: string; slug: string; data: unknown; photo_jpeg: string | null; published: boolean; suspended: boolean; updated_at: string };
 type Params = { params: Promise<{ id: string }> };
@@ -131,6 +132,10 @@ export async function PATCH(req: Request, { params }: Params) {
     }
     if (!isResumeMime(doc.mime_type)) {
       return NextResponse.json({ error: "Only PDF and Word resumes can go on a card. Upload a PDF version to My Files." }, { status: 400 });
+    }
+    // A targeted resume waiting on its line review stays off the card (D15).
+    if (doc.doc_type === "TARGETED_RESUME" && (await lockedTargetedDocs(supabase, user.id, [doc.id])).size > 0) {
+      return NextResponse.json({ error: "Check every line of that resume in the Targeted Resume Builder first, then attach it." }, { status: 409 });
     }
     if (doc.size_bytes > RESUME_MAX_BYTES) {
       return NextResponse.json({ error: "That file is larger than 3 MB. Upload a smaller PDF to My Files." }, { status: 400 });

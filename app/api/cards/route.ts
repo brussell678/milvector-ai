@@ -5,6 +5,7 @@ import { appleConfig } from "@/lib/cards/apple-pass";
 import { googleConfig } from "@/lib/cards/google-pass";
 import { piiProblem } from "@/lib/cards/opsec";
 import { PDF_MIME, RESUME_DOC_TYPES, RESUME_MIMES, resumeOptions } from "@/lib/cards/resume";
+import { lockedTargetedDocs } from "@/lib/resume/review-lock";
 import { activeEvent, CardDataSchema, MAX_CARDS_PER_USER, readCardData, slugFromName } from "@/lib/cards/schema";
 import { isMissingSchema, MIGRATION_MESSAGE } from "@/lib/cards/store";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -87,6 +88,12 @@ export async function GET() {
     .in("mime_type", [...RESUME_MIMES])
     .order("created_at", { ascending: false })
     .limit(100);
+  // A targeted resume waiting on its line review is not offered (D15).
+  const lockedDocs = await lockedTargetedDocs(
+    supabase,
+    user.id,
+    (docs ?? []).filter((doc) => doc.doc_type === "TARGETED_RESUME").map((doc) => doc.id),
+  );
 
   return NextResponse.json({
     cards: ((data ?? []) as Row[]).map((row) => ({
@@ -110,7 +117,7 @@ export async function GET() {
     resumeReady: !attachedError,
     upgradesReady: !extrasError,
     linkedinBanners,
-    resumeOptions: resumeOptions(docs ?? []),
+    resumeOptions: resumeOptions((docs ?? []).filter((doc) => !lockedDocs.has(doc.id))),
     maxCards: MAX_CARDS_PER_USER,
     wallet: { apple: !!appleConfig(), google: !!googleConfig() },
     defaults: {

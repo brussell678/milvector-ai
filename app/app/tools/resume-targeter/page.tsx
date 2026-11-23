@@ -1,4 +1,10 @@
+import Link from "next/link";
+import { ResumeChat } from "@/components/chat/resume-chat";
 import { TargetedResumeBuilder } from "@/components/tools/targeted-resume-builder";
+import { ToolAlert } from "@/components/tools/tool-alert";
+import { chatEnabled } from "@/lib/chat/access";
+import { CHAT_TOOLS } from "@/lib/chat/tools";
+import { loadSavedBuild } from "@/lib/resume/saved-build";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { SavedFit } from "@/lib/resume/fit-check";
 
@@ -7,9 +13,17 @@ import type { SavedFit } from "@/lib/resume/fit-check";
 //
 // Links from other tools land here prefilled: ?title= from the MOS Translator
 // sets the job title; ?jd=<run id> from the JD Decoder sets the posting it
-// decoded, its job title, and its fit (the member's own run only).
-export default async function ResumeTargeterPage({ searchParams }: { searchParams: Promise<{ title?: string; jd?: string }> }) {
-  const params = await searchParams;
+// decoded, its job title, and its fit (the member's own run only). ?review=
+// <resume id> reopens a saved resume at its line review: a locked download
+// sends the member here (docs/CHAT_TOOLS_PLAN.md, D15).
+//
+// Whoever the chat is open to (the admin first, then CHAT_TOOLS_PUBLIC with
+// "resume") gets the chat view; everyone else gets this page, which stays at
+// ?view=classic.
+export default async function ResumeTargeterPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const raw = await searchParams;
+  const one = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
+  const params = { title: one(raw.title), jd: one(raw.jd), review: one(raw.review), view: one(raw.view) };
   const supabase = await supabaseServer();
   const {
     data: { user },
@@ -28,6 +42,12 @@ export default async function ResumeTargeterPage({ searchParams }: { searchParam
     if (initialPosting && fit && typeof fit.sourceRef === "string" && Array.isArray(fit.fitMap?.requirements)) initialFit = fit;
   }
   const initialTitle = (typeof params.title === "string" ? params.title : decodedTitle).slice(0, 200);
+  const savedReview = user && params.review ? await loadSavedBuild(supabase, user.id, params.review) : null;
+  const chat = !!user && chatEnabled(CHAT_TOOLS.resume_targeter.key, user.email);
+
+  if (chat && user && params.view !== "classic") {
+    return <ResumeChat userId={user.id} initialTitle={initialTitle} initialPosting={initialPosting} initialFit={initialFit} initialReview={savedReview} />;
+  }
 
   return (
     <main className="page-shell">
@@ -55,7 +75,24 @@ export default async function ResumeTargeterPage({ searchParams }: { searchParam
         </div>
       </section>
 
-      <TargetedResumeBuilder initialTitle={initialTitle} initialPosting={initialPosting} initialFit={initialFit} />
+      {chat && (
+        <ToolAlert variant="info" title="Try the chat view">
+          <p className="text-sm">
+            The same builder, as a chat you can ask questions in.{" "}
+            <Link href="/app/tools/resume-targeter" className="font-semibold underline">
+              Open the chat view
+            </Link>
+          </p>
+        </ToolAlert>
+      )}
+
+      <TargetedResumeBuilder
+        initialTitle={savedReview?.jobTitle ?? initialTitle}
+        initialPosting={savedReview?.posting ?? initialPosting}
+        initialCompany={savedReview?.company ?? ""}
+        initialFit={initialFit}
+        initialBuild={savedReview ? { built: savedReview.built, review: savedReview.review } : null}
+      />
     </main>
   );
 }

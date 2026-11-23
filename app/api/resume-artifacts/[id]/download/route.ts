@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { authReplies, requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { buildTargetedResumeFilename, isStructuredTargetedResume, renderTargetedResumeDocx } from "@/lib/resume-template";
+import { lockedReply, reviewPending } from "@/lib/resume/review-lock";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 
 function slugify(value: string) {
@@ -29,6 +30,10 @@ async function handleGET(_req: Request, ctx: { params: Promise<{ id: string }> }
   if (error || !data) {
     return NextResponse.json({ error: "Artifact not found" }, { status: 404 });
   }
+
+  // A targeted resume waiting on its line review does not download, as Word
+  // or as text (D15); the link opens its review instead.
+  if (data.artifact_type === "targeted_resume" && reviewPending(data.structured_output) > 0) return lockedReply(_req, data.id);
 
   const createdAt = new Date(data.created_at).toISOString();
   const text = [

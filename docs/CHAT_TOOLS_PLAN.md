@@ -22,6 +22,10 @@ the status board at the end of each phase.
 | 2026-11-23 | Phase 1 is the foundation for the rest; move on to Phase 2. |
 | 2026-11-23 | JD Decoder: the role summary and the member's fit show open; requirements, risks, keywords, interview prep, and company signals sit in one card of folds (D12). |
 | 2026-11-23 | JD Decoder: a job link or a whole posting pasted into the reply box is spotted by the page (no AI call) and offered as a "Decode this posting" button; nothing runs until it is tapped (D13). |
+| 2026-11-23 | Phase 2 looks good live; move on to Phase 3. |
+| 2026-11-23 | Targeted Resume: the line review runs one line at a time in the chat, each marked line bringing the next, with a running count (D14). |
+| 2026-11-23 | D8 decided: no editing resume wording by chat in this phase. The chat explains and points to the ways that already work (Wrong on a line, updating the master, building again). |
+| 2026-11-23 | Targeted Resume: make the review a real lock (D15). Today the Word file is in My Files the moment it is built and only the builder's button waits; from now on a new targeted resume downloads (builder, My Files, the library) or goes on a business card only once every line is marked, and review marks are saved. Older resumes are unaffected. |
 | Later | D8 (Phase 3) editing a resume by chat, D9 (Phase 4) saving a VA chat, D10 (Phase 5) saving an SBP chat, D11 (Phase 2 on) a typed sentence filling the top inputs. Brandon decides each at its milestone. |
 
 ## How the chat works
@@ -170,16 +174,56 @@ the reply box (`paste`) are never sent to the model as turns; a tool's own
 result card can sit inside a chat message (`.chat-fit`); chat list styles no
 longer reach into those cards; the budget message no longer names one tool.
 
-## Phase 3: Targeted Resume Builder (to be revised after Phase 2)
+## Phase 3: Targeted Resume Builder (admin only)
 
-Master and posting on top. Check fit, then the fit card, then "update your
-master first, or build now?". The build shows its progress for its one to two
-minutes. The line review runs one card at a time in the thread (Correct, or
-Wrong and fix). When every line is done, a file card with Download and "Saved to
-My Files". The route and every check are untouched. Tests:
-`chat-resume-verify.cjs`; `review-verify.cjs`, `phase4-verify.cjs`, and
-`d2-verify.cjs` unchanged and green; no path in the chat reaches the Word file
-before every line is checked. D8 decided here.
+| # | Requirement |
+|---|---|
+| 3.1 | The chat view shows to the admin; `CHAT_TOOLS_PUBLIC` gains `resume`. Today's page stays at `?view=classic`. `?title=` (from the MOS Translator), `?jd=` (from the JD Decoder, with its fit, no run spent), and the new `?review=` work in both. |
+| 3.2 | **Inputs on top:** the member's master as one line with Change, the corrections waiting to be copied into their Word master, "paste a resume for this one run instead", the job link or the pasted posting, job title, and company. After a fit check they shrink to one line. |
+| 3.3 | **Check my fit** posts the same body to `/api/tools/targeted-resume` as the classic page (one shared function builds it for both). The fit card arrives in the thread, then a short message with the gap count and two buttons: Build my resume, and Download my master to edit. |
+| 3.4 | **Build** posts the same build body. A progress card covers its one to two minutes. Then the resume: what the checks did and the resume itself in folds, gaps to be ready for, and the empty-profile note when the header has no name. Every check is untouched. |
+| 3.5 | **Review, one line at a time (D14):** "Line 3 of 7", the line with its figures in bold and its master line under it, Correct or Wrong (the existing choices: master out of date, the resume says something the master does not, take a summary sentence out). Marking a line brings the next; finished lines stay as one-line notes. When every line is marked, a file card: Download Word File and where it is saved. |
+| 3.6 | **The real lock (D15):** a new resume is saved as needing review; Correct is saved through the review route (no AI, no file rebuild); the Word and text downloads of a targeted resume (the builder, My Files, the library) and attaching it to a business card wait until every line is marked. A locked download opens the builder at that resume's review (`?review=<id>`), in the chat or the classic page, with the marks already made. Resumes built before this change are unaffected. The classic page says the file downloads once every line is checked. |
+| 3.7 | **Follow-ups** go to `/api/chat/resume_targeter`, grounded on the job, the fit, the built resume, what the checks did, and how many lines are left to check. Rules beyond Phases 1 and 2: never write or rewrite resume lines (D8); to change one, the member uses Wrong on it, updates their master, or builds again; explain a check or a gap honestly. The model never proposes a run. |
+| 3.8 | A link or a whole posting pasted into the reply box gets a "Use this posting" button that fills it in at the top. Nothing runs; Check my fit needs the job title too. |
+| 3.9 | Download and Save write out the chat, the fit, the resume, and how each line was marked. |
+
+**Acceptance:** unit tests for the shared request, the lock count, a saved
+review read back, the context sent to the model, the rules, and the
+transcript. `chat-resume-verify.cjs`: fit then build then review one line at a
+time; the chat's requests match the classic page's; Correct and both kinds of
+Wrong; progress kept across a reload; the file card only after the last line;
+the lock: My Files and the library send an unreviewed resume to its review and
+serve it after, the card will not take it; `?jd=` shows the decoder's fit with
+no run; `?review=` reopens a review in both views. `review-verify.cjs`,
+`phase4-verify.cjs`, `d2-verify.cjs`, `card-upgrades-verify.cjs` stay green
+(updated only where the lock changes what they expect, each change named).
+
+**Phase 3 results (2026-11-23):** 477 unit tests pass (14 new), tsc and eslint
+clean, production build clean. `chat-resume-verify.cjs` 40/40, with
+`chat-mos-verify.cjs` 54/54 and `chat-jd-verify.cjs` 35/35, on the app with
+`CHAT_TOOLS_PUBLIC=mos,jd,resume`. With the app as members see it:
+`review-verify` 16, `d2-verify` 18, `phase4-verify` 11, `card-upgrades-verify`
+47, `job-link-verify` 18, `cleanup-verify` 53, `timeline-links-verify` 29,
+`signup-verify` 23, `next-step-verify` 26. A member gets today's builder and a
+404 from its follow-up endpoint.
+
+Walkthroughs changed for the lock, as the plan allows:
+- `d2-verify` downloaded a fresh resume with no review. It now checks the
+  resume is locked first (423), marks each line Correct through the review
+  route, then downloads it (one check added).
+- `review-verify` now waits for the last saved mark before looking for the
+  unlocked link, and checks every mark reached the server (one check added).
+
+Found and fixed on the way: each review action reads the saved resume, changes
+it, and writes it back, so two quick taps could write over each other's mark
+and leave a resume locked with every line marked on screen. A page now sends
+its review actions one after another.
+
+What members notice (classic page): Correct is saved; a new resume's Word file,
+from the builder, My Files, or the library, downloads only after the review,
+and opens the review if tapped early; an unreviewed resume cannot go on a
+business card. A What's New entry is drafted for Brandon to publish.
 
 ## Phase 4: VA Rating Navigator (to be revised after Phase 3)
 
@@ -209,8 +253,8 @@ when he decides.
 |---|---|
 | 0. Plan | Done 2026-11-23 |
 | 1. Shell and MOS Translator | Done 2026-11-23: live, admin only (`e2095be`), walked and accepted as the foundation |
-| 2. JD Decoder | Built 2026-11-23 on branch `chat-tools`, admin only; waiting on Brandon's walk |
-| 3. Targeted Resume Builder | Not started |
+| 2. JD Decoder | Done 2026-11-23: live, admin only (`6a9c858`), walked |
+| 3. Targeted Resume Builder | Built 2026-11-23 on branch `chat-tools`, admin only; the review lock applies to every member; waiting on Brandon's walk |
 | 4. VA Rating Navigator | Not started |
 | 5. SBP Decision Advisor | Not started |
 | 6. Rollout | Not started |

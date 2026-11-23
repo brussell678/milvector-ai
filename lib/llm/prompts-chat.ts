@@ -3,6 +3,7 @@ import { NEXT_MARK } from "@/lib/chat/stream";
 import type { ChatToolId } from "@/lib/chat/tools";
 import type { MosPayload, MosResult } from "@/lib/chat/mos";
 import { NO_MASTER, type JdChatContext } from "@/lib/chat/jd";
+import type { ResumeChatContext } from "@/lib/chat/resume";
 
 // Follow-up questions in the chat tools (docs/CHAT_TOOLS_PLAN.md). The shared
 // guardrail first, then how a chat answer reads, then each tool's own rules,
@@ -39,9 +40,18 @@ const JD_RULES = `THIS TOOL: the Job Description Decoder. The member gave it one
 - To build a resume aimed at this job, the member taps "Build a resume for this job" below the decode; the posting and their fit go with them.
 - run: always null in this tool.`;
 
+const RESUME_RULES = `THIS TOOL: the Targeted Resume Builder. It writes a resume aimed at one job only from the member's own master resume. First it checks the member's fit with the posting; then it builds the resume and checks every line against the master (each bullet from a master line, every figure in the master, no credential or tool the master lacks). Each line with a figure, or with wording the master does not use, waits for the member to mark it Correct or Wrong before the Word file downloads.
+- Never write, rewrite, shorten, or suggest new wording for any resume line or the summary, even if the member asks. The chat cannot change the resume. To change a line, the member taps Wrong on it during the line review (for a line with a figure or new wording), or updates their master resume in Word, uploads it to My Files, chooses it as their master, and checks fit and builds again.
+- Explain the resume, the checks, and the fit from the data below. Say how the member fits only from the fit and its master lines; never say they have done something the master does not show.
+- If asked why a job or a line was left out, use the checks below (the timeline check names any job left out). For a gap, be honest: how to speak to it, related experience their master shows, or how to close it; never suggest claiming it.
+- When lines are still waiting to be checked, remind the member the Word file downloads once each one is marked, and only to mark a line Correct if it is true today.
+- Pay: only what the posting itself states.
+- run: always null in this tool.`;
+
 const TOOL_RULES: Record<ChatToolId, string> = {
   mos_translator: MOS_RULES,
   jd_decoder: JD_RULES,
+  resume_targeter: RESUME_RULES,
 };
 
 export type MosChatContext = { inputs: MosPayload; result: Omit<MosResult, "runId"> | null };
@@ -118,9 +128,50 @@ function jdContextText(context: JdChatContext): string {
   return lines.join("\n");
 }
 
-export type ChatContext = { mos_translator: MosChatContext; jd_decoder: JdChatContext };
+function resumeContextText(context: ResumeChatContext): string {
+  const { job, fit, resume } = context;
+  if (!job) {
+    return "Nothing has been checked yet. The member chooses their master resume at the top of the page, adds the job posting (its link, or the whole posting) and the job title, and taps Check My Fit. Then Build My Resume.";
+  }
+  const lines = [`THE JOB (data): ${job.title}${job.company ? `, at ${job.company}` : ""}`, job.posting, ""];
+  if (fit) {
+    lines.push(`THE MEMBER'S FIT (data): ${fit.recommendation}. ${fit.reason}`);
+    fit.requirements.forEach((r, i) => {
+      lines.push(`${i + 1}. [${r.type}, ${r.assessment}] ${r.requirement}`);
+      for (const line of r.evidence) lines.push(`   master line: ${line}`);
+      if (r.bridge) lines.push(`   how to bridge it: ${r.bridge}`);
+    });
+  } else {
+    lines.push("THE MEMBER'S FIT: not shown in this chat.");
+  }
+  if (!resume) {
+    lines.push("", "The resume has not been built yet. The member taps Build My Resume under the fit.");
+    return lines.join("\n");
+  }
+  lines.push(
+    "",
+    "THE BUILT RESUME (data):",
+    resume.text,
+    "",
+    `WHAT THE CHECKS DID (data): ${resume.checks}`,
+    ...resume.findings.map((f) => `- [${f.level}] ${f.check}: ${f.detail}`),
+    ...(resume.gaps.length ? ["", "Gaps to be ready for:", ...resume.gaps.map((g) => `- ${g}`)] : []),
+    "",
+    resume.toCheck > 0
+      ? `LINE REVIEW: ${resume.checked} of ${resume.checked + resume.toCheck} lines marked; ${resume.toCheck} still to check before the Word file downloads.`
+      : "LINE REVIEW: every line is checked; the Word file downloads.",
+  );
+  return lines.join("\n");
+}
+
+export type ChatContext = { mos_translator: MosChatContext; jd_decoder: JdChatContext; resume_targeter: ResumeChatContext };
 
 export function promptChatSystem<T extends ChatToolId>(tool: T, context: ChatContext[T]): string {
-  const contextText = tool === "mos_translator" ? mosContextText(context as MosChatContext) : jdContextText(context as JdChatContext);
+  const contextText =
+    tool === "mos_translator"
+      ? mosContextText(context as MosChatContext)
+      : tool === "jd_decoder"
+        ? jdContextText(context as JdChatContext)
+        : resumeContextText(context as ResumeChatContext);
   return [MILVECTOR_SYSTEM_PROMPT, CHAT_RULES, TOOL_RULES[tool], contextText].join("\n\n");
 }

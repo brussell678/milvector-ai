@@ -5,13 +5,13 @@ import { Check, Download } from "lucide-react";
 import { LoadingBlock } from "@/components/tools/loading-block";
 import { MasterResumePicker } from "@/components/tools/master-resume-picker";
 import { ToolAlert } from "@/components/tools/tool-alert";
-import type { TargetedResume, TargetedRole } from "@/lib/resume/build";
 import type { FitResult, SavedFit } from "@/lib/resume/fit-check";
 import { FitMapView } from "@/components/tools/fit-map-view";
-import type { Finding } from "@/lib/resume/gates";
 import type { MasterOption } from "@/lib/master-resume";
-import type { FigureCheck } from "@/lib/resume/targeting";
 import { CorrectionsList, ReviewCard, type Correction, type ReviewState } from "@/components/tools/resume-review";
+import { ResumePreview } from "@/components/tools/resume-preview";
+import { withLine, type BuildResult } from "@/lib/resume/build-result";
+import { resumeBody, type ResumeJob } from "@/lib/chat/resume";
 import { PASTE_LIMIT, POSTING_LIMIT } from "@/lib/resume/limits";
 import { JobLinkField, postingSummary, readPostingFromLink, type LoadedPosting } from "@/components/tools/job-link-field";
 
@@ -20,38 +20,10 @@ import { JobLinkField, postingSummary, readPostingFromLink, type LoadedPosting }
 // every line with a figure, or with wording the master does not use, is
 // marked Correct or fixed before the Word file downloads.
 
-type MasterInfo = { name: string; origin: string; roles: number; lines: number; dropped: number; notes: string[] };
-type BuildResult = {
-  master: MasterInfo;
-  resume: TargetedResume & { jobs: TargetedRole[]; projects: TargetedRole[] };
-  findings: Finding[];
-  gateSummary: { pass: number; warn: number; fail: number };
-  figures: FigureCheck[];
-  notes: { summaryRewritten: boolean; filled: number; closedGaps: number };
-  contactMissing?: boolean;
-  fileName: string;
-  documentId: string;
-  artifactId: string | null;
-  corrections?: Correction[];
-};
-
-/** The resume shown on screen with one line replaced, after a review fix. */
-function withLine(resume: BuildResult["resume"], oldText: string, newText: string): BuildResult["resume"] {
-  const same = (a: string) => a.replace(/\s+/g, " ").trim() === oldText.replace(/\s+/g, " ").trim();
-  const swap = <T extends { bullets: { text: string }[] }>(groups: T[]) => groups.map((g) => ({ ...g, bullets: g.bullets.map((b) => (same(b.text) ? { ...b, text: newText } : b)) }));
-  return {
-    ...resume,
-    summary: resume.summary.includes(oldText) ? resume.summary.replace(oldText, newText).replace(/\s{2,}/g, " ").trim() : resume.summary,
-    highlights: swap(resume.highlights ?? []),
-    jobs: swap(resume.jobs),
-    projects: swap(resume.projects),
-  };
-}
-
 const BUILD_BUSY = "Writing your resume from your master and checking every line...";
 const FRIENDLY_ERROR = "Something went wrong on our end. Your work is still here. Try again in a few seconds.";
 
-const LEVEL: Record<string, { label: string; badge: string }> = {
+export const LEVEL: Record<string, { label: string; badge: string }> = {
   pass: { label: "Pass", badge: "tool-badge-success" },
   warn: { label: "Fixed", badge: "tool-badge-warn" },
   fail: { label: "Needs you", badge: "tool-badge-error" },
@@ -77,7 +49,7 @@ function masterDownload(master: MasterOption | null): string | null {
  * What the box holds, so a member can tell the whole paste went in: its size,
  * and its last words to compare with the end of what they copied.
  */
-function PasteCheck({ id, text, limit, what }: { id: string; text: string; limit: number; what: string }) {
+export function PasteCheck({ id, text, limit, what }: { id: string; text: string; limit: number; what: string }) {
   const trimmed = text.trim();
   if (!trimmed) return null;
   const words = trimmed.split(/\s+/).length;
@@ -99,30 +71,27 @@ function PasteCheck({ id, text, limit, what }: { id: string; text: string; limit
   );
 }
 
-function RoleBlock({ role }: { role: TargetedRole }) {
-  return (
-    <div className="mt-4">
-      <p className="text-sm font-bold">{role.title}</p>
-      {(role.organization || role.dates) && <p className="text-xs italic text-[var(--muted)]">{[role.organization, role.dates].filter(Boolean).join(" | ")}</p>}
-      <ul className="mt-1.5 grid gap-1.5">
-        {role.bullets.map((b, i) => (
-          <li key={i} className="text-sm">
-            • {b.text}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 // initialFit: the fit a JD Decoder run checked. It is shown, not checked again,
-// while the member keeps the same master and posting.
-export function TargetedResumeBuilder({ initialTitle = "", initialPosting = "", initialFit = null }: { initialTitle?: string; initialPosting?: string; initialFit?: SavedFit | null } = {}) {
+// while the member keeps the same master and posting. initialBuild: a saved
+// resume reopened at its review (?review=), with the marks already made.
+export function TargetedResumeBuilder({
+  initialTitle = "",
+  initialPosting = "",
+  initialCompany = "",
+  initialFit = null,
+  initialBuild = null,
+}: {
+  initialTitle?: string;
+  initialPosting?: string;
+  initialCompany?: string;
+  initialFit?: SavedFit | null;
+  initialBuild?: { built: BuildResult; review: Record<number, ReviewState> } | null;
+} = {}) {
   const [master, setMaster] = useState<MasterOption | null>(null);
   const [pasting, setPasting] = useState(false);
   const [pastedText, setPastedText] = useState("");
   const [jobTitle, setJobTitle] = useState(initialTitle);
-  const [company, setCompany] = useState("");
+  const [company, setCompany] = useState(initialCompany);
   const [posting, setPosting] = useState(initialPosting);
   const [link, setLink] = useState("");
   // What the link filled in, so a new link clears it but anything typed stays.
@@ -132,8 +101,8 @@ export function TargetedResumeBuilder({ initialTitle = "", initialPosting = "", 
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fit, setFit] = useState<FitResult | null>(null);
-  const [built, setBuilt] = useState<BuildResult | null>(null);
-  const [review, setReview] = useState<Record<number, ReviewState>>({});
+  const [built, setBuilt] = useState<BuildResult | null>(initialBuild?.built ?? null);
+  const [review, setReview] = useState<Record<number, ReviewState>>(initialBuild?.review ?? {});
   // Corrections saved in this visit, shown in step 1 before the next build lists them.
   const [savedCorrections, setSavedCorrections] = useState<Correction[]>([]);
 
@@ -143,14 +112,8 @@ export function TargetedResumeBuilder({ initialTitle = "", initialPosting = "", 
   // A link with an empty posting box is read when the member checks the fit.
   const linkOnly = !posting.trim() && link.trim().length > 0;
   const ready = haveSource && ((jobTitle.trim().length >= 2 && postingOk) || linkOnly) && !busy;
-  const body = (job = { jobTitle, company, posting }) => ({
-    source,
-    masterRef: pasting ? null : master?.ref,
-    pastedText: pasting ? pastedText : null,
-    jobTitle: job.jobTitle,
-    company: job.company || null,
-    jobDescriptionText: job.posting,
-  });
+  // One function builds the request for this page and the chat, so both send the same thing.
+  const job = (j = { jobTitle, company, posting }): ResumeJob => ({ source, masterRef: master?.ref, pastedText, jobTitle: j.jobTitle, company: j.company, posting: j.posting });
 
   function changeLink(value: string) {
     setLink(value);
@@ -175,7 +138,7 @@ export function TargetedResumeBuilder({ initialTitle = "", initialPosting = "", 
     setError(null);
     setLinkError(null);
     reset();
-    let job = { jobTitle, company, posting };
+    let fresh = { jobTitle, company, posting };
     if (linkOnly) {
       setBusy("Reading the job posting from your link...");
       const read = await readPostingFromLink(link);
@@ -183,22 +146,22 @@ export function TargetedResumeBuilder({ initialTitle = "", initialPosting = "", 
         setBusy(null);
         return setLinkError(read.error);
       }
-      job = {
+      fresh = {
         jobTitle: jobTitle.trim() || read.posting.title || "",
         company: company.trim() || read.posting.company || "",
         posting: read.posting.text,
       };
-      setPosting(job.posting);
-      setJobTitle(job.jobTitle);
-      setCompany(job.company);
+      setPosting(fresh.posting);
+      setJobTitle(fresh.jobTitle);
+      setCompany(fresh.company);
       setFromLink(read.posting);
-      if (job.jobTitle.trim().length < 2) {
+      if (fresh.jobTitle.trim().length < 2) {
         setBusy(null);
         return setLinkError("We read the posting but not its job title. Type the job title above, then tap Check My Fit.");
       }
     }
     setBusy("Reading your master and mapping the posting against it...");
-    const res = await post<FitResult>({ stage: "fit", ...body(job) });
+    const res = await post<FitResult>(resumeBody("fit", job(fresh)));
     setBusy(null);
     if (!res.ok) return setError(res.error);
     setFit(res.data);
@@ -209,7 +172,7 @@ export function TargetedResumeBuilder({ initialTitle = "", initialPosting = "", 
     setBuilt(null);
     setReview({});
     setBusy(BUILD_BUSY);
-    const res = await post<BuildResult>({ stage: "build", ...body(), fitMap: fit?.fitMap });
+    const res = await post<BuildResult>(resumeBody("build", job(), fit?.fitMap));
     setBusy(null);
     if (!res.ok) return setError(res.error);
     setBuilt(res.data);
@@ -233,7 +196,9 @@ export function TargetedResumeBuilder({ initialTitle = "", initialPosting = "", 
         {!pasting && (
           <MasterResumePicker
             onSelect={(option) => {
-              if (option?.ref !== master?.ref) reset();
+              // A different master makes results stale. The first report, as the
+              // page opens, does not, so a reopened review (?review=) stays.
+              if (master && option?.ref !== master.ref) reset();
               setMaster(option);
               if (initialFit && option?.ref === initialFit.sourceRef && posting === initialPosting && !built) setFit(initialFit);
             }}
@@ -426,45 +391,7 @@ export function TargetedResumeBuilder({ initialTitle = "", initialPosting = "", 
             </ul>
           </div>
 
-          <div className="tool-resume-preview">
-            {built.resume.targetTitle && <p className="font-bold">{built.resume.targetTitle}</p>}
-            {built.resume.tagline && <p className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--muted)]">{built.resume.tagline}</p>}
-            {built.resume.summary && <p className="mt-2 text-sm">{built.resume.summary}</p>}
-            {built.resume.skills.length > 0 && <p className="mt-2 text-sm text-[var(--muted)]">{built.resume.skills.join(" | ")}</p>}
-            {(built.resume.highlights ?? []).map((group) => (
-              <div key={group.heading} className="mt-4">
-                <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">{group.heading}</p>
-                <ul className="mt-1.5 grid gap-1.5">
-                  {group.bullets.map((b, i) => (
-                    <li key={i} className="text-sm">
-                      • {b.text}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-            {built.resume.jobs.map((role) => (
-              <RoleBlock key={role.roleId} role={role} />
-            ))}
-            {built.resume.projects.length > 0 && (
-              <>
-                <p className="mt-5 text-xs font-bold uppercase tracking-[0.12em] text-[var(--muted)]">Selected projects</p>
-                {built.resume.projects.map((role) => (
-                  <RoleBlock key={role.roleId} role={role} />
-                ))}
-              </>
-            )}
-            {[...built.resume.education, ...built.resume.certifications, ...built.resume.training].length > 0 && (
-              <div className="mt-4">
-                <p className="text-sm font-bold">Education and professional development</p>
-                <ul className="mt-1 grid gap-1 text-sm">
-                  {[...built.resume.education, ...built.resume.certifications, ...built.resume.training].map((item, i) => (
-                    <li key={i}>• {item}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
+          <ResumePreview resume={built.resume} />
 
           {built.resume.gaps.length > 0 && (
             <ToolAlert variant="info" title="Gaps to be ready for">
@@ -488,7 +415,7 @@ export function TargetedResumeBuilder({ initialTitle = "", initialPosting = "", 
           )}
           <p className="flex items-center gap-2 text-xs text-[var(--muted)]">
             <Check size={14} aria-hidden="true" />
-            Saved to My Files as {built.fileName}.
+            {allChecked ? `Saved to My Files as ${built.fileName}.` : `Saved to My Files as ${built.fileName}. It downloads once every line above is checked.`}
           </p>
         </section>
       )}

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { authReplies, requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { buildTargetedResumeFilename, isStructuredTargetedResume, renderTargetedResumeDocx } from "@/lib/resume-template";
+import { lockedReply, reviewPending } from "@/lib/resume/review-lock";
 
 async function handleGET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { userId } = await requireUser();
@@ -22,10 +23,14 @@ async function handleGET(_req: Request, ctx: { params: Promise<{ id: string }> }
   if (doc.doc_type === "TARGETED_RESUME") {
     const { data: artifact } = await supabase
       .from("resume_artifacts")
-      .select("created_at,structured_output,job_title_target,company_target")
+      .select("id,created_at,structured_output,job_title_target,company_target")
       .eq("rendered_document_id", id)
       .eq("user_id", userId)
       .maybeSingle();
+
+    // A resume waiting on its line review does not download (D15); the link
+    // opens its review instead.
+    if (artifact && reviewPending(artifact.structured_output) > 0) return lockedReply(_req, artifact.id);
 
     // Re-render so the header carries the member's current contact details.
     // A record in any other shape is served as the file stored at build time.

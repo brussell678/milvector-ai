@@ -9,6 +9,9 @@
 //   misstated: "The resume says something my master does not." The master's
 //              own line goes back in, and the report is kept for the admin.
 //   remove:    a summary sentence the member wants out.
+//   correct:   the line is right as it stands. Only the mark is saved, so the
+//              review is kept and the resume unlocks when every line has one
+//              (lib/resume/review-lock.ts, D15). Nothing else changes.
 
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -23,6 +26,7 @@ import { buildTargetedResumeText, isStructuredTargetedResume, renderTargetedResu
 export const maxDuration = 300;
 
 const InputSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("correct"), artifactId: z.string().uuid(), text: z.string().min(1).max(2000) }),
   z.object({ action: z.literal("outdated"), artifactId: z.string().uuid(), text: z.string().min(1).max(2000), sourceLine: z.string().min(1).max(2000), newLine: z.string().trim().min(10).max(1000) }),
   z.object({ action: z.literal("misstated"), artifactId: z.string().uuid(), text: z.string().min(1).max(2000), sourceLine: z.string().min(1).max(2000) }),
   z.object({ action: z.literal("remove"), artifactId: z.string().uuid(), text: z.string().min(1).max(2000) }),
@@ -51,6 +55,25 @@ async function handlePOST(req: Request) {
     return NextResponse.json({ error: "That resume could not be found. Build it again." }, { status: 404 });
   }
 
+  const same = (a: string, b: string) => a.replace(/\s+/g, " ").trim() === b.replace(/\s+/g, " ").trim();
+  if (input.action === "correct") {
+    const checkedNow = ((artifact.structured_output as Record<string, unknown>).checked ?? {}) as { figures?: (FigureCheck & { reviewed?: string })[] };
+    let marked: (FigureCheck & { reviewed?: string }) | null = null;
+    const figures = (checkedNow.figures ?? []).map((f) => {
+      if (marked || !same(f.text, input.text)) return f;
+      marked = { ...f, reviewed: "correct" };
+      return marked;
+    });
+    if (!marked) return NextResponse.json({ error: "That line is no longer in this resume. Refresh the page." }, { status: 409 });
+    const { error: markError } = await supabase
+      .from("resume_artifacts")
+      .update({ structured_output: { ...saved, checked: { ...checkedNow, figures } } })
+      .eq("id", artifact.id)
+      .eq("user_id", userId);
+    if (markError) return NextResponse.json({ error: "That did not save. Try again." }, { status: 500 });
+    return NextResponse.json({ ok: true, text: input.text, item: marked, kept: false });
+  }
+
   const replacement =
     input.action === "outdated" ? pastTense(cleanPunctuation(input.newLine)) : input.action === "misstated" ? pastTense(cleanPunctuation(input.sourceLine)) : "";
   const { next, found } = replaceLine(saved, input.text, replacement);
@@ -58,7 +81,6 @@ async function handlePOST(req: Request) {
 
   // The checklist item follows the line: its new text, figures, and source.
   const checked = (next.checked ?? {}) as { figures?: FigureCheck[] };
-  const same = (a: string, b: string) => a.replace(/\s+/g, " ").trim() === b.replace(/\s+/g, " ").trim();
   let item: (FigureCheck & { reviewed?: string }) | null = null;
   checked.figures = (checked.figures ?? []).flatMap((f) => {
     if (!same(f.text, input.text)) return [f];

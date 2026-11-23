@@ -443,8 +443,10 @@ async function handlePOST(req: Request) {
       job_title_target: structuredResume.target_title,
       company_target: input.company ?? null,
       job_description: input.jobDescriptionText,
-      // The resume in the shape downloads render from, plus what the checks found.
-      structured_output: { ...structuredResume, engine: "master-v2", sourceRef, checked: { resume, findings, figures } } as unknown as Record<string, unknown>,
+      // The resume in the shape downloads render from, plus what the checks
+      // found. reviewRequired: it downloads only once every line in figures
+      // is marked (lib/resume/review-lock.ts, D15).
+      structured_output: { ...structuredResume, engine: "master-v2", sourceRef, reviewRequired: true, checked: { resume, findings, figures } } as unknown as Record<string, unknown>,
       rendered_document_id: documentId,
     })
     .select("id")

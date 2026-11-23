@@ -2,6 +2,7 @@ import { z } from "zod";
 import { CHAT_MESSAGE_CHARS, CHAT_TURN_CHARS, CHAT_TURNS_SENT } from "@/lib/chat/tools";
 import { TRANSCRIPT_LIMITS } from "@/lib/chat/transcript";
 import { POSTING_CONTEXT_CHARS } from "@/lib/chat/jd";
+import { RESUME_POSTING_CHARS } from "@/lib/chat/resume";
 
 // What the chat endpoints accept. Everything here comes from the member's own
 // page, so it is checked and capped before it reaches the model or a file.
@@ -85,6 +86,33 @@ export const JdContextSchema = z.object({
     .nullable()
     .default(null),
   fitNote: text(400).nullable().default(null),
+});
+
+const fitSchema = z
+  .object({
+    recommendation: text(20),
+    reason: text(1000).default(""),
+    requirements: z
+      .array(z.object({ requirement: text(400), type: text(20), assessment: text(20), evidence: textList(8, 600), bridge: text(800).default("") }))
+      .max(40),
+  })
+  .nullable()
+  .default(null);
+
+export const ResumeContextSchema = z.object({
+  job: z.object({ title: text(200), company: text(200).default(""), posting: text(RESUME_POSTING_CHARS) }).nullable().default(null),
+  fit: fitSchema,
+  resume: z
+    .object({
+      text: text(12000),
+      checks: text(400).default(""),
+      findings: z.array(z.object({ check: text(200), level: text(10), detail: text(600) })).max(30).default([]),
+      gaps: textList(12, 400),
+      toCheck: z.number().int().min(0).max(200).default(0),
+      checked: z.number().int().min(0).max(200).default(0),
+    })
+    .nullable()
+    .default(null),
 });
 
 export const TranscriptRequestSchema = z.object({

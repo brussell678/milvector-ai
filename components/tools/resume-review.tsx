@@ -11,9 +11,11 @@ import type { FigureCheck } from "@/lib/resume/targeting";
 //     this one and every later resume uses it until their master says it.
 //   "The resume says something my master doesn't": the master's own line
 //     goes back in.
+// Correct is saved too, so the review is kept and the resume unlocks once
+// every line has a mark (lib/resume/review-lock.ts, D15).
 
-export type ReviewState = { status: "correct" | "fixed"; note?: string };
-export type Correction = { id?: string; oldLine: string; newLine: string };
+import type { Correction, ReviewState } from "@/lib/resume/build-result";
+export type { Correction, ReviewState };
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -44,7 +46,19 @@ export function MarkedLine({ text, figures, added = [] }: { text: string; figure
 
 type FixResult = { ok: true; text: string; item: FigureCheck | null; kept: boolean } | { ok: false; error: string };
 
-async function sendFix(body: Record<string, unknown>): Promise<FixResult> {
+// Each review action reads the saved resume, changes one line or mark, and
+// writes it back. Two at once (a quick tap on Correct, then the next) could
+// each write over the other's mark, leaving the resume locked with every line
+// marked on screen. So a page sends them one after another.
+let queue: Promise<unknown> = Promise.resolve();
+
+function sendFix(body: Record<string, unknown>): Promise<FixResult> {
+  const next = queue.then(() => postFix(body));
+  queue = next.catch(() => undefined);
+  return next;
+}
+
+async function postFix(body: Record<string, unknown>): Promise<FixResult> {
   try {
     const res = await fetch("/api/tools/targeted-resume/review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const data = await res.json().catch(() => ({}));
@@ -77,6 +91,16 @@ export function ReviewCard({
   const [error, setError] = useState<string | null>(null);
   const isSummary = item.place === "Summary";
   const done = state?.status;
+
+  async function markCorrect() {
+    if (!artifactId) return setError("This resume was not saved. Build it again.");
+    setSaving(true);
+    setError(null);
+    const res = await sendFix({ action: "correct", artifactId, text: item.text });
+    setSaving(false);
+    if (!res.ok) return setError(res.error);
+    onCorrect();
+  }
 
   async function fix(action: "outdated" | "misstated" | "remove") {
     if (!artifactId) return setError("This resume was not saved. Build it again.");
@@ -117,8 +141,8 @@ export function ReviewCard({
         </p>
       ) : (
         <div className="mt-2 flex flex-wrap gap-2">
-          <button className="btn btn-secondary text-sm" type="button" onClick={onCorrect} disabled={saving}>
-            Correct
+          <button className="btn btn-secondary text-sm" type="button" onClick={() => void markCorrect()} disabled={saving}>
+            {saving && !open ? "Saving..." : "Correct"}
           </button>
           <button className="btn btn-secondary text-sm" type="button" onClick={() => setOpen(open ? null : "choose")} aria-expanded={!!open} disabled={saving}>
             Wrong

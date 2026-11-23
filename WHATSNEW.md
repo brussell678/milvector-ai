@@ -26,6 +26,9 @@ that reporter), use the admin composer at /app/admin/updates instead — it can
 link the case. This file is for the general changelog.
 -->
 
+## Your resume review is saved, and the Word file waits for it {improvement} {draft}
+In the Targeted Resume Builder, each line you mark Correct or fix is now saved, so you can leave and pick up where you stopped. A new targeted resume downloads, from the builder or from My Files, and goes on your business card, only once every line is checked, so a resume never goes out with a figure you have not confirmed. If you open one too early, MilVector takes you straight to the lines still waiting.
+
 ## Paste a job link instead of the whole posting {new} {draft}
 On your phone? In the JD Decoder and the Targeted Resume Builder you can now paste the link to a job posting instead of copying the whole description. MilVector reads the posting and fills in the job title and company for you. LinkedIn does not allow this, so for a LinkedIn job, open the company's own posting and use that link.
 
