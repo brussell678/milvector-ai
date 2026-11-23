@@ -231,7 +231,7 @@ describe("who sees the chat", () => {
   it("knows only the tools that have a chat", () => {
     expect(chatToolFor("mos_translator")?.toolName).toBe("mos_translator");
     expect(chatToolFor("constructor")).toBeNull();
-    expect(chatToolFor("sbp_advisor")).toBeNull();
+    expect(chatToolFor("interview_strategist")).toBeNull();
   });
 });
 

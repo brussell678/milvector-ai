@@ -26,9 +26,11 @@ async function handlePOST(req: Request) {
   const info = chatToolFor(String(body?.tool ?? ""));
   if (!info || !chatEnabled(info.key, email)) return NextResponse.json({ error: "This chat is not open yet." }, { status: 404 });
 
-  // The VA chat holds health details, so it is never kept (D9): download only.
-  if (info.toolName === "va_rating_navigator" && body?.mode === "save") {
-    return NextResponse.json({ error: "MilVector does not keep VA chats. Download it to your own device instead.", code: "not_saved" }, { status: 403 });
+  // The VA and SBP chats hold health and money details, so they are never
+  // kept (D9, D10): download only.
+  if ((info.toolName === "va_rating_navigator" || info.toolName === "sbp_advisor") && body?.mode === "save") {
+    const what = info.toolName === "sbp_advisor" ? "SBP" : "VA";
+    return NextResponse.json({ error: `MilVector does not keep ${what} chats. Download it to your own device instead.`, code: "not_saved" }, { status: 403 });
   }
 
   const parsed = TranscriptRequestSchema.safeParse(body);

@@ -33,6 +33,9 @@ the status board at the end of each phase.
 | 2026-11-23 | D17: follow-up questions are counted per tool. The VA Rating Navigator allows 300 a day (`CHAT_VA_DAILY_MESSAGE_LIMIT`), each other chat 100 (`CHAT_DAILY_MESSAGE_LIMIT`), so a long VA session never blocks another tool's chat. |
 | 2026-11-23 | D18: VA Rating Navigator analyses and code lookups have their own budget, 150 a day (`VA_DAILY_RUN_LIMIT`), apart from the 60 runs the other tools share, so a big claim fits in one sitting and the costly Targeted Resume Builder keeps its tight cap. Applies to the classic VA page too. |
 | 2026-11-23 | D9 amended: the VA chat stays in the open tab by default, and the member may switch on "Keep this chat on this device for 30 days", worded so it is clear MilVector still does not save it and anyone using that browser could see it. Switching it off removes the kept copy. No Save to My Files, as before. |
+| 2026-11-23 | Phase 4 walked: Brandon likes the VA chat, especially taking conditions one at a time. On to Phase 5. |
+| 2026-11-23 | SBP Advisor intake (D19): four essentials on top (marital status, ages, gross retired pay); the chat offers "Ask me quick questions first", mostly one tap each, and every answer fills the More details section on top, where it can be changed. Page-guided, no AI. |
+| 2026-11-23 | D10 decided: the SBP chat is kept like the VA chat: the open tab by default, an opt-in "keep on this device for 30 days" switch, Download only, never saved by MilVector; the transcript route refuses a Save for it. |
 | Later | D8 (Phase 3) editing a resume by chat, D9 (Phase 4) saving a VA chat, D10 (Phase 5) saving an SBP chat, D11 (Phase 2 on) a typed sentence filling the top inputs. Brandon decides each at its milestone. |
 
 ## How the chat works
@@ -289,12 +292,29 @@ is the first to open a card page on a freshly started dev server (the page
 compiles on that visit and reloads). It passes on a warm server; production
 does not compile on a visit.
 
-## Phase 5: SBP Decision Advisor (to be revised after Phase 4)
+## Phase 5: SBP Decision Advisor (admin only)
 
-Retired pay, ages, and marital status on top. The rest of today's form is asked
-a question or two at a time with tap answers; Skip keeps today's defaults.
-What-ifs rerun the math in code at once, with no AI run. Tests:
-`chat-sbp-verify.cjs`; figures match today's page to the cent. D10 decided here.
+| # | Requirement |
+|---|---|
+| 5.1 | The chat view shows to the admin; `CHAT_TOOLS_PUBLIC` gains `sbp`. Today's page stays at `?view=classic`. |
+| 5.2 | **Inputs on top:** marital status, gross monthly retired pay, the member's age at retirement, and the spouse's age. More details holds today's other answers, optional, with today's defaults. The essentials are checked before anything runs. |
+| 5.3 | **Quick questions (D19):** the chat offers ten, asked by the page with no AI: eight tap answers (retirement type, reliance, both healths, the four priorities) and two typed amounts (savings, life insurance), each with Skip. Each answer fills More details. |
+| 5.4 | **Compare** posts the same body as the classic page (`sbpPayload`, shared), and the route works the figures out with the same shared function (`sbpAnalysisFor`). The figures land in the chat, then the assessment: best fit and snapshot open, the rest folded. The Reserve and Guard or former-spouse warning stays. |
+| 5.5 | **What-ifs** (a covered amount, a real term quote) recalculate in the page at once, with no AI and no run. A what-if can be turned into a written assessment, which is one run. The chat may propose a what-if as a button; it never invents an insurance price. |
+| 5.6 | **Follow-ups** go to `/api/chat/sbp_advisor`: the server works the figures out from the member's answers itself, never from the page, and the free-text notes are never sent. Rules: use the figures exactly, no invented premiums, taxes high level, no pressure, the one-time election and the spouse's notarized agreement, DIC paid in full, special rules for Reserve and former spouses, free help (retirement services officer, Personal Financial Manager, legal assistance). |
+| 5.7 | **Privacy (D10):** as the VA chat: the open tab by default, an opt-in keep-on-this-device switch for 30 days, Download only; the transcript route refuses a Save. |
+
+**Phase 5 results (2026-11-23):** 506 unit tests pass (12 new), tsc and eslint
+clean, production build clean. `chat-sbp-verify.cjs` 32/32, and all five chat
+walkthroughs green together (SBP 32, VA 45, MOS 54, JD 35, resume 40) on the
+app with `CHAT_TOOLS_PUBLIC=mos,jd,resume,va,sbp`. With the app as members see
+it, all nine older walkthroughs are green (card upgrades on a warm server), and
+the new `sbp-classic-verify.cjs` 8/8 shows today's SBP page unchanged after its
+figures and views moved to shared code ($273.00 premium on $4,200, to the
+cent). Members see no change, so no What's New entry.
+
+Harness note: the stand-in OpenAI's port is now `FAKE_OPENAI_PORT` (default
+54400); Tailscale took 54400 for an outbound connection during this phase.
 
 ## Phase 6: Rollout
 
@@ -310,6 +330,6 @@ when he decides.
 | 1. Shell and MOS Translator | Done 2026-11-23: live, admin only (`e2095be`), walked and accepted as the foundation |
 | 2. JD Decoder | Done 2026-11-23: live, admin only (`6a9c858`), walked |
 | 3. Targeted Resume Builder | Done 2026-11-23: live (`ac73f9a`), chat admin only, review lock for every member; walked |
-| 4. VA Rating Navigator | Built 2026-11-23 on branch `chat-tools`, admin only; waiting on Brandon's walk |
-| 5. SBP Decision Advisor | Not started |
+| 4. VA Rating Navigator | Done 2026-11-23: live, admin only (`9fcb74a`, budgets `5decf5f`); walked |
+| 5. SBP Decision Advisor | Built 2026-11-23 on branch `chat-tools`, admin only; waiting on Brandon's walk |
 | 6. Rollout | Not started |

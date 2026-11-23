@@ -4,7 +4,7 @@ import { enforceAiUsageLimit } from "@/lib/usage-limit";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getEnv } from "@/lib/env";
 import { SbpAdvisorInputSchema } from "@/lib/validators/advisors";
-import { analyzeSbp } from "@/lib/sbp/math";
+import { sbpAnalysisFor } from "@/lib/sbp/inputs";
 import { promptSbpAssessment } from "@/lib/llm/prompts-advisors";
 import { runLoggedJson } from "@/lib/tools/run";
 import { redactPII } from "@/lib/redact";
@@ -39,17 +39,9 @@ async function handlePOST(req: Request) {
     return NextResponse.json({ error: "Enter your spouse's age so the survivor figures can be calculated." }, { status: 400 });
   }
 
-  // The figures are plain arithmetic, so they are computed here and never by the model.
-  const analysis = analyzeSbp(
-    {
-      grossRetiredPay: input.grossRetiredPay,
-      baseAmount: input.grossRetiredPay,
-      memberAgeAtRetirement: input.memberAgeAtRetirement,
-      spouseAge: input.spouseAge ?? input.memberAgeAtRetirement,
-      marginalTaxRate: input.marginalTaxRatePct / 100,
-    },
-    { reducedBase: input.reducedBaseAmount ?? null, termQuote: input.termQuote ?? null }
-  );
+  // The figures are plain arithmetic, so they are computed here and never by
+  // the model, by the same function the pages use (lib/sbp/inputs.ts).
+  const analysis = sbpAnalysisFor(input);
 
   const overLimit = await enforceAiUsageLimit({ supabase, userId, email });
   if (overLimit) return overLimit;

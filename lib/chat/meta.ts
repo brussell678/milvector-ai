@@ -56,6 +56,20 @@ export const VaRunSchema = z.object({
   conditions: z.array(z.coerce.string().trim().min(2).max(160)).min(1).max(20),
 });
 
+// The SBP Advisor's proposed what-if: the changed values only. The page
+// recalculates the figures in the browser; nothing runs on the server.
+export const SbpRunSchema = z
+  .object({
+    reducedBaseAmount: z.coerce.number().min(300).max(1_000_000).optional(),
+    termQuote: z
+      .object({ coverage: z.coerce.number().min(1000).max(100_000_000), monthlyPremium: z.coerce.number().min(1).max(100_000), termYears: z.coerce.number().int().min(1).max(40) })
+      .optional(),
+    grossRetiredPay: z.coerce.number().min(100).max(1_000_000).optional(),
+    memberAgeAtRetirement: z.coerce.number().int().min(30).max(75).optional(),
+    spouseAge: z.coerce.number().int().min(18).max(95).optional(),
+  })
+  .refine((v) => Object.values(v).some((x) => x !== undefined));
+
 // The MOS Translator's proposed run: the same fields its form sends.
 const shortList = z
   .array(z.coerce.string().trim().min(1).max(80))

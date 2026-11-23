@@ -6,6 +6,8 @@ import { NO_MASTER, type JdChatContext } from "@/lib/chat/jd";
 import type { ResumeChatContext } from "@/lib/chat/resume";
 import type { VaChatContext } from "@/lib/chat/va";
 import { allowedRatings, getCode, isValidCode } from "@/lib/va/schedule";
+import { figureLines, type SbpChatContext } from "@/lib/chat/sbp";
+import { sbpAnalysisFor, type SbpFigureInput } from "@/lib/sbp/inputs";
 
 // Follow-up questions in the chat tools (docs/CHAT_TOOLS_PLAN.md). The shared
 // guardrail first, then how a chat answer reads, then each tool's own rules,
@@ -59,11 +61,22 @@ const VA_RULES = `THIS TOOL: the VA Rating Navigator. The member listed the cond
 - If the member mentions suicide, self-harm, or wanting to die, begin your answer with: "If you are in crisis, call 988 and press 1, or text 838255, to reach the Veterans Crisis Line now. You are not alone." Then answer with care.
 - run: when the member names conditions to look up that are not in the list below, set run to {"conditions": ["..."]}, each as they named it, at most 20. The member sees a button and decides whether to spend one of today's runs on it. Otherwise run is null.`;
 
+const SBP_RULES = `THIS TOOL: the SBP Decision Advisor. The member entered their family, income, health, and priorities. The page calculated what full SBP, reduced SBP, and no SBP cost and pay, and compared a real term life quote if they gave one, and a model wrote an assessment from those figures. The member can try what-ifs, which the page recalculates at once.
+- Every dollar figure is in CALCULATED FIGURES below, and in WHAT-IF FIGURES when there is one. Use them exactly. Never compute, estimate, or introduce any other SBP dollar figure.
+- Never invent an insurance premium, quote, or price. To compare life insurance, the member needs real quotes; say so.
+- Taxes: high level only. SBP premiums come out of retired pay before tax; the survivor annuity is taxable; life insurance proceeds are generally income-tax free. Suggest a tax professional for specifics.
+- Never pressure toward a product or an option. The cheapest option is not automatically the best one; the goal is the family's security. Weigh guaranteed lifetime income against a lump sum, inflation protection (SBP rises with cost-of-living adjustments), health underwriting for private insurance, whether the survivor would realistically manage a lump sum, and outliving a term policy.
+- The election is made once, at retirement. Declining or reducing spouse coverage needs the spouse's notarized agreement and generally cannot be undone later. SBP and VA survivor compensation (DIC) are both paid in full.
+- A Reserve or Guard retirement, a former spouse, or a court order changes the rules; the figures are then a rough guide. Send the member to their retirement services office or a legal assistance attorney.
+- Free help: the installation retirement services officer, a Personal Financial Manager or a Military OneSource financial counselor, and legal assistance.
+- run: when the member asks "what if" with a specific amount (a covered amount for reduced SBP; a term quote with its coverage, monthly premium, and years; a different retired pay; or a different age), set run to only the changed values, for example {"reducedBaseAmount": 2000} or {"termQuote": {"coverage": 750000, "monthlyPremium": 65, "termYears": 20}}. The page recalculates at once, at no cost, when the member taps it. If a number is missing, ask for it; never guess one. Otherwise run is null.`;
+
 const TOOL_RULES: Record<ChatToolId, string> = {
   mos_translator: MOS_RULES,
   jd_decoder: JD_RULES,
   resume_targeter: RESUME_RULES,
   va_rating_navigator: VA_RULES,
+  sbp_advisor: SBP_RULES,
 };
 
 export type MosChatContext = { inputs: MosPayload; result: Omit<MosResult, "runId"> | null };
@@ -211,7 +224,44 @@ function vaContextText(context: VaChatContext): string {
   return lines.join("\n");
 }
 
-export type ChatContext = { mos_translator: MosChatContext; jd_decoder: JdChatContext; resume_targeter: ResumeChatContext; va_rating_navigator: VaChatContext };
+// The figures are worked out here from the member's answers, never taken
+// from the page.
+function sbpFacts(i: NonNullable<SbpChatContext["intake"]>): string[] {
+  return [
+    `Marital status: ${i.maritalStatus}. Member's age at retirement: ${i.memberAgeAtRetirement}. Spouse's age: ${i.spouseAge ?? "none"}. Children's ages: ${i.childrenAges.join(", ") || "none"}.`,
+    `Retirement type: ${i.retirementType}. Former spouse or court order: ${i.formerSpouseOrCourtOrder ? "yes" : "no"}. Spouse relies on the retired pay: ${i.spouseReliesOnRetiredPay}.`,
+    `Monthly: gross retired pay ${i.grossRetiredPay}; VA compensation ${i.vaCompensation}; spouse's income ${i.spouseIncome}; other income ${i.otherIncome}; household expenses ${i.monthlyExpenses || "not given"}. Savings and investments: ${i.investableAssets}. Life insurance in force: ${i.existingLifeInsurance}. Tax bracket: ${i.marginalTaxRatePct} percent.`,
+    `Health: member ${i.memberHealth}, spouse ${i.spouseHealth}; tobacco: ${i.tobaccoUse ? "yes" : "no"}. Priorities: income preference ${i.incomePreference}; lump sum comfort ${i.lumpSumComfort}; inflation ${i.inflationImportance}; protection needed for ${i.protectionHorizon}.`,
+  ];
+}
+
+function sbpContextText(context: SbpChatContext): string {
+  const { intake, assessment, whatIf, whatIfLabel } = context;
+  if (!intake) {
+    return "Nothing has been compared yet. The member enters their marital status, their age and their spouse's age at retirement, and their gross monthly retired pay at the top of the page, and taps Compare My Options. Quick questions in the chat sharpen the answer.";
+  }
+  // The endpoint checked both against the tool's own input schema, so the
+  // amounts and ages the figures need are there.
+  const figures = (input: NonNullable<SbpChatContext["intake"]>) => figureLines(sbpAnalysisFor(input as SbpFigureInput));
+  const lines = ["THE MEMBER'S ANSWERS (data):", ...sbpFacts(intake), "", "CALCULATED FIGURES (data, monthly amounts in today's dollars):", ...figures(intake)];
+  if (assessment) {
+    lines.push(
+      "",
+      `THE WRITTEN ASSESSMENT (data): best fit: ${assessment.best_fit_option}. ${assessment.snapshot}`,
+      ...assessment.why_it_fits.map((x) => `- why it fits: ${x}`),
+      ...assessment.main_risks.map((x) => `- what could make it wrong: ${x}`),
+      ...(assessment.strong_alternative ? [`- alternative: ${assessment.strong_alternative}`] : []),
+      ...assessment.next_steps.map((x) => `- next step: ${x}`),
+      ...assessment.missing_information.map((x) => `- missing: ${x}`),
+    );
+  }
+  if (whatIf) {
+    lines.push("", `WHAT-IF FIGURES (data), with ${whatIfLabel ?? "changed values"}:`, ...figures(whatIf));
+  }
+  return lines.join("\n");
+}
+
+export type ChatContext = { mos_translator: MosChatContext; jd_decoder: JdChatContext; resume_targeter: ResumeChatContext; va_rating_navigator: VaChatContext; sbp_advisor: SbpChatContext };
 
 export function promptChatSystem<T extends ChatToolId>(tool: T, context: ChatContext[T]): string {
   const contextText =
@@ -221,6 +271,8 @@ export function promptChatSystem<T extends ChatToolId>(tool: T, context: ChatCon
         ? jdContextText(context as JdChatContext)
         : tool === "resume_targeter"
           ? resumeContextText(context as ResumeChatContext)
-          : vaContextText(context as VaChatContext);
+          : tool === "va_rating_navigator"
+            ? vaContextText(context as VaChatContext)
+            : sbpContextText(context as SbpChatContext);
   return [MILVECTOR_SYSTEM_PROMPT, CHAT_RULES, TOOL_RULES[tool], contextText].join("\n\n");
 }

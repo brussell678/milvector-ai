@@ -3,6 +3,7 @@ import { CHAT_MESSAGE_CHARS, CHAT_TURN_CHARS, CHAT_TURNS_SENT } from "@/lib/chat
 import { TRANSCRIPT_LIMITS } from "@/lib/chat/transcript";
 import { POSTING_CONTEXT_CHARS } from "@/lib/chat/jd";
 import { RESUME_POSTING_CHARS } from "@/lib/chat/resume";
+import { SbpAdvisorInputSchema } from "@/lib/validators/advisors";
 
 // What the chat endpoints accept. Everything here comes from the member's own
 // page, so it is checked and capped before it reaches the model or a file.
@@ -149,6 +150,30 @@ export const VaContextSchema = z.object({
     .max(60)
     .default([]),
   combined: z.object({ rating: z.number(), value: z.number(), rated: z.number().int(), steps: textList(70, 200) }).nullable().default(null),
+});
+
+// The member's answers without the free-text notes, checked as the tool
+// route checks them; the server works the figures out from them itself.
+const sbpIntake = SbpAdvisorInputSchema.omit({ notes: true });
+
+export const SbpContextSchema = z.object({
+  intake: sbpIntake.nullable().default(null),
+  assessment: z
+    .object({
+      snapshot: text(1500).default(""),
+      best_fit_option: text(200).default(""),
+      why_it_fits: textList(10, 500),
+      main_risks: textList(10, 500),
+      strong_alternative: text(600).default(""),
+      if_you_value_flexibility_more: text(600).default(""),
+      if_you_value_certainty_more: text(600).default(""),
+      next_steps: textList(10, 500),
+      missing_information: textList(10, 500),
+    })
+    .nullable()
+    .default(null),
+  whatIf: sbpIntake.nullable().default(null),
+  whatIfLabel: text(300).nullable().default(null),
 });
 
 export const TranscriptRequestSchema = z.object({

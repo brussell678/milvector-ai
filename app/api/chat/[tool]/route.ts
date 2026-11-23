@@ -6,8 +6,8 @@ import { getEnv } from "@/lib/env";
 import { redactPII } from "@/lib/redact";
 import { chatEnabled } from "@/lib/chat/access";
 import { enforceChatLimit } from "@/lib/chat/limit";
-import { MosRunSchema, parseMeta, VaRunSchema } from "@/lib/chat/meta";
-import { FollowUpSchema, JdContextSchema, MosContextSchema, ResumeContextSchema, VaContextSchema } from "@/lib/chat/schemas";
+import { MosRunSchema, parseMeta, SbpRunSchema, VaRunSchema } from "@/lib/chat/meta";
+import { FollowUpSchema, JdContextSchema, MosContextSchema, ResumeContextSchema, SbpContextSchema, VaContextSchema } from "@/lib/chat/schemas";
 import { AnswerSplitter, encodeEvent, type ChatEvent } from "@/lib/chat/stream";
 import { chatToolFor, type ChatToolId } from "@/lib/chat/tools";
 import { AI_MESSAGES, ChatStreamError, streamChat, type ChatTurn } from "@/lib/llm/client";
@@ -33,6 +33,7 @@ const SPECS = {
   jd_decoder: { context: JdContextSchema, run: null },
   resume_targeter: { context: ResumeContextSchema, run: null },
   va_rating_navigator: { context: VaContextSchema, run: VaRunSchema },
+  sbp_advisor: { context: SbpContextSchema, run: SbpRunSchema },
 } satisfies Record<ChatToolId, { context: unknown; run: unknown }>;
 
 async function handlePOST(req: Request, ctx: Ctx) {
@@ -67,7 +68,9 @@ async function handlePOST(req: Request, ctx: Ctx) {
         ? promptChatSystem("resume_targeter", context.data as ChatContext["resume_targeter"])
         : tool === "va_rating_navigator"
           ? promptChatSystem("va_rating_navigator", context.data as ChatContext["va_rating_navigator"])
-          : promptChatSystem("mos_translator", context.data as ChatContext["mos_translator"]);
+          : tool === "sbp_advisor"
+            ? promptChatSystem("sbp_advisor", context.data as ChatContext["sbp_advisor"])
+            : promptChatSystem("mos_translator", context.data as ChatContext["mos_translator"]);
 
   const upstream = new AbortController();
   let timedOut = false;
