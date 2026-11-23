@@ -34,7 +34,23 @@ function splitName(name: string) {
   return { family: parts[parts.length - 1], given: parts[0], middle: parts.slice(1, -1).join(" ") };
 }
 
-export function buildVCard(card: CardData, cardUrl: string, photoJpegBase64?: string | null): string {
+/**
+ * The day a visitor saved the contact, from their own phone (YYYY-MM-DD), as
+ * "November 23, 2026"; null when missing, malformed, or more than two days
+ * from the server's date.
+ */
+export function savedOnLabel(value: string | null | undefined, now = new Date()): string | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value ?? "");
+  if (!match) return null;
+  const day = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  if (day.getUTCDate() !== Number(match[3]) || Math.abs(day.getTime() - now.getTime()) > 2 * 86_400_000) return null;
+  return day.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
+}
+
+// `cardUrl` is the link back to the card. It goes first among the contact's
+// links, labeled, and again in the note with the day it was saved, so after
+// a career fair of scans each saved contact says where it came from.
+export function buildVCard(card: CardData, cardUrl: string, photoJpegBase64?: string | null, savedOn?: string | null): string {
   const n = splitName(card.name);
   const lines = [
     "BEGIN:VCARD",
@@ -47,13 +63,17 @@ export function buildVCard(card: CardData, cardUrl: string, photoJpegBase64?: st
   if (card.phone) lines.push(`TEL;TYPE=CELL,VOICE:${escape(card.phone)}`);
   if (card.email) lines.push(`EMAIL;TYPE=INTERNET,WORK:${escape(card.email)}`);
   if (card.location) lines.push(`ADR;TYPE=WORK:;;;${escape(card.location)};;;`);
+  // The card link first and preferred. The item1 group with X-ABLabel is how
+  // iPhone and Google Contacts show a custom label ("Digital card").
+  lines.push(`item1.URL;TYPE=pref:${escape(cardUrl)}`, "item1.X-ABLabel:Digital card");
   if (card.website) lines.push(`URL:${escape(card.website)}`);
   for (const link of card.links) {
     lines.push(`URL;TYPE=${link.type === "linkedin" ? "LinkedIn" : "Other"}:${escape(link.url)}`);
   }
-  lines.push(`URL;TYPE=Card:${escape(cardUrl)}`);
-  const note = [card.headline, card.service].filter(Boolean).join(" | ");
-  if (note) lines.push(`NOTE:${escape(note)}`);
+  const first = card.name.trim().split(/\s+/)[0] ?? "";
+  const origin = `${savedOn ? `Saved ${savedOn} from` : "From"} ${first ? `${first}'s` : "their"} digital card: ${cardUrl}`;
+  const about = [card.headline, card.service].filter(Boolean).join(" | ");
+  lines.push(`NOTE:${escape([origin, about].filter(Boolean).join("\n"))}`);
   if (photoJpegBase64) lines.push(`PHOTO;ENCODING=b;TYPE=JPEG:${photoJpegBase64}`);
   lines.push("END:VCARD");
   return lines.map(fold).join("\r\n") + "\r\n";

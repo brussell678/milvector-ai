@@ -21,7 +21,7 @@ import {
   type CardData,
 } from "@/lib/cards/schema";
 import { DOCX_MIME, matchesMime, PDF_MIME, RESUME_MAX_BYTES, resumeDownloadName, resumeOptions } from "@/lib/cards/resume";
-import { buildVCard, vcardFilename } from "@/lib/cards/vcard";
+import { buildVCard, savedOnLabel, vcardFilename } from "@/lib/cards/vcard";
 import { crc32, zipStore } from "@/lib/cards/zip";
 
 const card: CardData = {
@@ -145,12 +145,33 @@ describe("vCard", () => {
     expect(vcf).toContain("N:Reyes;Jordan;A.;;");
     expect(vcf).toContain("TEL;TYPE=CELL,VOICE:(910) 555-0142");
     expect(vcf).toContain("EMAIL;TYPE=INTERNET,WORK:jordan@example.com");
-    expect(vcf).toContain("URL;TYPE=Card:https://www.milvector.org/c/jordan");
+  });
+
+  it("puts the card link first among the links, labeled, and says where the contact came from", () => {
+    const saved = buildVCard(card, "https://www.milvector.org/c/jordan?s=contact", null, "November 23, 2026");
+    const lines = saved.replace(/\r\n /g, "").split("\r\n");
+    const firstUrl = lines.findIndex((line) => /URL/.test(line));
+    expect(lines[firstUrl]).toBe("item1.URL;TYPE=pref:https://www.milvector.org/c/jordan?s=contact");
+    expect(lines[firstUrl + 1]).toBe("item1.X-ABLabel:Digital card");
+    expect(lines.find((line) => line.startsWith("NOTE:"))).toBe(
+      "NOTE:Saved November 23\\, 2026 from Jordan's digital card: https://www.milvector.org/c/jordan?s=contact\\n20 years leading logistics teams\\; PMP | U.S. Marine Corps Veteran",
+    );
+    expect(vcf).toContain("NOTE:From Jordan's digital card: https://www.milvector.org/c/jordan");
+  });
+
+  it("takes the visitor's save date only when it is a real, current day", () => {
+    const now = new Date("2026-11-23T03:00:00Z");
+    expect(savedOnLabel("2026-11-22", now)).toBe("November 22, 2026");
+    expect(savedOnLabel("2026-11-23", now)).toBe("November 23, 2026");
+    expect(savedOnLabel("2026-02-30", now)).toBeNull();
+    expect(savedOnLabel("2025-11-23", now)).toBeNull();
+    expect(savedOnLabel("Nov 23", now)).toBeNull();
+    expect(savedOnLabel(null, now)).toBeNull();
   });
 
   it("escapes commas, semicolons, and line breaks", () => {
     expect(vcf).toContain("ORG:Reyes Logistics\\, LLC");
-    expect(vcf).toContain("NOTE:20 years leading logistics teams\\; PMP | U.S. Marine Corps Veteran");
+    expect(vcf.replace(/\r\n /g, "")).toContain("\\n20 years leading logistics teams\\; PMP | U.S. Marine Corps Veteran");
     const injected = buildVCard({ ...card, title: "Lead\nEND:VCARD\nBEGIN:VCARD" }, "https://x.example/c/a", null);
     expect(injected.match(/^BEGIN:VCARD/gm)?.length).toBe(1);
     expect(injected.match(/^END:VCARD/gm)?.length).toBe(1);

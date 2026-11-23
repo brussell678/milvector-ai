@@ -26,6 +26,9 @@ that reporter), use the admin composer at /app/admin/updates instead — it can
 link the case. This file is for the general changelog.
 -->
 
+## Saved contacts lead back to your card {improvement} {draft}
+When someone saves your contact from your digital business card, your card's link now sits at the top of their contact, labeled Digital card, with a note saying the day they saved it. After a career fair full of scans, they can find you and get back to your card in one tap, and when they do, your Insights show it as a Saved contact visit, so you know they are following up.
+
 ## Your business card gets a banner, a video call background, and printed cards {new} {draft}
 Your digital business card can now carry a banner across the top. Use the banner you made in the LinkedIn Builder with one tap, or upload any image; LinkedIn's 1584 x 396 size fits exactly. From the Share tab, download a video call background and a phone lock screen that carry your QR code, and print paper cards ten to a sheet or as a file for a print shop. At a career fair, turn on event mode so everyone who shares their details is tagged with the event, add your own notes to each contact, and get a follow-up email drafted for you to edit and send.
 

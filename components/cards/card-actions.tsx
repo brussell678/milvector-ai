@@ -104,7 +104,13 @@ export function CardActions({ slug, ownerFirstName, source, leadCapture, qrSvg, 
     <div className="space-y-2">
       <a
         href={`/c/${slug}/vcard`}
-        onClick={() => track && send(slug, "save", source)}
+        onClick={(event) => {
+          // The visitor's own date, so the saved contact's note says which day they met.
+          const now = new Date();
+          const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+          event.currentTarget.href = `/c/${slug}/vcard?saved=${day}`;
+          if (track) send(slug, "save", source);
+        }}
         className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold"
         style={primary}
       >

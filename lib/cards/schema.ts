@@ -191,7 +191,7 @@ export const BANNER_UPLOAD_MAX_CHARS = 1_400_000;
 
 export const EVENT_KINDS = ["view", "save", "link", "apple", "google", "resume"] as const;
 export type EventKind = (typeof EVENT_KINDS)[number];
-export const EVENT_SOURCES = ["direct", "qr", "wallet", "nfc", "sig", "video", "print", "lock"] as const;
+export const EVENT_SOURCES = ["direct", "qr", "wallet", "nfc", "sig", "video", "print", "lock", "contact"] as const;
 export type EventSource = (typeof EVENT_SOURCES)[number];
 
 export const SOURCE_LABELS: Record<EventSource, string> = {
@@ -203,6 +203,8 @@ export const SOURCE_LABELS: Record<EventSource, string> = {
   video: "Video call background",
   print: "Printed card",
   lock: "Lock screen",
+  // Someone who saved the contact, opening the card again from their phone's contacts.
+  contact: "Saved contact",
 };
 
 // Event mode: contacts that arrive before `until` are tagged with the event.
