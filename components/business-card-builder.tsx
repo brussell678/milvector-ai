@@ -416,14 +416,14 @@ export function BusinessCardBuilder() {
         </ToolAlert>
       )}
 
-      <nav className="flex gap-1 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-1" aria-label="Card sections">
+      <nav className="flex gap-1 overflow-x-auto rounded-xl border border-[var(--line)] bg-[var(--panel)] p-1" aria-label="Card sections">
         {tabs.map((item) => (
           <button
             key={item.id}
             type="button"
             onClick={() => setTab(item.id)}
             aria-current={tab === item.id ? "page" : undefined}
-            className={`flex-1 rounded-lg px-3 py-2 text-center text-sm font-semibold transition-colors ${
+            className={`grow basis-0 whitespace-nowrap rounded-lg px-2 py-2 text-center text-sm font-semibold transition-colors [overflow-wrap:normal] sm:px-3 ${
               tab === item.id ? "bg-[var(--accent)] text-white shadow-[var(--shadow-sm)]" : "text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]"
             }`}
           >
@@ -653,7 +653,7 @@ export function BusinessCardBuilder() {
                   ) : (
                     <>
                       <div className="flex flex-wrap items-end gap-3">
-                        <div className="min-w-[240px] flex-1">
+                        <div className="grow basis-[240px]">
                           <Field label={active.resume ? "Replace it with" : "Choose a resume"}>
                             <select className="input" value={resumePick} onChange={(e) => setResumePick(e.target.value)}>
                               <option value="">Select a file from My Files</option>
@@ -984,7 +984,7 @@ function EventModePanel({
             if (name.trim().length >= 2) onStart(name.trim(), hours);
           }}
         >
-          <div className="min-w-[220px] flex-1">
+          <div className="grow basis-[220px]">
             <Field label="Event name">
               <input className="input" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} placeholder="Hiring Our Heroes, Camp Lejeune" />
             </Field>
@@ -1239,7 +1239,7 @@ function SharePanel({ card, wallet }: { card: SavedCard; wallet: { apple: boolea
             ) : (
               <div className="h-72 rounded-xl border border-[var(--line)] bg-[var(--surface)]" style={{ aspectRatio: "1170 / 2532" }} aria-hidden="true" />
             )}
-            <div className="min-w-[180px] flex-1 space-y-3">
+            <div className="grow basis-[180px] space-y-3">
               <a href={graphics?.lock} download={`${card.slug}-lock-screen.png`} className="btn btn-secondary text-sm" aria-disabled={!graphics}>
                 <Download size={14} aria-hidden="true" />
                 Download Lock Screen

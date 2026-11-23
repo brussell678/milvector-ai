@@ -1901,9 +1901,17 @@ summary:focus-visible,
    name, an email address, a link) wraps instead of sticking out. */
 
 @media (max-width: 767px) {
+  /* This outranks min-w-[...] utilities: a column that must keep a minimum
+     width on a phone uses grow basis-[...] instead of flex-1. */
   .grid > *,
   .flex > .flex-1 {
     min-width: 0;
+  }
+
+  /* Solid on phones. Where a phone browser skips the blur, the see-through
+     header showed the page scrolling under it as faint text. */
+  .site-nav-glass {
+    background: var(--panel);
   }
 
   body {
