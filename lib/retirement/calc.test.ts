@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateIncome, grossRetiredPay, projectIncome, reserveYearsOfService, type IncomeInputs } from "@/lib/retirement/calc";
+import { calculateIncome, decemberIncreasesBy, grossRetiredPay, projectIncome, reserveYearsOfService, type IncomeInputs } from "@/lib/retirement/calc";
 import { basicPay, estimatedYears, estimateHigh3, monthlyPay, PAY_TABLE_YEARS, payInYear } from "@/lib/retirement/pay";
 import { federalTax, federalTaxOnAddedIncome } from "@/lib/retirement/tax";
 import { monthlyCompensation, NO_DEPENDENTS } from "@/lib/va/compensation";
@@ -310,5 +310,15 @@ describe("projectIncome", () => {
     expect(now.grossRetiredPay).toBe(3000);
     expect(later.grossRetiredPay).toBe(Math.floor(3000 * Math.pow(1.025, 10)));
     expect(later.combinedBeforeTax).toBeGreaterThan(now.combinedBeforeTax);
+  });
+});
+
+describe("decemberIncreasesBy", () => {
+  it("counts the December 1 increases between the newest known VA rates and the month pay starts", () => {
+    // Rates known through December 2026. Pay starting February 2044: December 2027 to December 2043.
+    expect(decemberIncreasesBy(new Date(2044, 1, 1), 2026)).toBe(17);
+    expect(decemberIncreasesBy(new Date(2027, 10, 1), 2026)).toBe(0);
+    // Pay starting the same day as an increase includes it.
+    expect(decemberIncreasesBy(new Date(2027, 11, 1), 2026)).toBe(1);
   });
 });

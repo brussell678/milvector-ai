@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { calculateIncome, grossRetiredPay, projectIncome, reserveYearsOfService, type RetirementPlan } from "@/lib/retirement/calc";
+import { calculateIncome, decemberIncreasesBy, grossRetiredPay, projectIncome, reserveYearsOfService, type RetirementPlan } from "@/lib/retirement/calc";
 import { estimatedYears, estimateHigh3, PAY_GRADES, PAY_TABLE_YEAR, PAY_TABLE_YEARS, PENDING_RAISE_NOTES } from "@/lib/retirement/pay";
 import { TAX_YEAR, type FilingStatus } from "@/lib/retirement/tax";
 import { VA_PENDING_COLA, VA_RATES_EFFECTIVE, VA_RATES_LABEL, VA_RATINGS } from "@/lib/va/compensation";
@@ -128,27 +128,40 @@ export function RetirementCalculator() {
     return () => observer.disconnect();
   }, []);
 
-  const result = useMemo(() => {
-    const preview = calculateIncome({ high3Average: high3, yearsOfService, plan, vaRating: 0, dependents: { spouse: false, childrenUnder18: 0, childrenInSchool: 0, dependentParents: 0 }, filingStatus });
-    const sbpBase = sbpChoice === "full" ? preview.grossRetiredPay : sbpChoice === "custom" ? num(sbpCustom) : 0;
-    return calculateIncome({
-      high3Average: high3,
-      yearsOfService,
-      plan,
-      // Reserve retirement itself requires 20 qualifying years.
-      regularRetirement: component === "reserve" ? true : undefined,
-      vaRating,
-      dependents: { spouse, childrenUnder18: num(childrenUnder18), childrenInSchool: num(childrenInSchool), dependentParents: parents },
-      vaIncreasePct: useNewVaRates && VA_PENDING_COLA ? VA_PENDING_COLA.pct : 0,
-      combatRelatedRating: combatRating,
-      sbpBaseAmount: sbpBase,
-      filingStatus,
-      otherAnnualIncome: num(otherIncome),
-      stateTaxRatePct: num(stateRate),
-    });
-  }, [high3, yearsOfService, plan, component, vaRating, spouse, childrenUnder18, childrenInSchool, parents, useNewVaRates, combatRating, sbpChoice, sbpCustom, filingStatus, otherIncome, stateRate]);
+  // A far-off start shows the monthly income in today's dollars: today's pay table, VA rates, and
+  // tax brackets, all from one year. The future-years table stays in the dollars of each year,
+  // from the projected High-3 and VA rates raised each December until pay starts.
+  const todaysDollars = high3Today > 0;
 
-  const projection = useMemo(() => projectIncome(result, num(cola), [0, 5, 10, 20, 30]), [result, cola]);
+  const { result, atStart } = useMemo(() => {
+    const incomeFor = (high3Average: number, vaIncreasePct: number) => {
+      const gross = grossRetiredPay(high3Average, yearsOfService, plan);
+      return calculateIncome({
+        high3Average,
+        yearsOfService,
+        plan,
+        // Reserve retirement itself requires 20 qualifying years.
+        regularRetirement: component === "reserve" ? true : undefined,
+        vaRating,
+        dependents: { spouse, childrenUnder18: num(childrenUnder18), childrenInSchool: num(childrenInSchool), dependentParents: parents },
+        vaIncreasePct,
+        combatRelatedRating: combatRating,
+        sbpBaseAmount: sbpChoice === "full" ? gross : sbpChoice === "custom" ? num(sbpCustom) : 0,
+        filingStatus,
+        otherAnnualIncome: num(otherIncome),
+        stateTaxRatePct: num(stateRate),
+      });
+    };
+    const pendingPct = VA_PENDING_COLA ? VA_PENDING_COLA.pct : 0;
+    const now = incomeFor(todaysDollars ? high3Today : high3, useNewVaRates ? pendingPct : 0);
+    if (!todaysDollars) return { result: now, atStart: now };
+    const knownYear = Number((VA_PENDING_COLA?.effective ?? VA_RATES_EFFECTIVE).slice(0, 4));
+    const increases = decemberIncreasesBy(new Date(retireYear, retireMonth, 1), knownYear);
+    const vaAtStartPct = ((1 + pendingPct / 100) * (1 + num(cola) / 100) ** increases - 1) * 100;
+    return { result: now, atStart: incomeFor(high3, vaAtStartPct) };
+  }, [todaysDollars, high3Today, high3, yearsOfService, plan, component, vaRating, spouse, childrenUnder18, childrenInSchool, parents, useNewVaRates, combatRating, sbpChoice, sbpCustom, filingStatus, otherIncome, stateRate, retireYear, retireMonth, cola]);
+
+  const projection = useMemo(() => projectIncome(atStart, num(cola), [0, 5, 10, 20, 30]), [atStart, cola]);
   const underTwenty = component === "active" && yearsOfService < 20;
 
   return (
@@ -317,7 +330,7 @@ export function RetirementCalculator() {
                   In today&apos;s dollars: a High-3 of <span className="font-bold tabular-nums">{usd(high3Today, true)}</span>, or{" "}
                   <span className="font-bold tabular-nums">{usd(grossRetiredPay(high3Today, yearsOfService, plan))}</span> a month in gross retired pay.{" "}
                   <span className="mt-1 block text-xs text-[var(--muted)]">
-                    That prices every month at the {PAY_TABLE_YEAR} pay table, so you can weigh it against your budget now.
+                    That prices every month at the {PAY_TABLE_YEAR} pay table. Your monthly income uses it, so you can weigh it against your budget now.
                   </span>
                 </p>
               )}
@@ -443,12 +456,18 @@ export function RetirementCalculator() {
       <div className="tool-output-panel scroll-mt-20" id="monthly-income" ref={resultRef}>
         <div className="tool-output-card lg:sticky lg:top-4">
           <div>
-            <p className="tool-kicker">YOUR MONTHLY INCOME</p>
+            <p className="tool-kicker">{todaysDollars ? "YOUR MONTHLY INCOME IN TODAY'S DOLLARS" : "YOUR MONTHLY INCOME"}</p>
             <p className="mt-1 text-4xl font-extrabold tabular-nums">{usd(result.totalNetMonthly)}</p>
             <p className="text-sm text-[var(--muted)]">
               a month after tax, about {usd(result.totalNetAnnual)} a year.{" "}
               {result.taxFreeIncome > 0 ? `${usd(result.taxFreeIncome)} of it is tax free.` : ""}
             </p>
+            {todaysDollars && (
+              <p className="mt-2 text-sm text-[var(--muted)]">
+                Your retired pay starts in {retireYear}. This uses today&apos;s pay table, VA rates, and tax brackets, so you can weigh it
+                against your budget now. The table below shows the dollars of each year.
+              </p>
+            )}
           </div>
 
           <dl className="grid gap-2">
@@ -487,7 +506,11 @@ export function RetirementCalculator() {
         <div className="tool-output-card">
           <div>
             <p className="tool-kicker">IN FUTURE YEARS</p>
-            <p className="section-description">Before tax. Retired pay and VA compensation both rise with the same yearly adjustment.</p>
+            <p className="section-description">
+              {todaysDollars
+                ? `Before tax, in the dollars of each year. Retired pay starts from your projected ${retireYear} High-3, and VA rates rise by the yearly increase each December until then. After that, both rise with the same yearly adjustment.`
+                : "Before tax. Retired pay and VA compensation both rise with the same yearly adjustment."}
+            </p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -502,10 +525,12 @@ export function RetirementCalculator() {
               <tbody>
                 {projection.map((row) => (
                   <tr key={row.year} className="border-t border-[var(--line)]">
-                    <td className="py-1.5 pr-3">{row.year === 0 ? "At retirement" : `Year ${row.year}`}</td>
-                    <td className="py-1.5 pr-3 text-right tabular-nums">{usd(row.grossRetiredPay)}</td>
-                    <td className="py-1.5 pr-3 text-right tabular-nums">{usd(row.vaCompensation)}</td>
-                    <td className="py-1.5 text-right font-semibold tabular-nums">{usd(row.combinedBeforeTax)}</td>
+                    <td className="py-1.5 pr-3">
+                      {todaysDollars ? (row.year === 0 ? `${retireYear}, pay starts` : `${retireYear + row.year}`) : row.year === 0 ? "At retirement" : `Year ${row.year}`}
+                    </td>
+                    <td className="py-1.5 pr-3 text-right tabular-nums whitespace-nowrap">{usd(row.grossRetiredPay)}</td>
+                    <td className="py-1.5 pr-3 text-right tabular-nums whitespace-nowrap">{usd(row.vaCompensation)}</td>
+                    <td className="py-1.5 text-right font-semibold tabular-nums whitespace-nowrap">{usd(row.combinedBeforeTax)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -550,7 +575,9 @@ export function RetirementCalculator() {
           style={{ paddingBottom: "calc(0.625rem + env(safe-area-inset-bottom))" }}
         >
           <span>
-            <span className="block text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[var(--muted)]">Your monthly income</span>
+            <span className="block text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
+              {todaysDollars ? "Monthly income, today's dollars" : "Your monthly income"}
+            </span>
             <span className="block text-xl font-extrabold tabular-nums">{usd(result.totalNetMonthly)}</span>
           </span>
           <span className="btn btn-primary text-sm">See the breakdown</span>

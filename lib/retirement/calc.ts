@@ -39,6 +39,17 @@ export function reserveYearsOfService(points: number) {
   return Math.round(carried * 100) / 100;
 }
 
+/**
+ * Yearly cost-of-living increases (each December 1) after `afterYear` that
+ * take effect on or before `startDate`. Carries today's VA rates forward to
+ * the month retired pay starts.
+ */
+export function decemberIncreasesBy(startDate: Date, afterYear: number): number {
+  let count = 0;
+  for (let year = afterYear + 1; new Date(year, 11, 1) <= startDate; year += 1) count += 1;
+  return count;
+}
+
 export type IncomeInputs = {
   high3Average: number;
   yearsOfService: number; // for pay purposes; reserve = points / 360
