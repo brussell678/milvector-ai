@@ -26,6 +26,9 @@ the status board at the end of each phase.
 | 2026-11-23 | Targeted Resume: the line review runs one line at a time in the chat, each marked line bringing the next, with a running count (D14). |
 | 2026-11-23 | D8 decided: no editing resume wording by chat in this phase. The chat explains and points to the ways that already work (Wrong on a line, updating the master, building again). |
 | 2026-11-23 | Targeted Resume: make the review a real lock (D15). Today the Word file is in My Files the moment it is built and only the builder's button waits; from now on a new targeted resume downloads (builder, My Files, the library) or goes on a business card only once every line is marked, and review marks are saved. Older resumes are unaffected. |
+| 2026-11-23 | Phase 3 works well enough to move on; tweaks may come once all five are running. The Targeted Resume Builder is the premier tool: outshining paid competitors there matters most. |
+| 2026-11-23 | D9 decided: the VA chat is kept only in the open browser tab (it survives a refresh and is gone when the tab closes), downloads as a Word file to the member's own device, and is never saved to My Files. The page's promise that MilVector does not save symptom details stays true as written. |
+| 2026-11-23 | VA Navigator: "Talk me through this one" is guided by the page (D16). The chat lists what to cover; the member answers in their own words; Analyze runs today's analysis, whose "what appears to be missing" says what to add next. No extra AI calls and no AI-written questions. |
 | Later | D8 (Phase 3) editing a resume by chat, D9 (Phase 4) saving a VA chat, D10 (Phase 5) saving an SBP chat, D11 (Phase 2 on) a typed sentence filling the top inputs. Brandon decides each at its milestone. |
 
 ## How the chat works
@@ -225,14 +228,51 @@ from the builder, My Files, or the library, downloads only after the review,
 and opens the review if tapped early; an unreviewed resume cannot go on a
 business card. A What's New entry is drafted for Brandon to publish.
 
-## Phase 4: VA Rating Navigator (to be revised after Phase 3)
+## Phase 4: VA Rating Navigator (admin only)
 
-Conditions on top, with the combined rating pinned there. "Talk me through this
-one" asks plain factual questions (how often, how long, what treatment), then
-runs the existing analysis. A crisis check runs on every message. Nothing the
-member says about symptoms is stored on our side. Tests: `chat-va-verify.cjs`,
-including the crisis path, no rating outside the schedule ever shown, and no
-symptom text in the run log or storage after a session. D9 decided here.
+| # | Requirement |
+|---|---|
+| 4.1 | The chat view shows to the admin; `CHAT_TOOLS_PUBLIC` gains `va`. Today's page stays at `?view=classic`. |
+| 4.2 | **Inputs on top:** the conditions, one per line (up to 60), and Find the Rating Codes. The combined rating estimate stays pinned there, with Show the math, from the ratings the member picks. |
+| 4.3 | **Find the codes** posts the same identify body as the classic page, in batches of 20 (one shared function builds it). The conditions land in one compact card: each with its code (a picker when there are several, "by analogy" when rated that way), which side for an arm or leg, a rating picker limited to the schedule's ratings for that code, and "Talk me through this one". |
+| 4.4 | **Talk me through this one (D16):** the chat lists what to cover for that condition (how often, how bad, how long it lasts, treatment and medication, tests, how it affects work and daily life) and its exam form. What the member types goes into that condition's description only: it is never sent to the chat model as a turn. Analyze posts the same analyze body as the classic page. The analysis lands as a card: the likely range first, then the criteria level by level, evidence gaps, the exam checklist, what the criteria turn on, exam prep, and possible secondary conditions, in folds. Its "what appears to be missing" is what to add next; Analyze again re-runs it. The rating picker starts at the low end of the range, as today. |
+| 4.5 | **Crisis check on every message:** anything the member types (a question, a description, the conditions list) is checked in the page, with no AI, for words of suicide or self-harm. A match shows the Veterans Crisis Line card in the thread at once (call 988 and press 1, text 838255, or chat online). The model is also told to lead with it. The analysis's own crisis note stays. |
+| 4.6 | **Follow-ups** go to `/api/chat/va_rating_navigator`, grounded on each condition's code, the ratings the schedule allows for it (worked out on the server from the code, not taken from the page), the rating picked, the side, each analysis, and the combined estimate with its math. Rules: educational only; never tell the member what to say or how to describe a condition to get a higher rating, and never encourage exaggerating; a percentage only if the schedule allows it for that code; estimates are ranges; accredited Veterans Service Officers file for free; confirm current criteria at the eCFR. The model may propose looking up conditions the member names, as a button ("Find the codes for: ..."), which uses one of today's runs; nothing else. |
+| 4.7 | **Privacy (D9):** the chat is kept in the open tab only. Download writes a Word copy (the conditions, ratings and math, each analysis, the member's own descriptions, and the conversation) to their device; nothing is stored. There is no Save to My Files, and the transcript route refuses one for this tool. As today, the run log keeps counts and codes, never the condition names or symptom text, and follow-ups keep no text. |
+| 4.8 | The read-this notes (educational only, Veterans Service Officers, honesty, 38 CFR source and date) stay, in the first message. |
+
+**Acceptance:** unit tests for the shared bodies, the crisis check, the server's
+allowed ratings, the context, the rules, the refused Save, and the transcript.
+`chat-va-verify.cjs`: identify in batches with the classic bodies; codes,
+sides, and only allowed ratings in the pickers; the combined estimate and its
+math; Talk me through this one, then Analyze with the description, and the
+description never in a chat turn; the crisis card for a question, a
+description, and the conditions list; a proposed lookup is a button; storage
+in the tab only (a new tab starts empty), nothing in `localStorage`; no Save
+button and a refused Save request; no symptom text in `tool_runs` after the
+session; Download; classic parity.
+
+**Phase 4 results (2026-11-23):** 490 unit tests pass (13 new), tsc and eslint
+clean, production build clean. `chat-va-verify.cjs` 38/38, with the other chat
+walkthroughs (MOS 54, JD 35, resume 40), on the app with
+`CHAT_TOOLS_PUBLIC=mos,jd,resume,va`. With the app as members see it: cleanup
+53, timeline links 29, sign-up 23, next step 26, review 16, d2 18, phase 4 11,
+job links 18, card upgrades 47. A member gets today's VA page and a 404 from
+its follow-up endpoint. Members see no change: today's page was moved, not
+changed, so no What's New entry.
+
+Found and fixed on the way:
+- Once a member had added to a condition's description, nothing but Analyze
+  ended it, so a question typed next went into the description instead of
+  the chat. The "Added to your description" message now has Done for now and
+  says where the next message goes.
+- The crisis card first appeared above the words that called for it. It now
+  follows them, for a question, a description, and the conditions list.
+
+Harness note: `card-upgrades-verify` can count one card visit twice when it
+is the first to open a card page on a freshly started dev server (the page
+compiles on that visit and reloads). It passes on a warm server; production
+does not compile on a visit.
 
 ## Phase 5: SBP Decision Advisor (to be revised after Phase 4)
 
@@ -254,7 +294,7 @@ when he decides.
 | 0. Plan | Done 2026-11-23 |
 | 1. Shell and MOS Translator | Done 2026-11-23: live, admin only (`e2095be`), walked and accepted as the foundation |
 | 2. JD Decoder | Done 2026-11-23: live, admin only (`6a9c858`), walked |
-| 3. Targeted Resume Builder | Built 2026-11-23 on branch `chat-tools`, admin only; the review lock applies to every member; waiting on Brandon's walk |
-| 4. VA Rating Navigator | Not started |
+| 3. Targeted Resume Builder | Done 2026-11-23: live (`ac73f9a`), chat admin only, review lock for every member; walked |
+| 4. VA Rating Navigator | Built 2026-11-23 on branch `chat-tools`, admin only; waiting on Brandon's walk |
 | 5. SBP Decision Advisor | Not started |
 | 6. Rollout | Not started |

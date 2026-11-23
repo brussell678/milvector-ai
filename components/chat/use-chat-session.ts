@@ -11,14 +11,16 @@ import type { Transcript } from "@/lib/chat/transcript";
 // it; nothing new is kept on our side).
 
 export type ChatMessage<Result, Run> =
-  // action: a run the member started ("Translate: 0311"). paste: a whole
-  // posting pasted into the reply box, never sent to the model as a turn.
+  // action: a run the member started ("Translate: 0311"). paste: text never
+  // sent to the model as a turn (a whole posting pasted into the reply box,
+  // or a VA condition's description, which goes only to its analysis).
   | { id: string; role: "user"; text: string; action?: boolean; paste?: boolean }
   // local: written by the page, not the model (an offer to run the tool), so
   // it is not sent to the model or written into the transcript.
   | { id: string; role: "assistant"; kind: "text"; text: string; streaming?: boolean; stopped?: boolean; error?: string; question?: string; suggestions?: string[]; run?: Run | null; local?: boolean }
   | { id: string; role: "assistant"; kind: "result"; result: Result; inputs: Run }
-  | { id: string; role: "assistant"; kind: "notice"; text: string; tone: "info" | "error" | "success"; href?: string; hrefLabel?: string };
+  // crisis: the Veterans Crisis Line card (the VA chat, docs/CHAT_TOOLS_PLAN.md 4.5).
+  | { id: string; role: "assistant"; kind: "notice"; text: string; tone: "info" | "error" | "success" | "crisis"; href?: string; hrefLabel?: string };
 
 export type Busy = { kind: "run" | "reply"; label: string; detail?: string } | null;
 
@@ -33,14 +35,20 @@ export const newId = () => Math.random().toString(36).slice(2, 10) + Date.now().
 
 const storageKey = (tool: ChatToolId, userId: string) => `mv.chat.v1.${tool}.${userId}`;
 
+// "local": kept in the browser for 7 days. "session": kept only in the open
+// tab, gone when it closes (the VA chat, D9: symptom details stay off shared
+// computers).
+export type ChatStorage = "local" | "session";
+const storeFor = (storage: ChatStorage) => (storage === "session" ? window.sessionStorage : window.localStorage);
+
 /**
  * The chat this member left on this device, if any and under 7 days old. Read
  * only in the browser, when the chat's state is first created; an answer cut
  * off by a reload is kept as stopped.
  */
-export function readChat<Result, Run, Extra>(tool: ChatToolId, userId: string): StoredChat<Result, Run, Extra> | null {
+export function readChat<Result, Run, Extra>(tool: ChatToolId, userId: string, storage: ChatStorage = "local"): StoredChat<Result, Run, Extra> | null {
   try {
-    const raw = window.localStorage.getItem(storageKey(tool, userId));
+    const raw = storeFor(storage).getItem(storageKey(tool, userId));
     if (!raw) return null;
     const value = JSON.parse(raw) as StoredChat<Result, Run, Extra>;
     if (value?.v !== 1 || !Array.isArray(value.messages) || Date.now() - value.savedAt > KEEP_MS) return null;
@@ -68,7 +76,9 @@ export function useChatSession<Result, Run, Extra>(args: {
   context: () => unknown;
   // Tool state kept with the messages (the inputs, for one).
   extra: Extra;
+  storage?: ChatStorage;
 }) {
+  const storage = args.storage ?? "local";
   const key = storageKey(args.tool, args.userId);
   const [messages, setMessages] = useState<ChatMessage<Result, Run>[]>(() => args.initial?.messages ?? []);
   const [busy, setBusy] = useState<Busy>(null);
@@ -80,12 +90,12 @@ export function useChatSession<Result, Run, Extra>(args: {
 
   useEffect(() => {
     try {
-      if (messages.length === 0) window.localStorage.removeItem(key);
-      else window.localStorage.setItem(key, JSON.stringify({ v: 1, savedAt: Date.now(), messages: messages.slice(-KEEP_MESSAGES), extra: args.extra }));
+      if (messages.length === 0) storeFor(storage).removeItem(key);
+      else storeFor(storage).setItem(key, JSON.stringify({ v: 1, savedAt: Date.now(), messages: messages.slice(-KEEP_MESSAGES), extra: args.extra }));
     } catch {
       // Private browsing or a full store: the chat still works, it just is not kept.
     }
-  }, [key, messages, args.extra]);
+  }, [key, messages, args.extra, storage]);
 
   const push = useCallback((message: ChatMessage<Result, Run>) => setMessages((prev) => [...prev, message]), []);
   const patch = useCallback(
@@ -107,9 +117,13 @@ export function useChatSession<Result, Run, Extra>(args: {
     setMessages([]);
   }, []);
 
-  /** Ask a follow-up question; the answer streams into a new message. */
+  /**
+   * Ask a follow-up question; the answer streams into a new message. between:
+   * a message to show right after the question, before the answer (the VA
+   * chat's crisis card, so it follows the words that called for it).
+   */
   const ask = useCallback(
-    async (question: string, retryOf?: string) => {
+    async (question: string, retryOf?: string, between?: ChatMessage<Result, Run>) => {
       const text = question.trim();
       if (!text || busy) return;
       // A retry resends the question that failed, so the history stops before it.
@@ -125,6 +139,7 @@ export function useChatSession<Result, Run, Extra>(args: {
       const answerId = newId();
       if (retryOf) setMessages((prev) => prev.filter((m) => m.id !== retryOf));
       else push({ id: newId(), role: "user", text });
+      if (between) push(between);
       push({ id: answerId, role: "assistant", kind: "text", text: "", streaming: true, question: text });
       setBusy({ kind: "reply", label: "Writing an answer" });
       const signal = begin();

@@ -4,6 +4,8 @@ import type { ChatToolId } from "@/lib/chat/tools";
 import type { MosPayload, MosResult } from "@/lib/chat/mos";
 import { NO_MASTER, type JdChatContext } from "@/lib/chat/jd";
 import type { ResumeChatContext } from "@/lib/chat/resume";
+import type { VaChatContext } from "@/lib/chat/va";
+import { allowedRatings, getCode, isValidCode } from "@/lib/va/schedule";
 
 // Follow-up questions in the chat tools (docs/CHAT_TOOLS_PLAN.md). The shared
 // guardrail first, then how a chat answer reads, then each tool's own rules,
@@ -48,10 +50,20 @@ const RESUME_RULES = `THIS TOOL: the Targeted Resume Builder. It writes a resume
 - Pay: only what the posting itself states.
 - run: always null in this tool.`;
 
+const VA_RULES = `THIS TOOL: the VA Rating Navigator. The member listed the conditions they plan to claim. It matched each to a diagnostic code in the VA rating schedule (38 CFR Part 4), lets them pick a rating for each to estimate a combined rating, and analyzes a condition from their own description: the criteria level by level, evidence gaps, the exam form, and a likely range.
+- Educational only. You are not a physician, examiner, attorney, or accredited claims agent; you do not diagnose and you do not predict VA's decision. For help filing, point the member to an accredited Veterans Service Officer (for example the VFW, DAV, American Legion, or a county veterans office); their help is free.
+- Never tell the member what to say, how to describe a condition, or which symptoms to report to get a higher rating, and never encourage exaggerating, tailoring, or leaving anything out. Explain what the criteria measure and what evidence documents it, and tell the member to describe their typical and worst days accurately and consistently.
+- State a rating percentage only if it is among the allowed ratings listed below for that condition's code. Every estimate is a range, never a promise.
+- Combined ratings: VA does not add ratings. Each rating applies to what is left after the one before, the result rounds to the nearest 10, and both arms or both legs add a bilateral factor. Use the combined estimate and its math below.
+- The schedule changes; the criteria here are as of the date below. Tell the member to confirm current criteria at the eCFR before relying on them.
+- If the member mentions suicide, self-harm, or wanting to die, begin your answer with: "If you are in crisis, call 988 and press 1, or text 838255, to reach the Veterans Crisis Line now. You are not alone." Then answer with care.
+- run: when the member names conditions to look up that are not in the list below, set run to {"conditions": ["..."]}, each as they named it, at most 20. The member sees a button and decides whether to spend one of today's runs on it. Otherwise run is null.`;
+
 const TOOL_RULES: Record<ChatToolId, string> = {
   mos_translator: MOS_RULES,
   jd_decoder: JD_RULES,
   resume_targeter: RESUME_RULES,
+  va_rating_navigator: VA_RULES,
 };
 
 export type MosChatContext = { inputs: MosPayload; result: Omit<MosResult, "runId"> | null };
@@ -164,7 +176,42 @@ function resumeContextText(context: ResumeChatContext): string {
   return lines.join("\n");
 }
 
-export type ChatContext = { mos_translator: MosChatContext; jd_decoder: JdChatContext; resume_targeter: ResumeChatContext };
+// Each condition's title and allowed ratings come from the schedule on the
+// server, by its code; nothing the page sends can widen what the model may say.
+function vaContextText(context: VaChatContext): string {
+  if (context.conditions.length === 0) {
+    return "No conditions have been matched yet. The member lists them at the top of the page, one per line, and taps Find the Rating Codes.";
+  }
+  const lines = [`THE MEMBER'S CONDITIONS (data), rating criteria as of ${context.asOf ?? "the current schedule"}:`];
+  context.conditions.forEach((c, i) => {
+    const code = isValidCode(c.code) ? getCode(c.code) : null;
+    const allowed = code ? allowedRatings(c.code) : [];
+    const codeText = code ? `DC ${c.code} ${code.title} (allowed ratings: ${allowed.length ? allowed.join(", ") : "rated by reference to other criteria; use only percentages in the regulation"})` : "no matching code";
+    lines.push(`${i + 1}. "${c.input}": ${codeText}. Rating picked for the estimate: ${c.rating ?? "none"}.${c.side ? ` Side: ${c.side}.` : ""}`);
+    const a = c.analysis;
+    if (!a) return;
+    const range = a.low === null || a.high === null ? "no estimate" : a.low === a.high ? `${a.low}` : `${a.low} to ${a.high}`;
+    lines.push(`   Analysis: likely ${range} (${a.confidence} confidence). ${a.why}`);
+    if (a.up) lines.push(`   Could move it up: ${a.up}`);
+    if (a.down) lines.push(`   Could move it down: ${a.down}`);
+    if (a.missing.length) lines.push(`   Appears missing: ${a.missing.join("; ")}`);
+    if (a.weak.length) lines.push(`   Weak points: ${a.weak.join("; ")}`);
+    if (a.strengthen.length) lines.push(`   Would strengthen the record: ${a.strengthen.join("; ")}`);
+    if (a.checklistOpen.length) lines.push(`   Exam form items not yet covered: ${a.checklistOpen.join("; ")}`);
+    if (a.examPrep.length) lines.push(`   Exam prep: ${a.examPrep.join("; ")}`);
+    if (a.secondary.length) lines.push(`   Possible secondary conditions: ${a.secondary.join("; ")}`);
+  });
+  const combined = context.combined;
+  lines.push(
+    "",
+    combined
+      ? `COMBINED ESTIMATE (data): ${combined.rating} percent (exact combined value ${combined.value}) from ${combined.rated} picked ratings. The math: ${combined.steps.join(" ")}`
+      : "COMBINED ESTIMATE: none yet; the member has not picked a rating for any condition.",
+  );
+  return lines.join("\n");
+}
+
+export type ChatContext = { mos_translator: MosChatContext; jd_decoder: JdChatContext; resume_targeter: ResumeChatContext; va_rating_navigator: VaChatContext };
 
 export function promptChatSystem<T extends ChatToolId>(tool: T, context: ChatContext[T]): string {
   const contextText =
@@ -172,6 +219,8 @@ export function promptChatSystem<T extends ChatToolId>(tool: T, context: ChatCon
       ? mosContextText(context as MosChatContext)
       : tool === "jd_decoder"
         ? jdContextText(context as JdChatContext)
-        : resumeContextText(context as ResumeChatContext);
+        : tool === "resume_targeter"
+          ? resumeContextText(context as ResumeChatContext)
+          : vaContextText(context as VaChatContext);
   return [MILVECTOR_SYSTEM_PROMPT, CHAT_RULES, TOOL_RULES[tool], contextText].join("\n\n");
 }

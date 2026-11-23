@@ -115,6 +115,42 @@ export const ResumeContextSchema = z.object({
     .default(null),
 });
 
+export const VaContextSchema = z.object({
+  asOf: text(40).nullable().default(null),
+  conditions: z
+    .array(
+      z.object({
+        input: text(160),
+        // The code only: its title and allowed ratings are looked up on the
+        // server, never taken from the page.
+        code: text(8).default(""),
+        rating: z.number().int().min(0).max(100).nullable().default(null),
+        side: text(20).default(""),
+        analysis: z
+          .object({
+            low: z.number().nullable().default(null),
+            high: z.number().nullable().default(null),
+            confidence: text(10).default(""),
+            why: text(800).default(""),
+            up: text(600).default(""),
+            down: text(600).default(""),
+            described: textList(12, 400),
+            missing: textList(12, 400),
+            weak: textList(12, 400),
+            strengthen: textList(12, 400),
+            checklistOpen: textList(20, 300),
+            examPrep: textList(12, 400),
+            secondary: textList(10, 200),
+          })
+          .nullable()
+          .default(null),
+      }),
+    )
+    .max(60)
+    .default([]),
+  combined: z.object({ rating: z.number(), value: z.number(), rated: z.number().int(), steps: textList(70, 200) }).nullable().default(null),
+});
+
 export const TranscriptRequestSchema = z.object({
   mode: z.enum(["download", "save"]),
   title: z.string().trim().min(2).max(120),

@@ -51,6 +51,11 @@ export function parseMeta<R>(raw: string | null, runSchema: z.ZodType<R> | null)
   return { suggestions: cleanSuggestions(value.suggestions), run };
 }
 
+// The VA Rating Navigator's proposed run: conditions the member named, to look up.
+export const VaRunSchema = z.object({
+  conditions: z.array(z.coerce.string().trim().min(2).max(160)).min(1).max(20),
+});
+
 // The MOS Translator's proposed run: the same fields its form sends.
 const shortList = z
   .array(z.coerce.string().trim().min(1).max(80))

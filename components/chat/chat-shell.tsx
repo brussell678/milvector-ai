@@ -20,6 +20,8 @@ type Props = {
   onStop: () => void;
   placeholder: string;
   canExport: boolean;
+  // false: no Save to My Files (the VA chat, D9).
+  canSave?: boolean;
   exporting: "download" | "save" | null;
   onDownload: () => void;
   onSave: () => void;
@@ -133,11 +135,13 @@ export function ChatShell(props: Props) {
             <Download size={15} aria-hidden="true" />
             {props.exporting === "download" ? "Preparing" : "Download"}
           </button>
-          <button type="button" className="chat-bar-button" onClick={props.onSave} disabled={!props.canExport || !!props.exporting} title="Save this chat to My Files as a Word file">
-            <FilePlus2 size={15} aria-hidden="true" />
-            {props.exporting === "save" ? "Saving" : "Save"}
-            <span className="sr-only"> to My Files</span>
-          </button>
+          {props.canSave !== false && (
+            <button type="button" className="chat-bar-button" onClick={props.onSave} disabled={!props.canExport || !!props.exporting} title="Save this chat to My Files as a Word file">
+              <FilePlus2 size={15} aria-hidden="true" />
+              {props.exporting === "save" ? "Saving" : "Save"}
+              <span className="sr-only"> to My Files</span>
+            </button>
+          )}
           <button type="button" className="chat-bar-button" onClick={props.onNew} title="Start a new chat">
             <RotateCcw size={15} aria-hidden="true" />
             New

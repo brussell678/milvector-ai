@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
+import type { ZodType } from "zod";
 import { authReplies, requireUser } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getEnv } from "@/lib/env";
 import { redactPII } from "@/lib/redact";
 import { chatEnabled } from "@/lib/chat/access";
 import { enforceChatLimit } from "@/lib/chat/limit";
-import { MosRunSchema, parseMeta } from "@/lib/chat/meta";
-import { FollowUpSchema, JdContextSchema, MosContextSchema, ResumeContextSchema } from "@/lib/chat/schemas";
+import { MosRunSchema, parseMeta, VaRunSchema } from "@/lib/chat/meta";
+import { FollowUpSchema, JdContextSchema, MosContextSchema, ResumeContextSchema, VaContextSchema } from "@/lib/chat/schemas";
 import { AnswerSplitter, encodeEvent, type ChatEvent } from "@/lib/chat/stream";
 import { chatToolFor, type ChatToolId } from "@/lib/chat/tools";
 import { AI_MESSAGES, ChatStreamError, streamChat, type ChatTurn } from "@/lib/llm/client";
@@ -31,6 +32,7 @@ const SPECS = {
   mos_translator: { context: MosContextSchema, run: MosRunSchema },
   jd_decoder: { context: JdContextSchema, run: null },
   resume_targeter: { context: ResumeContextSchema, run: null },
+  va_rating_navigator: { context: VaContextSchema, run: VaRunSchema },
 } satisfies Record<ChatToolId, { context: unknown; run: unknown }>;
 
 async function handlePOST(req: Request, ctx: Ctx) {
@@ -63,7 +65,9 @@ async function handlePOST(req: Request, ctx: Ctx) {
       ? promptChatSystem("jd_decoder", context.data as ChatContext["jd_decoder"])
       : tool === "resume_targeter"
         ? promptChatSystem("resume_targeter", context.data as ChatContext["resume_targeter"])
-        : promptChatSystem("mos_translator", context.data as ChatContext["mos_translator"]);
+        : tool === "va_rating_navigator"
+          ? promptChatSystem("va_rating_navigator", context.data as ChatContext["va_rating_navigator"])
+          : promptChatSystem("mos_translator", context.data as ChatContext["mos_translator"]);
 
   const upstream = new AbortController();
   let timedOut = false;
@@ -133,7 +137,8 @@ async function handlePOST(req: Request, ctx: Ctx) {
           send({ type: "delta", text: rest });
         }
         if (!answered.trim()) throw new ChatStreamError(AI_MESSAGES.outage, "The model returned no answer text.");
-        const { suggestions, run } = spec.run ? parseMeta(meta, spec.run) : parseMeta(meta, null);
+        // Each tool's proposed run is checked by its own schema (or none).
+        const { suggestions, run } = parseMeta<unknown>(meta, spec.run as ZodType<unknown> | null);
         await log({ status: "success", tokensIn, tokensOut, suggestions: suggestions.length, marked: meta !== null });
         send({ type: "done", suggestions, run });
       } catch (error) {
