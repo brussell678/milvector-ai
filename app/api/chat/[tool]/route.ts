@@ -6,11 +6,11 @@ import { redactPII } from "@/lib/redact";
 import { chatEnabled } from "@/lib/chat/access";
 import { enforceChatLimit } from "@/lib/chat/limit";
 import { MosRunSchema, parseMeta } from "@/lib/chat/meta";
-import { FollowUpSchema, MosContextSchema } from "@/lib/chat/schemas";
+import { FollowUpSchema, JdContextSchema, MosContextSchema } from "@/lib/chat/schemas";
 import { AnswerSplitter, encodeEvent, type ChatEvent } from "@/lib/chat/stream";
 import { chatToolFor, type ChatToolId } from "@/lib/chat/tools";
 import { AI_MESSAGES, ChatStreamError, streamChat, type ChatTurn } from "@/lib/llm/client";
-import { promptChatSystem } from "@/lib/llm/prompts-chat";
+import { promptChatSystem, type ChatContext } from "@/lib/llm/prompts-chat";
 
 // Follow-up questions in a chat tool (docs/CHAT_TOOLS_PLAN.md, 1.4). The
 // answer streams as it is written; after it come the suggested next questions
@@ -25,14 +25,22 @@ const TOO_SLOW = "That answer took too long. Ask again, or ask a shorter questio
 
 type Ctx = { params: Promise<{ tool: string }> };
 
+// Per tool: what the page must send as context, and the run the model may
+// propose (null: this tool's chat never proposes one).
+const SPECS = {
+  mos_translator: { context: MosContextSchema, run: MosRunSchema },
+  jd_decoder: { context: JdContextSchema, run: null },
+} satisfies Record<ChatToolId, { context: unknown; run: unknown }>;
+
 async function handlePOST(req: Request, ctx: Ctx) {
   const { userId, email } = await requireUser();
   const { tool } = await ctx.params;
   const info = chatToolFor(tool);
   if (!info || !chatEnabled(info.key, email)) return NextResponse.json({ error: "This chat is not open yet." }, { status: 404 });
 
+  const spec = SPECS[tool as ChatToolId];
   const parsed = FollowUpSchema.safeParse(await req.json().catch(() => null));
-  const context = parsed.success ? MosContextSchema.safeParse(parsed.data.context) : null;
+  const context = parsed.success ? spec.context.safeParse(parsed.data.context) : null;
   if (!parsed.success || !context?.success) {
     return NextResponse.json({ error: "That message could not be sent. Refresh the page and try again." }, { status: 400 });
   }
@@ -49,7 +57,7 @@ async function handlePOST(req: Request, ctx: Ctx) {
     ...parsed.data.turns.map((t) => ({ role: t.role, content: t.role === "user" ? redactPII(t.content).text : t.content })),
     { role: "user", content: redactPII(parsed.data.message).text },
   ];
-  const system = promptChatSystem(tool as ChatToolId, context.data);
+  const system = tool === "jd_decoder" ? promptChatSystem("jd_decoder", context.data as ChatContext["jd_decoder"]) : promptChatSystem("mos_translator", context.data as ChatContext["mos_translator"]);
 
   const upstream = new AbortController();
   let timedOut = false;
@@ -119,7 +127,7 @@ async function handlePOST(req: Request, ctx: Ctx) {
           send({ type: "delta", text: rest });
         }
         if (!answered.trim()) throw new ChatStreamError(AI_MESSAGES.outage, "The model returned no answer text.");
-        const { suggestions, run } = parseMeta(meta, MosRunSchema);
+        const { suggestions, run } = spec.run ? parseMeta(meta, spec.run) : parseMeta(meta, null);
         await log({ status: "success", tokensIn, tokensOut, suggestions: suggestions.length, marked: meta !== null });
         send({ type: "done", suggestions, run });
       } catch (error) {

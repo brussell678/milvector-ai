@@ -19,6 +19,9 @@ the status board at the end of each phase.
 | 2026-11-23 | A chat downloads as a Word file (D5). |
 | 2026-11-23 | Each chat opens to the admin first, behind a switch, with today's page kept for members until Brandon retires it (D6). |
 | 2026-11-23 | Follow-up answers stream in word by word (D7). Tool results still arrive as whole cards. |
+| 2026-11-23 | Phase 1 is the foundation for the rest; move on to Phase 2. |
+| 2026-11-23 | JD Decoder: the role summary and the member's fit show open; requirements, risks, keywords, interview prep, and company signals sit in one card of folds (D12). |
+| 2026-11-23 | JD Decoder: a job link or a whole posting pasted into the reply box is spotted by the page (no AI call) and offered as a "Decode this posting" button; nothing runs until it is tapped (D13). |
 | Later | D8 (Phase 3) editing a resume by chat, D9 (Phase 4) saving a VA chat, D10 (Phase 5) saving an SBP chat, D11 (Phase 2 on) a typed sentence filling the top inputs. Brandon decides each at its milestone. |
 
 ## How the chat works
@@ -130,13 +133,42 @@ Not testable in the harness, so it is on Brandon's walk: the reply box staying
 above the keyboard on a real iPhone and Android phone, and answers streaming
 through Cloudflare on the live site.
 
-## Phase 2: Job Description Decoder (to be revised after Phase 1)
+## Phase 2: Job Description Decoder (admin only)
 
-Link or paste on top, with the member's master resume as a chip. The result
-arrives in order: the role in plain English, your fit, must-haves and risks,
-keywords to copy, interview prep. "Build my resume for this" carries the run
-into the resume chat, fit included. Tests: `chat-jd-verify.cjs`, the
-same-request check, and `d2-verify.cjs` and `job-link-verify.cjs` stay green.
+| # | Requirement |
+|---|---|
+| 2.1 | The chat view of the JD Decoder shows to the admin; `CHAT_TOOLS_PUBLIC` gains `jd` to open it to members. Today's page stays at `?view=classic` and links to the chat for anyone who can see it. |
+| 2.2 | **Inputs on top:** the member's master resume as a one-line chip with Change (the existing picker, which saves the choice for every tool), the job link field, and "or paste the posting". After a decode they shrink to one line ("Decoded: Readiness Program Manager at Acme", Edit). |
+| 2.3 | **Decode** reads the link first when there is no pasted text, exactly as today, then posts the same body to `/api/tools/jd-decoder` (one shared function builds it for both pages). The fit check runs beside it as today and is saved with the run. |
+| 2.4 | **The result (D12):** the role summary (title, level, plain English, mission) and the member's fit (the existing fit view: verdict, each requirement with the master lines behind it, the honest gap hint) show open. Requirements, risks, keywords (with Copy), interview prep, and company signals sit in one card of folds. With no master chosen, the chat says how to get a fit. Below it, "Build a resume for this job" carries the posting and the fit into the Targeted Resume Builder (`?jd=`), as today. |
+| 2.5 | **Paste in the reply box (D13):** a link, or a posting of 1,000 characters or more, gets a "Decode this posting" button that names the cost; the page decides, with no AI call, and nothing runs until it is tapped. A short question still goes to the chat. |
+| 2.6 | **Follow-ups** go to `/api/chat/jd_decoder`, grounded on the posting, the decode, and the fit with the master lines it cites. Rules beyond Phase 1's: say how the member fits only from the fit and its master lines; for a gap, be honest (how to speak to it, related experience, how to close it) and never suggest claiming it; if they have done it, tell them to add it to their master in My Files and decode again; pay only as the posting states it, else bls.gov/ooh. The model never proposes a run here. Three suggestions to tap, topped up by the page. |
+| 2.7 | Download and Save write the decode out in full (summary, fit with each requirement and its master lines, every list) with the conversation. |
+
+**Acceptance:** unit tests for the shared request, spotting a link or posting,
+the context sent to the model, the suggestions, the rules, and the transcript.
+`chat-jd-verify.cjs` at 390 px and desktop: link-only decode reads the posting
+first; the chat's request matches the classic page's; summary and fit open,
+the rest folded; no master gives the "how to get a fit" message; the handoff
+link carries the run; a link and a long posting pasted in the reply box each
+get a Decode button and nothing runs until it is tapped; the model gets the
+posting, decode, and fit; Download and Save. `d2-verify.cjs`,
+`job-link-verify.cjs`, and `chat-mos-verify.cjs` stay green.
+
+**Phase 2 results (2026-11-23):** 463 unit tests pass (13 new), tsc and eslint
+clean, production build clean. `chat-jd-verify.cjs` 35/35 and
+`chat-mos-verify.cjs` 54/54 with `CHAT_TOOLS_PUBLIC=mos,jd`. Unchanged and green
+with the app as members see it: `d2-verify` 17, `job-link-verify` 18 (one real
+Lever posting), `review-verify` 15, `phase4-verify` 11, `cleanup-verify` 53,
+`timeline-links-verify` 29, `signup-verify` 23, `next-step-verify` 26. A member
+gets today's JD page and a 404 from its follow-up endpoint.
+
+Shared changes this phase, for Phases 3 to 5: the follow-up endpoint takes a
+per-tool spec (what context the page sends, and the run the model may propose,
+or none); messages the page writes itself (`local`) and postings pasted into
+the reply box (`paste`) are never sent to the model as turns; a tool's own
+result card can sit inside a chat message (`.chat-fit`); chat list styles no
+longer reach into those cards; the budget message no longer names one tool.
 
 ## Phase 3: Targeted Resume Builder (to be revised after Phase 2)
 
@@ -176,8 +208,8 @@ when he decides.
 | Phase | Status |
 |---|---|
 | 0. Plan | Done 2026-11-23 |
-| 1. Shell and MOS Translator | Built 2026-11-23 on branch `chat-tools`, admin only; waiting on Brandon's phone walk |
-| 2. JD Decoder | Not started |
+| 1. Shell and MOS Translator | Done 2026-11-23: live, admin only (`e2095be`), walked and accepted as the foundation |
+| 2. JD Decoder | Built 2026-11-23 on branch `chat-tools`, admin only; waiting on Brandon's walk |
 | 3. Targeted Resume Builder | Not started |
 | 4. VA Rating Navigator | Not started |
 | 5. SBP Decision Advisor | Not started |

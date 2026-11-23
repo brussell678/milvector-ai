@@ -2,6 +2,7 @@ import { MILVECTOR_SYSTEM_PROMPT } from "@/lib/llm/prompts";
 import { NEXT_MARK } from "@/lib/chat/stream";
 import type { ChatToolId } from "@/lib/chat/tools";
 import type { MosPayload, MosResult } from "@/lib/chat/mos";
+import { NO_MASTER, type JdChatContext } from "@/lib/chat/jd";
 
 // Follow-up questions in the chat tools (docs/CHAT_TOOLS_PLAN.md). The shared
 // guardrail first, then how a chat answer reads, then each tool's own rules,
@@ -30,8 +31,17 @@ const MOS_RULES = `THIS TOOL: the MOS Translator. It maps a military occupation 
 - To build a resume for a role, the member taps Build Resume for this Role on its card. To aim the other tools at a role, Set as Target Role.
 - run: when the member asks you to translate, or to change what goes into the translator (a different MOS, years, billets, or interests), set run to the full set of inputs for that run, starting from the inputs below with their change applied: {"mos": "", "yearsExp": null, "billets": [], "interests": []}. The member sees it as a button and decides whether to spend one of today's runs on it, so say in your answer that tapping the button runs it. Never set run on your own initiative; suggest a new run in words instead.`;
 
+const JD_RULES = `THIS TOOL: the Job Description Decoder. The member gave it one job posting. It read the posting (what the job is, its level, the requirements, keywords, risks, and interview prep) and checked the member's fit against the master resume they chose: each requirement marked strong, met, partial, gap, or confirm (a condition of the job, such as travel), with the master resume lines behind it. The member sees all of it above the chat.
+- Say how the member fits only from the fit below and the master resume lines it cites. Never say the member has done something those lines do not show. If there is no fit, say their fit was not checked and how to get it (below).
+- For a gap, be honest and practical: how to speak to it in an interview, related experience their master lines do show, or how to close it (training, a certification, a project). Never suggest claiming experience they do not have. If they have done it and their master leaves it out, tell them to add it to their master resume, upload it to My Files, and decode again.
+- Pay: only what the posting itself states. If it states none, say so and point the member to the Bureau of Labor Statistics Occupational Outlook Handbook (bls.gov/ooh).
+- Keywords and screening software: use the posting's own words; tell them to use a keyword only where their record supports it.
+- To build a resume aimed at this job, the member taps "Build a resume for this job" below the decode; the posting and their fit go with them.
+- run: always null in this tool.`;
+
 const TOOL_RULES: Record<ChatToolId, string> = {
   mos_translator: MOS_RULES,
+  jd_decoder: JD_RULES,
 };
 
 export type MosChatContext = { inputs: MosPayload; result: Omit<MosResult, "runId"> | null };
@@ -63,7 +73,54 @@ function mosContextText(context: MosChatContext): string {
   return lines.join("\n");
 }
 
-export function promptChatSystem(tool: ChatToolId, context: MosChatContext): string {
-  const contextText = tool === "mos_translator" ? mosContextText(context) : "";
+const list = (title: string, items: string[]) => (items.length ? [`${title}:`, ...items.map((item) => `- ${item}`)] : []);
+
+function jdContextText(context: JdChatContext): string {
+  const { posting, decode, fit, fitNote } = context;
+  if (!posting || !decode) {
+    return "No posting has been decoded yet. The member pastes the posting's link, or the whole posting, at the top of the page or right into this chat, and taps Decode. Their master resume, chosen at the top, is what their fit is checked against.";
+  }
+  const lines = [
+    "THE POSTING (data):",
+    `Job title: ${posting.title || decode.job_title || "(not stated)"}${posting.company ? `, at ${posting.company}` : ""}`,
+    posting.text,
+    "",
+    "THE DECODE ON THE MEMBER'S SCREEN (data):",
+    `Level: ${decode.role_level_guess}${decode.role_level_confidence ? ` (${decode.role_level_confidence} confidence)` : ""}`,
+    `In plain English: ${decode.plain_english_summary}`,
+    `Mission of the role: ${decode.role_mission_summary}`,
+    ...list("Top must-have signals", decode.top_must_have_signals),
+    ...list("Hard requirements", decode.hard_requirements),
+    ...list("Soft requirements", decode.soft_requirements),
+    ...list("Implied expectations", decode.implied_expectations),
+    ...list("Fit risks", decode.fit_risks),
+    ...list("Keywords by priority", decode.ats_keywords_priority.length ? [decode.ats_keywords_priority.join(", ")] : []),
+    ...list("Company signals", decode.company_context_signals),
+    ...list("Interview focus areas", decode.interview_focus_areas),
+    ...list("Likely interview questions", decode.likely_interview_questions),
+    ...list("Questions to ask them", decode.clarifying_questions),
+    "",
+  ];
+  if (!fit) {
+    lines.push(
+      fitNote === NO_MASTER || !fitNote
+        ? "THE MEMBER'S FIT: not checked, because they have not chosen a master resume. To see it, they choose their master resume at the top of the page (or build one with the Master Resume Builder) and decode again."
+        : `THE MEMBER'S FIT: not checked this time (${fitNote}). Decoding again checks it.`,
+    );
+    return lines.join("\n");
+  }
+  lines.push(`THE MEMBER'S FIT (data): ${fit.recommendation}. ${fit.reason}`);
+  fit.requirements.forEach((r, i) => {
+    lines.push(`${i + 1}. [${r.type}, ${r.assessment}] ${r.requirement}`);
+    for (const line of r.evidence) lines.push(`   master line: ${line}`);
+    if (r.bridge) lines.push(`   how to bridge it: ${r.bridge}`);
+  });
+  return lines.join("\n");
+}
+
+export type ChatContext = { mos_translator: MosChatContext; jd_decoder: JdChatContext };
+
+export function promptChatSystem<T extends ChatToolId>(tool: T, context: ChatContext[T]): string {
+  const contextText = tool === "mos_translator" ? mosContextText(context as MosChatContext) : jdContextText(context as JdChatContext);
   return [MILVECTOR_SYSTEM_PROMPT, CHAT_RULES, TOOL_RULES[tool], contextText].join("\n\n");
 }

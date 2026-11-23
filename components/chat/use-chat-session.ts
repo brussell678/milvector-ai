@@ -11,8 +11,12 @@ import type { Transcript } from "@/lib/chat/transcript";
 // it; nothing new is kept on our side).
 
 export type ChatMessage<Result, Run> =
-  | { id: string; role: "user"; text: string; action?: boolean }
-  | { id: string; role: "assistant"; kind: "text"; text: string; streaming?: boolean; stopped?: boolean; error?: string; question?: string; suggestions?: string[]; run?: Run | null }
+  // action: a run the member started ("Translate: 0311"). paste: a whole
+  // posting pasted into the reply box, never sent to the model as a turn.
+  | { id: string; role: "user"; text: string; action?: boolean; paste?: boolean }
+  // local: written by the page, not the model (an offer to run the tool), so
+  // it is not sent to the model or written into the transcript.
+  | { id: string; role: "assistant"; kind: "text"; text: string; streaming?: boolean; stopped?: boolean; error?: string; question?: string; suggestions?: string[]; run?: Run | null; local?: boolean }
   | { id: string; role: "assistant"; kind: "result"; result: Result; inputs: Run }
   | { id: string; role: "assistant"; kind: "notice"; text: string; tone: "info" | "error" | "success"; href?: string; hrefLabel?: string };
 
@@ -113,8 +117,8 @@ export function useChatSession<Result, Run, Extra>(args: {
       const history = at >= 0 ? latest.current.slice(0, Math.max(0, at - 1)) : latest.current;
       const turns = history
         .flatMap((m): { role: "user" | "assistant"; content: string }[] => {
-          if (m.role === "user") return [{ role: "user" as const, content: m.text.slice(0, CHAT_TURN_CHARS) }];
-          if (m.kind === "text" && !m.error && !m.streaming && m.text.trim()) return [{ role: "assistant" as const, content: m.text.slice(0, CHAT_TURN_CHARS) }];
+          if (m.role === "user") return m.paste ? [] : [{ role: "user" as const, content: m.text.slice(0, CHAT_TURN_CHARS) }];
+          if (m.kind === "text" && !m.error && !m.streaming && !m.local && m.text.trim()) return [{ role: "assistant" as const, content: m.text.slice(0, CHAT_TURN_CHARS) }];
           return [];
         })
         .slice(-CHAT_TURNS_SENT);

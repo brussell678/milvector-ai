@@ -12,7 +12,7 @@ import { evaluateUsage } from "@/lib/usage-limit";
 const WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export function chatLimitMessage(limit: number) {
-  return `You've asked ${limit} follow-up questions today, the daily limit. It frees up over the next 24 hours. Your chat and results are still here, and Translate still works.`;
+  return `You've asked ${limit} follow-up questions today, the daily limit. It frees up over the next 24 hours. Your chat and results are still here, and the tool itself still runs.`;
 }
 
 /** A 429 reply when the member is over the follow-up budget, otherwise null. Fails open, like the run limit. */

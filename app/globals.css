@@ -1669,7 +1669,8 @@ summary:focus-visible,
   line-height: 1.6;
 }
 
-.chat-msg-body ul {
+/* Lists the chat writes itself; lists inside a tool's own card keep theirs. */
+.chat-msg-body > ul {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
@@ -1734,6 +1735,13 @@ summary:focus-visible,
   .chat-typing span {
     animation: none;
   }
+}
+
+/* A tool's own result card shown inside a chat message. */
+.chat-fit .tool-output-card {
+  padding: 0.875rem;
+  box-shadow: none;
+  background: var(--surface);
 }
 
 .chat-card {
