@@ -460,6 +460,18 @@ describe("Google Wallet pass", () => {
     ]);
   });
 
+  it("lists every detail a pass can carry, except the front-row phone", () => {
+    const passClass = googleClass("3388000000012345678.milvector_business_card");
+    const paths = passClass.classTemplateInfo.detailsTemplateOverride.detailsItemInfos.map((d) => d.item.firstValue.fields[0].fieldPath);
+    expect(paths.some((p) => p.includes(FACE_PHONE_MODULE))).toBe(false);
+    const full = { ...card, passShowPhone: true, links: Array.from({ length: 8 }, (_, i) => ({ type: "other" as const, label: `L${i}`, url: `https://example.com/${i}` })) };
+    const object = buildGoogleObject({ ...args, card: full, issuerId: config.issuerId }, true);
+    for (const t of object.textModulesData as { id: string }[]) {
+      if (t.id !== FACE_PHONE_MODULE) expect(paths, t.id).toContain(`object.textModulesData['${t.id}']`);
+    }
+    for (const u of object.linksModuleData.uris) expect(paths, u.id).toContain(`object.linksModuleData.uris['${u.id}']`);
+  });
+
   it("registers the pass with Google and hands out a short signed link", async () => {
     const calls: { url: string; method: string }[] = [];
     const fetcher = (async (input: RequestInfo | URL, init?: RequestInit) => {

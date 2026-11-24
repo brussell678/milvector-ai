@@ -1,7 +1,7 @@
 import { createSign } from "node:crypto";
 import { cardUrl, shortCardUrl } from "@/lib/cards/access";
 import { readPem } from "@/lib/cards/apple-pass";
-import { displayPhone, telDigits, type CardData } from "@/lib/cards/schema";
+import { displayPhone, MAX_LINKS, telDigits, type CardData } from "@/lib/cards/schema";
 import { siteUrl } from "@/lib/seo";
 
 // Google Wallet "generic" pass for a business card.
@@ -44,13 +44,28 @@ export const googleObjectId = (issuerId: string, cardId: string) => `${issuerId}
 // pass without it shows no row.
 export const FACE_PHONE_MODULE = "face_phone";
 
+// What the details list shows, in order: every text module except the front-row
+// phone, then every link a pass can carry (see buildGoogleObject).
+export const DETAIL_TEXT_MODULES = ["about", "location"] as const;
+export const DETAIL_LINKS = ["phone", "email", "card", "web", ...Array.from({ length: MAX_LINKS }, (_, i) => `link${i}`)];
+
 /** The pass class every business card shares: one optional row on the front, for the phone. */
 export function googleClass(classId: string) {
+  const field = (fieldPath: string) => ({ firstValue: { fields: [{ fieldPath }] } });
   return {
     id: classId,
     classTemplateInfo: {
       cardTemplateOverride: {
-        cardRowTemplateInfos: [{ oneItem: { item: { firstValue: { fields: [{ fieldPath: `object.textModulesData['${FACE_PHONE_MODULE}']` }] } } } }],
+        cardRowTemplateInfos: [{ oneItem: { item: field(`object.textModulesData['${FACE_PHONE_MODULE}']`) } }],
+      },
+      // The details list under the card, spelled out so the front-row phone is
+      // not repeated there (it is already a tap-to-call link). An item a pass
+      // does not have is not shown.
+      detailsTemplateOverride: {
+        detailsItemInfos: [
+          ...DETAIL_TEXT_MODULES.map((id) => ({ item: field(`object.textModulesData['${id}']`) })),
+          ...DETAIL_LINKS.map((id) => ({ item: field(`object.linksModuleData.uris['${id}']`) })),
+        ],
       },
     },
   };
