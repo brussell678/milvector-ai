@@ -19,48 +19,70 @@ Production. Redeploy after adding them.
 
 ## Apple Wallet
 
-Needs a paid Apple Developer account (the account holder does steps 1 to 4).
+Needs a paid Apple Developer account. MilVector uses a friend's (live since
+2026-11-24): the passes are signed under his team, and the certificate is
+renewed through his account each year. No Mac is needed, and the private key
+never leaves the admin's PC.
 
-1. In the Apple Developer portal, go to Certificates, Identifiers and Profiles,
-   then Identifiers. Add a new **Pass Type ID**, for example
-   `pass.org.milvector.card`.
-2. On a Mac, open Keychain Access, then Certificate Assistant, then Request a
-   Certificate From a Certificate Authority. Save the request to disk.
-3. Back in the portal, open the Pass Type ID, choose Create Certificate, and
-   upload that request. Download the resulting `pass.cer`.
-4. Double-click `pass.cer` to add it to Keychain. Find it under My
-   Certificates, expand it, select both the certificate and its private key,
-   and export them as `pass.p12` with a password.
-5. Convert to the two PEM files the site reads (any machine with OpenSSL):
+**Account holder, at developer.apple.com/account, Certificates, Identifiers &
+Profiles:**
 
-       openssl pkcs12 -in pass.p12 -clcerts -nokeys -out pass-cert.pem -legacy
-       openssl pkcs12 -in pass.p12 -nocerts -out pass-key.pem -legacy
+1. Identifiers, +, Pass Type IDs. Description `MilVector Business Card`. The
+   form already starts the identifier with `pass.`, so type only the rest
+   (`org.milvector.card`). The live one came out as
+   `pass.pass.org.milvector.card`; that is fine, it only has to match
+   `APPLE_PASS_TYPE_ID` exactly, and members never see it.
+2. The Team ID is on the Membership page (10 characters; it is also the OU in
+   the certificate).
 
-   The second command asks for a new passphrase for the key. Remember it.
-6. Download the Apple Worldwide Developer Relations certificate (the current
-   "WWDR G4" certificate) from https://www.apple.com/certificateauthority/ and
-   convert it:
+**Admin, in Git Bash on Windows (OpenSSL is included):**
 
-       openssl x509 -inform DER -in AppleWWDRCAG4.cer -out wwdr.pem
+    mkdir -p /d/apple-pass && cd /d/apple-pass
+    openssl genrsa -out pass-key.pem 2048
+    MSYS_NO_PATHCONV=1 openssl req -new -key pass-key.pem -out pass.csr -subj "/CN=MilVector Pass/O=Russell Innovation Group LLC/C=US"
 
-7. Set these variables. Each PEM can be pasted as is, or as base64 of the file
+   `MSYS_NO_PATHCONV=1` stops Git Bash from turning `/CN=...` into a Windows
+   path. Send `pass.csr` to the account holder; it is not secret.
+
+**Account holder:**
+
+3. Certificates, +, Pass Type ID Certificate, pick the Pass Type ID, upload
+   `pass.csr`, download `pass.cer`, and send it back.
+
+**Admin:**
+
+    cd /d/apple-pass
+    openssl x509 -inform DER -in pass.cer -out pass-cert.pem
+    curl -O https://www.apple.com/certificateauthority/AppleWWDRCAG4.cer
+    openssl x509 -inform DER -in AppleWWDRCAG4.cer -out wwdr.pem
+    openssl verify -partial_chain -CAfile wwdr.pem pass-cert.pem
+
+   To confirm the certificate was made from this key, these two lines must
+   print the same value:
+
+    openssl x509 -in pass-cert.pem -noout -modulus | openssl md5
+    openssl rsa -in pass-key.pem -noout -modulus | openssl md5
+
+4. Set these variables. Each PEM can be pasted as is, or as base64 of the file
    (`base64 -w0 pass-cert.pem`) if pasting multi-line text is awkward.
 
    | Variable | Value |
    | --- | --- |
-   | `APPLE_PASS_TYPE_ID` | The Pass Type ID, e.g. `pass.org.milvector.card` |
-   | `APPLE_TEAM_ID` | The 10-character Team ID from the account's Membership page |
+   | `APPLE_PASS_TYPE_ID` | The Pass Type ID, exactly as in the certificate |
+   | `APPLE_TEAM_ID` | The 10-character Team ID |
    | `APPLE_PASS_CERT` | Contents of `pass-cert.pem` |
    | `APPLE_PASS_KEY` | Contents of `pass-key.pem` |
-   | `APPLE_PASS_KEY_PASSPHRASE` | The passphrase from step 5 |
+   | `APPLE_PASS_KEY_PASSPHRASE` | Only if the key has a passphrase (the steps above make one without) |
    | `APPLE_WWDR_CERT` | Contents of `wwdr.pem` |
 
-The Pass Type ID certificate expires after about a year. When it does, the
-Apple button returns an error; repeat steps 2 to 5 and update the two
-variables. Passes already in a wallet keep working.
+The Pass Type ID certificate expires after about a year (the live one on
+2027-12-24). When it does, the Apple button returns an error; repeat steps 3
+and 4 with a new `pass.csr` (from the same key, or a new one) and update
+`APPLE_PASS_CERT` (and `APPLE_PASS_KEY` if the key changed). Passes already in
+a wallet keep working.
 
-The private key signs passes in MilVector's name. Treat `pass.p12` and
-`pass-key.pem` like a password: do not email them or commit them.
+The private key signs passes in MilVector's name. Treat `pass-key.pem` like a
+password: do not email it or commit it, and keep it on D:, not C:.
 
 ## Google Wallet
 
@@ -98,8 +120,16 @@ is Google's US English "Add to Google Wallet" SVG, as downloaded from
 https://developers.google.com/wallet/generic/resources/brand-guidelines, at
 `public/assets/wallet/add-to-google-wallet.svg`, shown at its full 283 x 50
 size with 8 px of clear space. Do not recolor, redraw, or shrink it below 48 px
-tall. When Apple Wallet is set up, swap the Apple button for Apple's "Add to
-Apple Wallet" badge the same way.
+tall. The Apple badge is Apple's US-UK "Add to Apple Wallet" SVG (RGB), from
+the badge files on https://developer.apple.com/wallet/add-to-apple-wallet-guidelines/
+(the account holder accepts the artwork license and downloads them), at
+`public/assets/wallet/add-to-apple-wallet.svg`, shown 50 px tall beside
+Google's. Apple asks for clear space of a tenth of the height, no dimmed
+version, and nothing drawn over it. Neither badge may be dimmed, so the Share
+tab shows them only once the card is live; the phone's own wallet comes first
+(Apple on an iPhone, Google on Android). Wherever legal information appears,
+credit the marks: Apple Wallet is a trademark of Apple Inc., registered in the
+U.S. and other countries; Google Wallet is a trademark of Google LLC.
 
 ## How to check it worked
 

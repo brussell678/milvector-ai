@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import QRCode from "qrcode";
 import { ArrowDown, ArrowUp, Camera, Check, Copy, Download, ExternalLink, ImageIcon, Mail, Plus, Printer, Sparkles, Trash2 } from "lucide-react";
 import { bitmapFrom, lockScreen, videoBackground } from "@/components/cards/card-graphics";
@@ -1010,7 +1010,17 @@ function EventModePanel({
 
 // ─── Share ────────────────────────────────────────────────────────────
 
+// Which wallet this phone uses, so its badge comes first: Apple on an iPhone or
+// iPad, Google on Android, Apple then Google anywhere else. "other" on the server.
+const noSubscribe = () => () => {};
+function walletPlatform(): "ios" | "android" | "other" {
+  const ua = navigator.userAgent;
+  if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return "ios";
+  return /Android/.test(ua) ? "android" : "other";
+}
+
 function SharePanel({ card, wallet }: { card: SavedCard; wallet: { apple: boolean; google: boolean } }) {
+  const platform = useSyncExternalStore(noSubscribe, walletPlatform, () => "other" as const);
   const [qr, setQr] = useState("");
   const [nfc, setNfc] = useState<"idle" | "waiting" | "done" | "error">("idle");
   const nfcSupported = typeof window !== "undefined" && "NDEFReader" in window;
@@ -1018,6 +1028,28 @@ function SharePanel({ card, wallet }: { card: SavedCard; wallet: { apple: boolea
   const qrLink = shareUrl(card.slug, "qr");
   const color = qrColor(card.card.accent);
   const live = card.published && !card.suspended;
+
+  // Each company's own badge, unaltered, 50 px tall, with 8 px of clear space
+  // (the padding): Google asks for at least 48 px and 8 px, Apple for clear
+  // space of a tenth of the height, and neither may be dimmed, so they show
+  // only once the card is live (docs/WALLET_SETUP.md).
+  const badgeLink = "inline-block rounded-xl p-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]";
+  const appleBadge = wallet.apple ? (
+    <a href={`/c/${card.slug}/apple-pass`} className={badgeLink} data-wallet="apple">
+      {/* eslint-disable-next-line @next/next/no-img-element -- Apple's official SVG, served as is */}
+      <img src="/assets/wallet/add-to-apple-wallet.svg" alt="Add to Apple Wallet" width={158} height={50} className="block h-[50px] w-[158px] max-w-none" />
+    </a>
+  ) : (
+    <span className="tool-badge tool-badge-warn">Apple Wallet: not set up yet</span>
+  );
+  const googleBadge = wallet.google ? (
+    <a href={`/c/${card.slug}/google-pass`} target="_blank" rel="noreferrer" className={badgeLink} data-wallet="google">
+      {/* eslint-disable-next-line @next/next/no-img-element -- Google's official SVG, served as is */}
+      <img src="/assets/wallet/add-to-google-wallet.svg" alt="Add to Google Wallet" width={283} height={50} className="block h-[50px] w-[283px] max-w-none" />
+    </a>
+  ) : (
+    <span className="tool-badge tool-badge-warn">Google Wallet: not set up yet</span>
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -1159,32 +1191,15 @@ function SharePanel({ card, wallet }: { card: SavedCard; wallet: { apple: boolea
             Keep your card in Apple Wallet or Google Wallet. Double-click the side button and someone can scan it from your lock screen, with no app
             and no signal needed on your end.
           </p>
-          <div className="flex flex-wrap items-center gap-2">
-            {wallet.apple ? (
-              <a href={`/c/${card.slug}/apple-pass`} className="btn btn-primary text-sm" aria-disabled={!live}>
-                Add to Apple Wallet
-              </a>
-            ) : (
-              <span className="tool-badge tool-badge-warn">Apple Wallet: not set up yet</span>
-            )}
-            {wallet.google ? (
-              // Google's own button, unaltered and at its full size: its brand rules allow no
-              // restyling or rescaling, a 48 px minimum height, and 8 px of clear space
-              // (the padding here) on every side.
-              <a
-                href={`/c/${card.slug}/google-pass`}
-                target="_blank"
-                rel="noreferrer"
-                aria-disabled={!live}
-                className="inline-block rounded-full p-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element -- Google's official SVG, served as is */}
-                <img src="/assets/wallet/add-to-google-wallet.svg" alt="Add to Google Wallet" width={283} height={50} className="block h-[50px] w-[283px] max-w-none" />
-              </a>
-            ) : (
-              <span className="tool-badge tool-badge-warn">Google Wallet: not set up yet</span>
-            )}
-          </div>
+          {live ? (
+            <div className="flex flex-wrap items-center gap-2" data-wallet-order={platform}>
+              {(platform === "android" ? [googleBadge, appleBadge] : [appleBadge, googleBadge]).map((badge, i) => (
+                <Fragment key={i}>{badge}</Fragment>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm font-medium">Publish your card first. Then you can add it to Apple Wallet or Google Wallet.</p>
+          )}
           <p className="text-xs text-[var(--muted)]">
             Open this page on the phone itself to add the pass. The front shows your name, title, and QR code
             {card.card.passShowPhone && card.card.phone ? ", plus your phone number" : ""}; your phone and email are in the pass details, where a tap
