@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, Fragment, useCallback, useMemo, useState } from "react";
+import { DecisionNotice } from "@/components/tools/decision-notice";
 import Link from "next/link";
 import { Calculator, ListChecks, Scale } from "lucide-react";
 import { BotMessage } from "@/components/chat/bot-message";
@@ -45,6 +46,7 @@ function readKeep(userId: string): boolean {
 
 function PageHead() {
   return (
+    <>
     <header className="chat-page-head">
       <div className="min-w-0">
         <p className="tool-kicker">SBP DECISION ADVISOR</p>
@@ -54,6 +56,8 @@ function PageHead() {
         Classic view
       </Link>
     </header>
+    <DecisionNotice tool="sbp" />
+    </>
   );
 }
 

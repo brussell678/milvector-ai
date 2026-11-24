@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { DecisionNotice } from "@/components/tools/decision-notice";
 import { calculateIncome, decemberIncreasesBy, grossRetiredPay, projectIncome, reserveYearsOfService, type RetirementPlan } from "@/lib/retirement/calc";
 import { estimatedYears, estimateHigh3, PAY_GRADES, PAY_TABLE_YEAR, PAY_TABLE_YEARS, PENDING_RAISE_NOTES } from "@/lib/retirement/pay";
 import { TAX_YEAR, type FilingStatus } from "@/lib/retirement/tax";
@@ -165,6 +166,8 @@ export function RetirementCalculator() {
   const underTwenty = component === "active" && yearsOfService < 20;
 
   return (
+    <>
+    <DecisionNotice tool="calculator" />
     <div className="tool-shell">
       {/* ── INPUTS ─────────────────────────────────────────────── */}
       <div className="tool-input-panel">
@@ -584,5 +587,6 @@ export function RetirementCalculator() {
         </a>
       )}
     </div>
+    </>
   );
 }

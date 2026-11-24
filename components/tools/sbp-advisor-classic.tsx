@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { DecisionNotice } from "@/components/tools/decision-notice";
 import Link from "next/link";
 import { LoadingBlock } from "@/components/tools/loading-block";
 import { ToolAlert } from "@/components/tools/tool-alert";
@@ -77,6 +78,8 @@ export function SbpAdvisorClassic({ chatAvailable = false }: { chatAvailable?: b
           </aside>
         </div>
       </section>
+
+      <DecisionNotice tool="sbp" />
 
       <div className="tool-shell">
         {/* ── INPUT ─────────────────────────────────────────────── */}

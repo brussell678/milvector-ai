@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { authReplies, requireUser } from "@/lib/auth";
+import { ackReply } from "@/lib/legal/acknowledgments";
 import { enforceAiUsageLimit } from "@/lib/usage-limit";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getEnv } from "@/lib/env";
@@ -26,6 +27,9 @@ type IdentifyOutput = {
 async function handlePOST(req: Request) {
   const { userId, email } = await requireUser();
   const supabase = await supabaseServer();
+  // The member confirms the Decide notice once before the first use (migration 0045).
+  const ack = await ackReply(supabase, userId, "va");
+  if (ack) return ack;
 
   const parsed = VaNavigatorInputSchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: "List at least one condition, one per line, each under 160 characters." }, { status: 400 });

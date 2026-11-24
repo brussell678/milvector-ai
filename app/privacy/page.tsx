@@ -33,6 +33,11 @@ const privacyPoints = [
       "Every tool runs inside MilVector on paid API calls, so its results connect to your profile, documents, and saved work. No tool sends you to a separate ChatGPT account.",
   },
   {
+    title: "Notices You Confirm",
+    detail:
+      "Before your first use of the VA Rating Navigator or the SBP Decision Advisor, you confirm a short notice that these tools give educational information, not advice, and that your decisions are your own. MilVector records that you confirmed it, which version of the notice, and when, and nothing else. The record is deleted with your account.",
+  },
+  {
     title: "Analytics On Public Pages Only",
     detail:
       "MilVector uses Google Analytics on its public pages, such as the home page, knowledge base, and library, to see how many people visit and how they find the site. It uses cookies and records pages viewed, approximate location, and device type. It is not loaded inside the signed-in workspace, so your records, documents, and tool use are never sent to it. You can block it in your browser's cookie settings or with Google's Analytics opt-out add-on (tools.google.com/dlpage/gaoptout).",

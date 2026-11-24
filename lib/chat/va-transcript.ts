@@ -1,4 +1,5 @@
 import { textBlocks } from "@/lib/chat/text";
+import { DECISION_NOTICE_TITLE, decisionNotice } from "@/lib/legal/decision-notice";
 import type { Transcript, TranscriptBlock, TranscriptLine } from "@/lib/chat/transcript";
 import { vaCombined, type Analysis, type Row } from "@/lib/chat/va";
 
@@ -71,7 +72,9 @@ export function vaTranscript(messages: Message[]): Transcript {
     {
       speaker: "milvector",
       lines: [
-        { kind: "para", text: "Educational only. MilVector is not an accredited claims agent, attorney, or medical provider and does not file or prepare claims. For free help filing, work with an accredited Veterans Service Officer." },
+        { kind: "label", text: DECISION_NOTICE_TITLE },
+        { kind: "para", text: decisionNotice("va") },
+        { kind: "para", text: "MilVector is not an accredited claims agent, attorney, or medical provider and does not file or prepare claims." },
         { kind: "para", text: "MilVector did not keep this file or anything in it. It was written for you to keep." },
       ],
     },

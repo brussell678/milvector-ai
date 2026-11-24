@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, Fragment, useCallback, useMemo, useState } from "react";
+import { DecisionNotice } from "@/components/tools/decision-notice";
 import Link from "next/link";
 import { MessageSquareText, Play, Search } from "lucide-react";
 import { BotMessage } from "@/components/chat/bot-message";
@@ -51,6 +52,7 @@ const isList = (m: Msg): m is ListMsg => m.role === "assistant" && m.kind === "r
 
 function PageHead() {
   return (
+    <>
     <header className="chat-page-head">
       <div className="min-w-0">
         <p className="tool-kicker">VA RATING NAVIGATOR</p>
@@ -60,6 +62,8 @@ function PageHead() {
         Classic view
       </Link>
     </header>
+    <DecisionNotice tool="va" />
+    </>
   );
 }
 

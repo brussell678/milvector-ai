@@ -26,6 +26,9 @@ that reporter), use the admin composer at /app/admin/updates instead — it can
 link the case. This file is for the general changelog.
 -->
 
+## A clear note before the big decisions {improvement} {draft}
+The Retirement Pay Calculator, VA Rating Navigator, and SBP Decision Advisor now open with a short note on what they are: educational information to help you prepare, not advice, and who has the final say (DFAS, VA, or your retirement services officer). The VA and SBP tools ask you to confirm it once, the first time you use them.
+
 ## Tap to call or email from your wallet pass {improvement} {draft}
 Your business card's wallet pass keeps a clean front: your photo, name, title, and QR code, with your card's address under the code, short enough to read. Your phone number and email are in the pass details, and a tap calls or emails you. Want your number on the front too? Turn on "Show my phone number on the pass" on the Design tab, then add the pass to your wallet again.
 

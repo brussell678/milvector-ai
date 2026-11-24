@@ -1,4 +1,5 @@
 import { figureLines } from "@/lib/chat/sbp";
+import { DECISION_NOTICE_TITLE, decisionNotice } from "@/lib/legal/decision-notice";
 import { textBlocks } from "@/lib/chat/text";
 import type { Transcript, TranscriptBlock, TranscriptLine } from "@/lib/chat/transcript";
 import { sbpAlternativesText } from "@/lib/chat/sbp-text";
@@ -47,7 +48,9 @@ export function sbpTranscript(messages: Message[]): Transcript {
     {
       speaker: "milvector",
       lines: [
-        { kind: "para", text: "Educational guidance, not legal, tax, or financial advice. MilVector sells nothing and earns nothing from your choice. Confirm your election with your installation retirement services office before you sign the DD Form 2656." },
+        { kind: "label", text: DECISION_NOTICE_TITLE },
+        { kind: "para", text: decisionNotice("sbp") },
+        { kind: "para", text: "MilVector sells nothing and earns nothing from your choice." },
         { kind: "para", text: "MilVector did not keep this file or anything in it. It was written for you to keep." },
       ],
     },

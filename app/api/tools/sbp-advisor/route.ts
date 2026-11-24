@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { authReplies, requireUser } from "@/lib/auth";
+import { ackReply } from "@/lib/legal/acknowledgments";
 import { enforceAiUsageLimit } from "@/lib/usage-limit";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getEnv } from "@/lib/env";
@@ -30,6 +31,9 @@ const list = (value: unknown) => (Array.isArray(value) ? value.map((item) => tex
 async function handlePOST(req: Request) {
   const { userId, email } = await requireUser();
   const supabase = await supabaseServer();
+  // The member confirms the Decide notice once before the first use (migration 0045).
+  const ack = await ackReply(supabase, userId, "sbp");
+  if (ack) return ack;
 
   const parsed = SbpAdvisorInputSchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: "Some of the entries are missing or out of range. Check the form and try again." }, { status: 400 });

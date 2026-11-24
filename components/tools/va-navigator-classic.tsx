@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import { DecisionNotice } from "@/components/tools/decision-notice";
 import { LoadingBlock } from "@/components/tools/loading-block";
 import Link from "next/link";
 import { ToolAlert } from "@/components/tools/tool-alert";
@@ -147,6 +148,8 @@ export function VaNavigatorClassic({ chatAvailable = false }: { chatAvailable?: 
           </aside>
         </div>
       </section>
+
+      <DecisionNotice tool="va" />
 
       <div className="tool-shell">
         {/* ── INPUT ─────────────────────────────────────────────── */}

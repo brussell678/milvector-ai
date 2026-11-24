@@ -5,6 +5,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { getEnv } from "@/lib/env";
 import { redactPII } from "@/lib/redact";
 import { chatEnabled } from "@/lib/chat/access";
+import { ackReply } from "@/lib/legal/acknowledgments";
 import { enforceChatLimit } from "@/lib/chat/limit";
 import { MosRunSchema, parseMeta, SbpRunSchema, VaRunSchema } from "@/lib/chat/meta";
 import { FollowUpSchema, JdContextSchema, MosContextSchema, ResumeContextSchema, SbpContextSchema, VaContextSchema } from "@/lib/chat/schemas";
@@ -42,6 +43,14 @@ async function handlePOST(req: Request, ctx: Ctx) {
   const info = chatToolFor(tool);
   if (!info || !(await chatEnabled(info.key, email))) return NextResponse.json({ error: "This chat is not open yet." }, { status: 404 });
 
+  const supabase = await supabaseServer();
+  // The VA and SBP chats sit behind the Decide notice, confirmed once (migration 0045).
+  const ackTool = tool === "va_rating_navigator" ? "va" : tool === "sbp_advisor" ? "sbp" : null;
+  if (ackTool) {
+    const ack = await ackReply(supabase, userId, ackTool);
+    if (ack) return ack;
+  }
+
   const spec = SPECS[tool as ChatToolId];
   const parsed = FollowUpSchema.safeParse(await req.json().catch(() => null));
   const context = parsed.success ? spec.context.safeParse(parsed.data.context) : null;
@@ -49,7 +58,6 @@ async function handlePOST(req: Request, ctx: Ctx) {
     return NextResponse.json({ error: "That message could not be sent. Refresh the page and try again." }, { status: 400 });
   }
 
-  const supabase = await supabaseServer();
   const overLimit = await enforceChatLimit({ supabase, userId, email, toolName: info.toolName });
   if (overLimit) return overLimit;
 
