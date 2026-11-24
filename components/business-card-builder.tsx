@@ -281,18 +281,29 @@ export function BusinessCardBuilder() {
     return true;
   }
 
-  const save = () => patch({ card: draft, ...(active && slugDraft !== active.slug ? { slug: slugDraft } : {}) }, "Saved.");
+  const save = () =>
+    patch(
+      { card: draft, ...(active && slugDraft !== active.slug ? { slug: slugDraft } : {}) },
+      active?.published ? "Saved. Your live card shows it now." : "Saved. Your card is still a draft: no one can see it until you publish.",
+    );
+
+  // Moves to another tab from the bottom of a long page, and back to its top,
+  // so the confirmation and the new tab are in view.
+  function showTab(next: Tab) {
+    setTab(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   async function togglePublish() {
     if (!active) return;
     if (!active.published && dirty) {
       const saved = await patch({ card: draft, ...(slugDraft !== active.slug ? { slug: slugDraft } : {}), published: true }, "Saved and published. Your card is live.");
-      if (saved) setTab("share");
+      if (saved) showTab("share");
       return;
     }
     const next = !active.published;
     const done = await patch({ published: next }, next ? "Published. Your card is live." : "Unpublished. Visitors can no longer see this card.");
-    if (done && next) setTab("share");
+    if (done && next) showTab("share");
   }
 
   async function onPhoto(event: React.ChangeEvent<HTMLInputElement>) {
@@ -893,14 +904,51 @@ export function BusinessCardBuilder() {
               </button>
             </section>
 
-            <div className="sticky bottom-3 z-10 flex flex-wrap items-center gap-3 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--shadow-sm)]">
-              <button type="button" className="btn btn-primary" onClick={save} disabled={saving || !dirty}>
-                {saving ? "Saving..." : dirty ? "Save Changes" : "Saved"}
-              </button>
-              <a href={`/c/${active.slug}`} target="_blank" rel="noreferrer" className="btn btn-secondary text-sm">
-                <ExternalLink size={14} aria-hidden="true" />
-                {active.published ? "Open Live Card" : "Preview Saved Draft"}
-              </a>
+            {/* Follows the page: where the card stands and the next step, so
+                Publish is where someone finishes, not only at the top. On a
+                phone: the status and small links on top, the buttons below. */}
+            <div
+              className="sticky bottom-3 z-10 flex flex-col gap-2 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-3 shadow-[var(--shadow-sm)] sm:flex-row sm:flex-wrap sm:items-center"
+              data-save-bar={active.suspended ? "suspended" : active.published ? "live" : "draft"}
+            >
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 sm:order-2 sm:ml-auto sm:justify-end">
+                {active.suspended ? (
+                  <span className="tool-badge tool-badge-error">Suspended</span>
+                ) : active.published ? (
+                  <span className="tool-badge tool-badge-success">Live</span>
+                ) : (
+                  <span className="tool-badge tool-badge-warn">Draft · only you can see it</span>
+                )}
+                <span className="flex items-center gap-3">
+                  <a href={`/c/${active.slug}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 py-1.5 text-sm font-semibold text-[var(--accent)] hover:underline">
+                    <ExternalLink size={14} aria-hidden="true" />
+                    {active.published && !active.suspended ? "Open Live Card" : "Preview"}
+                  </a>
+                  {active.published && !active.suspended ? (
+                    <button type="button" className="py-1.5 text-sm font-semibold text-[var(--accent)] hover:underline" onClick={() => showTab("share")}>
+                      Share →
+                    </button>
+                  ) : null}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 sm:order-1">
+                {!active.published && !active.suspended ? (
+                  <>
+                    <button type="button" className="btn btn-primary" onClick={togglePublish} disabled={saving}>
+                      {saving ? "Saving..." : dirty ? "Save and Publish" : "Publish"}
+                    </button>
+                    {dirty ? (
+                      <button type="button" className="btn btn-secondary" onClick={save} disabled={saving}>
+                        Save draft
+                      </button>
+                    ) : null}
+                  </>
+                ) : (
+                  <button type="button" className="btn btn-primary" onClick={save} disabled={saving || !dirty}>
+                    {saving ? "Saving..." : dirty ? "Save Changes" : "Saved"}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 

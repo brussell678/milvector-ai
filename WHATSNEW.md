@@ -26,6 +26,9 @@ that reporter), use the admin composer at /app/admin/updates instead — it can
 link the case. This file is for the general changelog.
 -->
 
+## Publish your card right where you finish {improvement} {requested} {draft}
+The save bar at the bottom of the business card builder now shows whether your card is a draft or live. Finish your card and tap Save and Publish without scrolling back to the top, or save a draft for later.
+
 ## Your records are not kept forever {improvement} {draft}
 MilVector is built for your transition, not to hold your records for years. If you do not use MilVector for about 14 months, your uploaded records, resumes, and other transition records are cleared, with an email 60 days and 2 weeks before, and never earlier than 6 months after your retirement date. Signing in keeps everything, and your account and business cards always stay.
 
