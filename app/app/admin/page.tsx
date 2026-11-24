@@ -4,6 +4,7 @@ import { AdminPortal } from "@/components/admin/admin-portal";
 import { ChatAccessPanel } from "@/components/admin/chat-access-panel";
 import { chatSwitches } from "@/lib/chat/access";
 import { UsagePanel } from "@/components/admin/usage-panel";
+import { loadRoster } from "@/lib/admin/members";
 import { summarizeUsage, type ProfileRow, type RunRow, type UsageSummary } from "@/lib/admin/usage";
 import { isAdminEmail } from "@/lib/auth";
 import { getEnv } from "@/lib/env";
@@ -133,7 +134,10 @@ export default async function AdminPage() {
 
   if (!user) redirect("/auth");
   if (!isAdminEmail(user.email)) redirect("/app");
-  const [usage, switches] = await Promise.all([loadUsage(user.id), chatSwitches()]);
+  const serviceClient = supabaseAdmin();
+  const [usage, switches, roster] = await Promise.all([loadUsage(user.id), chatSwitches(), serviceClient ? loadRoster(serviceClient, new Date()) : Promise.resolve(null)]);
+  // Members waiting on the admin: ready to clear (both notices sent).
+  const readyToClear = roster?.ok ? roster.members.filter((m) => m.state.status === "ready").length : 0;
 
   const [{ data: feedback }, { data: submissions }, { data: reports }, { data: blockedUsers }, { data: draftUpdates }] = await Promise.all([
     supabase
@@ -195,9 +199,12 @@ export default async function AdminPage() {
               Restricted to {user.email}. Respond to user support cases, publish library submissions,
               action community reports, and manage posting blocks, all in one place.
             </p>
-            <div className="mt-5">
+            <div className="mt-5 flex flex-wrap gap-2">
               <Link href="/app/admin/updates" className="btn btn-primary text-sm">
                 Post a What&apos;s New update →
+              </Link>
+              <Link href="/app/admin/members" className="btn btn-secondary text-sm">
+                Members →
               </Link>
             </div>
           </div>
@@ -209,6 +216,7 @@ export default async function AdminPage() {
               <li>Review and publish community library submissions</li>
               <li>Action board reports and manage posting blocks</li>
               <li>Open each chat tool to members when it is ready</li>
+              <li>See every member and clear records no one is using</li>
             </ul>
           </aside>
         </div>
@@ -224,6 +232,18 @@ export default async function AdminPage() {
           </p>
           <Link href="/app/admin/updates" className="btn btn-primary shrink-0 text-sm">
             Review drafts
+          </Link>
+        </div>
+      )}
+
+      {readyToClear > 0 && (
+        <div className="alert-base alert-info mt-6 flex flex-wrap items-center justify-between gap-3" role="status">
+          <p className="min-w-0">
+            <strong>{readyToClear === 1 ? "1 member is" : `${readyToClear} members are`} ready to clear.</strong> Both notices went out and the clear date has
+            passed. You approve each one.
+          </p>
+          <Link href="/app/admin/members" className="btn btn-primary shrink-0 text-sm">
+            Review members
           </Link>
         </div>
       )}

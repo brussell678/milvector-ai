@@ -229,3 +229,64 @@ export async function notifyCardOwnerNewLead(opts: {
     html: baseHtml(`New contact from your card`, body),
   });
 }
+
+// ─── Transition records (migration 0046) ──────────────────────────────
+
+/** What clearing removes and what stays, in the words the emails and the privacy page use. */
+export const CLEARED_LIST = [
+  "the records you uploaded and the files MilVector made for you in My Files",
+  "your master and targeted resumes",
+  "saved chats and your tool history",
+  "your Timeline progress",
+  "LinkedIn Builder drafts",
+  "your retirement invitation page",
+];
+export const KEPT_LINE = "Your account, your business cards with their contacts, and your Community posts stay.";
+
+const longDate = (ymd: string) =>
+  new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" }).format(new Date(`${ymd}T00:00:00.000Z`));
+
+export type RetentionEmail = { to: string; name?: string | null; kind: "notice" | "final" | "cleared"; clearOn: string };
+
+/** The email itself, so it can be checked without sending. */
+export function retentionEmail(e: RetentionEmail): { subject: string; title: string; html: string } {
+  const date = longDate(e.clearOn);
+  const first = (e.name ?? "").trim().split(/\s+/)[0];
+  const hello = `<p class="value">${first ? `Hi ${escapeHtml(first)},` : "Hello,"}</p>`;
+  const list = `<ul class="value">${CLEARED_LIST.map((item) => `<li>${item}</li>`).join("")}</ul>`;
+  const signIn = `<a class="btn" href="${APP_URL}/app">Sign in to MilVector</a>`;
+  if (e.kind === "cleared") {
+    return {
+      subject: "Your MilVector transition records were cleared",
+      title: "Your transition records were cleared",
+      html: `${hello}
+        <p class="value">As we let you know, MilVector has cleared the transition records in your account, because it had not been used in over a year. We cleared:</p>
+        ${list}
+        <p class="value">${KEPT_LINE} You can sign in and pick up where you left off at any time.</p>
+        ${signIn}`,
+    };
+  }
+  const final = e.kind === "final";
+  return {
+    subject: final ? `Two weeks left: your MilVector records clear on ${date}` : `Your MilVector transition records will be cleared on ${date}`,
+    title: final ? "Two weeks until your records are cleared" : "Your transition records will be cleared",
+    html: `${hello}
+      <p class="value">${final ? "This is a final reminder. " : ""}It has been a while since you used MilVector. To protect your information, MilVector does not keep transition records forever. On <b>${date}</b>, we will clear:</p>
+      ${list}
+      <p class="value">${KEPT_LINE}</p>
+      <p class="value"><b>To keep everything, just sign in before ${date}.</b> If you want copies first, download them from My Files.</p>
+      ${signIn}`,
+  };
+}
+
+/** Sends a retention email. False when email is not set up, so the caller can try again later; throws when Resend refuses it. */
+export async function sendRetentionEmail(e: RetentionEmail): Promise<boolean> {
+  if (!process.env.RESEND_API_KEY || !FROM) return false;
+  const mail = retentionEmail(e);
+  const { error } = await resend().emails.send({ from: FROM, to: e.to, subject: mail.subject, html: baseHtml(mail.title, mail.html) });
+  if (error) throw new Error(error.message);
+  return true;
+}
+
+/** Whether emails can go out (Resend key and sender set). */
+export const emailReady = () => !!process.env.RESEND_API_KEY && !!FROM;

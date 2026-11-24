@@ -14,7 +14,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // generated resumes, LinkedIn banners, library submissions).
 export const USER_FOLDER_BUCKETS = ["documents", "linkedin-banners", "library-submissions"] as const;
 const TICKET_BUCKET = "feedback-attachments";
-const REMOVE_BATCH = 100;
+export const REMOVE_BATCH = 100;
 const MAX_DEPTH = 3;
 
 // What the member types to confirm. Works for every member, including those
@@ -27,7 +27,8 @@ export type DeleteStage = "setup" | "files" | "records" | "account";
 const NOBODY = "00000000-0000-0000-0000-000000000000";
 export type DeleteResult = { ok: true; files: number } | { ok: false; stage: DeleteStage; error: string };
 
-async function listFiles(admin: SupabaseClient, bucket: string, prefix: string, depth = 0): Promise<string[]> {
+/** Every file under a folder in a bucket, a few levels deep. Also used to clear transition records (lib/admin/clear-records.ts). */
+export async function listFiles(admin: SupabaseClient, bucket: string, prefix: string, depth = 0): Promise<string[]> {
   if (depth > MAX_DEPTH) return [];
   const { data, error } = await admin.storage.from(bucket).list(prefix, { limit: 1000 });
   if (error) throw new Error(`${bucket}: ${error.message}`);

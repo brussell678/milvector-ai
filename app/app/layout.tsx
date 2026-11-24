@@ -28,7 +28,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (!user) redirect("/auth");
   const isAdmin = isAdminEmail(user.email);
   const sevenDaysAgo = isoDaysAgo(7);
-  const [notificationsCountRes, toolRunsRes] = await Promise.all([
+  const [, notificationsCountRes, toolRunsRes] = await Promise.all([
+    // Records that the member used MilVector today (at most twice a day), for
+    // the retention timeline (migration 0046). Before 0046 it fails harmlessly.
+    supabase.rpc("touch_last_seen").then(
+      () => null,
+      () => null,
+    ),
     supabase
       .from("message_board_notifications")
       .select("*", { count: "exact", head: true })

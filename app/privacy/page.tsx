@@ -63,6 +63,11 @@ const privacyPoints = [
       "Your information passes through a few services only to run MilVector. Supabase stores your account, profile, files, and saved work. Vercel hosts the site, and Cloudflare carries traffic to milvector.org. OpenAI runs the AI tools: it receives the text a tool needs, with SSN and DoD ID numbers removed first. OpenAI's terms for its API say that data is not used to train its models, and it keeps API logs for up to 30 days to watch for abuse; MilVector also tells it not to store the responses. Resend delivers support emails, and Google Analytics measures visits to public pages only.",
   },
   {
+    title: "How Long We Keep Your Records",
+    detail:
+      "MilVector is built for the months around your transition, so it does not keep your transition records forever. If you do not use MilVector for about 14 months, we clear them: the records you uploaded and the files MilVector made for you in My Files, your master and targeted resumes, saved chats and tool history, your Timeline progress, LinkedIn Builder drafts, and your retirement invitation page. We email you 60 days before and again 2 weeks before, and using MilVector at any point keeps everything. Records are never cleared earlier than 6 months after the retirement date in your profile. Your account, your business cards with their contacts, and your Community posts stay. To run this schedule, MilVector records the date you last used it. Download anything you want to keep from My Files before the date in the email.",
+  },
+  {
     title: "Deleting Your Account",
     detail:
       "You can delete your account yourself, at any time, from your Profile. That permanently deletes your profile, uploaded records, every resume and file MilVector made for you, your tool history and Timeline progress, your support tickets, and your business card and retirement invitation along with the answers guests sent. Your Community replies and any thread nobody answered are deleted; a thread other members replied to stays, shown as from a former member, so their replies are not lost.",
@@ -77,6 +82,7 @@ const commitments = [
   "Site analytics run on public pages only, never inside your workspace.",
   "Guests who answer a retirement invitation are seen only by the host, and their answers are deleted 180 days after the ceremony.",
   "You control what you upload into your workspace, and you can delete your account and everything in it from your Profile.",
+  "Transition records are cleared after about 14 months without use, with two email notices first; your account and business cards stay.",
   "Community and support content may be reviewed when moderation or resolution is required.",
 ];
 

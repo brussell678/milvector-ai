@@ -1299,6 +1299,24 @@ details[open] .details-chevron {
   color: #ff8f73;
 }
 
+/* Member roster tags (components/admin/member-roster.tsx): grey for quiet or
+   nothing to clear, orange for the final notice. */
+.tool-badge-neutral {
+  background: var(--surface);
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+
+.tool-badge-orange {
+  background: color-mix(in oklab, var(--panel) 80%, #c25a00 20%);
+  color: #9a4300;
+  border: 1px solid color-mix(in oklab, #c25a00 40%, var(--line) 60%);
+}
+
+:root[data-theme="dark"] .tool-badge-orange {
+  color: #ffb070;
+}
+
 /* Inline warning text, same reds as the error badge. */
 .tool-text-error {
   color: #a3271a;

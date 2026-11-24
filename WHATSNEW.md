@@ -26,6 +26,9 @@ that reporter), use the admin composer at /app/admin/updates instead — it can
 link the case. This file is for the general changelog.
 -->
 
+## Your records are not kept forever {improvement} {draft}
+MilVector is built for your transition, not to hold your records for years. If you do not use MilVector for about 14 months, your uploaded records, resumes, and other transition records are cleared, with an email 60 days and 2 weeks before, and never earlier than 6 months after your retirement date. Signing in keeps everything, and your account and business cards always stay.
+
 ## A clear note before the big decisions {improvement} {draft}
 The Retirement Pay Calculator, VA Rating Navigator, and SBP Decision Advisor now open with a short note on what they are: educational information to help you prepare, not advice, and who has the final say (DFAS, VA, or your retirement services officer). The VA and SBP tools ask you to confirm it once, the first time you use them.
 
