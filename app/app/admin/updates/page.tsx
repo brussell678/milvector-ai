@@ -16,9 +16,10 @@ export default async function AdminUpdatesPage() {
   const [{ data: updates }, { data: feedback }] = await Promise.all([
     supabase
       .from("product_updates")
-      .select("id,title,body,category,is_user_requested,linked_feedback_id,published,published_at")
+      .select("id,title,body,category,is_user_requested,linked_feedback_id,published,published_at,created_at")
       .order("published_at", { ascending: false })
-      .limit(50),
+      // Posted updates fold by month, so a long history stays short on screen.
+      .limit(300),
     supabase
       .from("feedback")
       .select("id,message,feedback_type,email,status,created_at")
@@ -39,15 +40,15 @@ export default async function AdminUpdatesPage() {
   return (
     <main className="page-shell">
       <section className="section-card">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-lg font-bold">What&apos;s New Composer</h1>
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 grow basis-[240px]">
+            <h1 className="text-lg font-bold">What&apos;s New</h1>
             <p className="mt-1 text-sm text-[var(--muted)]">
-              Post a product update. It appears on the announcement bar (for 21 days) and the What&apos;s New page.
-              Linking a support case marks it resolved and emails the reporter that their request is live.
+              Publish the drafts waiting for you, look back at what members have seen, or write a new update. Linking a support case
+              marks it resolved and emails the reporter that their request is live.
             </p>
           </div>
-          <Link href="/app/admin" className="btn btn-secondary text-sm">
+          <Link href="/app/admin" className="btn btn-secondary shrink-0 whitespace-nowrap text-sm">
             Back to Admin
           </Link>
         </div>
@@ -55,6 +56,7 @@ export default async function AdminUpdatesPage() {
         <UpdatesManager
           initialUpdates={(updates ?? []) as ExistingUpdate[]}
           feedbackOptions={feedbackOptions}
+          now={new Date().toISOString()}
         />
       </section>
     </main>

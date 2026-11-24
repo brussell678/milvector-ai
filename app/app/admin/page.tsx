@@ -220,9 +220,9 @@ export default async function AdminPage() {
             <strong>
               {drafts.length === 1 ? "1 What's New draft is" : `${drafts.length} What's New drafts are`} waiting for you.
             </strong>{" "}
-            {drafts.map((draft) => `"${draft.title}"`).join(", ")}. Members see nothing until you publish.
+            Members see nothing until you publish.
           </p>
-          <Link href="/app/admin/updates#drafts" className="btn btn-primary shrink-0 text-sm">
+          <Link href="/app/admin/updates" className="btn btn-primary shrink-0 text-sm">
             Review drafts
           </Link>
         </div>

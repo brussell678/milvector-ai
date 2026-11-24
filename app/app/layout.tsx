@@ -8,11 +8,12 @@ import { AnnouncementBar, type AnnouncementUpdate } from "@/components/announcem
 import { ThemeToggle } from "@/components/theme-toggle";
 import { isAdminEmail } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase/server";
+import { ANNOUNCEMENT_WINDOW_DAYS } from "@/lib/updates/announcement";
 
 // Only surface the bar for genuinely recent updates. When it's been dry, the
 // bar is simply absent, with no stale "last updated months ago" nag. The full
-// dated record still lives on the What's New page.
-const ANNOUNCEMENT_WINDOW_DAYS = 21;
+// dated record still lives on the What's New page. The window is shared with
+// the admin's What's New page (lib/updates/announcement.ts).
 
 function isoDaysAgo(days: number) {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
