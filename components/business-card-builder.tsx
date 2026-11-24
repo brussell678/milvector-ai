@@ -152,6 +152,7 @@ export function BusinessCardBuilder() {
   const [defaults, setDefaults] = useState<Defaults | null>(null);
   const [maxCards, setMaxCards] = useState(3);
   const [wallet, setWallet] = useState({ apple: false, google: false });
+  const [walletSetup, setWalletSetup] = useState<{ apple: string[]; google: string[] } | null>(null);
   const [resumeChoices, setResumeChoices] = useState<ResumeOption[]>([]);
   const [resumeReady, setResumeReady] = useState(true);
   const [resumePick, setResumePick] = useState("");
@@ -191,6 +192,7 @@ export function BusinessCardBuilder() {
         setDefaults(json.defaults ?? null);
         setMaxCards(json.maxCards ?? 3);
         setWallet(json.wallet ?? { apple: false, google: false });
+        setWalletSetup(json.walletSetup ?? null);
         setResumeChoices(json.resumeOptions ?? []);
         setResumeReady(json.resumeReady !== false);
         setUpgradesReady(json.upgradesReady !== false);
@@ -922,7 +924,7 @@ export function BusinessCardBuilder() {
         </div>
       )}
 
-      {tab === "share" && <SharePanel card={active} wallet={wallet} />}
+      {tab === "share" && <SharePanel card={active} wallet={wallet} walletSetup={walletSetup} />}
       {tab === "insights" && <InsightsPanel cardId={active.id} view="insights" />}
       {tab === "contacts" && (
         <>
@@ -1019,7 +1021,7 @@ function walletPlatform(): "ios" | "android" | "other" {
   return /Android/.test(ua) ? "android" : "other";
 }
 
-function SharePanel({ card, wallet }: { card: SavedCard; wallet: { apple: boolean; google: boolean } }) {
+function SharePanel({ card, wallet, walletSetup }: { card: SavedCard; wallet: { apple: boolean; google: boolean }; walletSetup: { apple: string[]; google: string[] } | null }) {
   const platform = useSyncExternalStore(noSubscribe, walletPlatform, () => "other" as const);
   const [qr, setQr] = useState("");
   const [nfc, setNfc] = useState<"idle" | "waiting" | "done" | "error">("idle");
@@ -1200,6 +1202,17 @@ function SharePanel({ card, wallet }: { card: SavedCard; wallet: { apple: boolea
           ) : (
             <p className="text-sm font-medium">Publish your card first. Then you can add it to Apple Wallet or Google Wallet.</p>
           )}
+          {walletSetup && walletSetup.apple.length + walletSetup.google.length > 0 ? (
+            <div className="alert-base alert-info text-sm" data-wallet-setup>
+              <p className="font-semibold">Wallet setup (only you see this)</p>
+              <ul className="mt-1 list-disc pl-5">
+                {[...walletSetup.apple, ...walletSetup.google].map((problem) => (
+                  <li key={problem}>{problem}</li>
+                ))}
+              </ul>
+              <p className="mt-1">Fix it in Vercel (Settings, Environment Variables, Production), then redeploy.</p>
+            </div>
+          ) : null}
           <p className="text-xs text-[var(--muted)]">
             Open this page on the phone itself to add the pass. The front shows your name, title, and QR code
             {card.card.passShowPhone && card.card.phone ? ", plus your phone number" : ""}; your phone and email are in the pass details, where a tap

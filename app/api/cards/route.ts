@@ -1,8 +1,9 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
+import { isAdminEmail } from "@/lib/auth";
 import { cardBuilderEnabled } from "@/lib/cards/access";
-import { appleConfig } from "@/lib/cards/apple-pass";
-import { googleConfig } from "@/lib/cards/google-pass";
+import { appleConfig, appleSetupProblems } from "@/lib/cards/apple-pass";
+import { googleConfig, googleSetupProblems } from "@/lib/cards/google-pass";
 import { piiProblem } from "@/lib/cards/opsec";
 import { PDF_MIME, RESUME_DOC_TYPES, RESUME_MIMES, resumeOptions } from "@/lib/cards/resume";
 import { lockedTargetedDocs } from "@/lib/resume/review-lock";
@@ -120,6 +121,8 @@ export async function GET() {
     resumeOptions: resumeOptions((docs ?? []).filter((doc) => !lockedDocs.has(doc.id))),
     maxCards: MAX_CARDS_PER_USER,
     wallet: { apple: !!appleConfig(), google: !!googleConfig() },
+    // The admin only: which wallet settings are missing or will not work (names, never values).
+    ...(isAdminEmail(user.email) ? { walletSetup: { apple: appleSetupProblems(), google: googleSetupProblems() } } : {}),
     defaults: {
       name: fullName,
       email: profile?.professional_email ?? "",

@@ -220,3 +220,14 @@ function embeddedSaveUrl(config: GoogleConfig, object: ReturnType<typeof buildGo
   }
   return url;
 }
+
+/** For the admin's Share tab: which Google Wallet settings are missing or unreadable, by name only. Empty when all is well. */
+export function googleSetupProblems(env: NodeJS.ProcessEnv = process.env): string[] {
+  const problems: string[] = [];
+  for (const name of ["GOOGLE_WALLET_ISSUER_ID", "GOOGLE_WALLET_SERVICE_ACCOUNT_EMAIL"] as const) {
+    if (!env[name]?.trim()) problems.push(`${name} is not set.`);
+  }
+  if (!env.GOOGLE_WALLET_PRIVATE_KEY?.trim()) problems.push("GOOGLE_WALLET_PRIVATE_KEY is not set.");
+  else if (!readPem(env.GOOGLE_WALLET_PRIVATE_KEY)) problems.push("GOOGLE_WALLET_PRIVATE_KEY is set, but it does not read as a PEM key (it should begin with the BEGIN line).");
+  return problems;
+}

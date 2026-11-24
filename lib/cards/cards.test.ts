@@ -2,8 +2,8 @@ import { createHash, createVerify, generateKeyPairSync } from "node:crypto";
 import forge from "node-forge";
 import { describe, expect, it } from "vitest";
 import { cardUrl, shortCardUrl } from "@/lib/cards/access";
-import { appleConfig, buildApplePass, buildPassJson, readPem } from "@/lib/cards/apple-pass";
-import { buildGoogleObject, FACE_PHONE_MODULE, googleClass, googleConfig, googleSaveJwt, googleSaveUrl } from "@/lib/cards/google-pass";
+import { appleConfig, appleSetupProblems, buildApplePass, buildPassJson, readPem } from "@/lib/cards/apple-pass";
+import { buildGoogleObject, FACE_PHONE_MODULE, googleClass, googleConfig, googleSaveJwt, googleSaveUrl, googleSetupProblems } from "@/lib/cards/google-pass";
 import { leadsCsv, summarizeStats } from "@/lib/cards/insights";
 import { opsecWarnings, piiProblem } from "@/lib/cards/opsec";
 import {
@@ -304,6 +304,49 @@ function selfSigned(commonName: string) {
   cert.sign(keys.privateKey, forge.md.sha256.create());
   return { certPem: forge.pki.certificateToPem(cert), keyPem: forge.pki.privateKeyToPem(keys.privateKey) };
 }
+
+// A stand-in Pass Type ID certificate, with the UID an Apple one carries.
+function passCert(typeId: string) {
+  const keys = forge.pki.rsa.generateKeyPair(2048);
+  const cert = forge.pki.createCertificate();
+  cert.publicKey = keys.publicKey;
+  cert.serialNumber = "02";
+  cert.validity.notBefore = new Date(Date.now() - 86_400_000);
+  cert.validity.notAfter = new Date(Date.now() + 86_400_000 * 30);
+  const attrs = [{ type: "0.9.2342.19200300.100.1.1", value: typeId }, { name: "commonName", value: `Pass Type ID: ${typeId}` }];
+  cert.setSubject(attrs);
+  cert.setIssuer(attrs);
+  cert.sign(keys.privateKey, forge.md.sha256.create());
+  return { certPem: forge.pki.certificateToPem(cert), keyPem: forge.pki.privateKeyToPem(keys.privateKey) };
+}
+
+describe("wallet setup check (the admin's Share tab)", () => {
+  it("names every missing setting, never a value", () => {
+    expect(appleSetupProblems({} as NodeJS.ProcessEnv)).toEqual([
+      "APPLE_PASS_TYPE_ID is not set.",
+      "APPLE_TEAM_ID is not set.",
+      "APPLE_PASS_CERT is not set.",
+      "APPLE_PASS_KEY is not set.",
+      "APPLE_WWDR_CERT is not set.",
+    ]);
+    expect(googleSetupProblems({} as NodeJS.ProcessEnv)).toHaveLength(3);
+  });
+
+  it("says when a file value is not a PEM, when the pieces do not belong together, and is quiet when all is well", () => {
+    const good = passCert("pass.pass.org.milvector.card");
+    const other = passCert("pass.pass.org.milvector.card");
+    const wwdr = selfSigned("Test WWDR");
+    const env = { APPLE_PASS_TYPE_ID: "pass.pass.org.milvector.card", APPLE_TEAM_ID: "ABCDE12345", APPLE_PASS_CERT: good.certPem, APPLE_PASS_KEY: good.keyPem, APPLE_WWDR_CERT: wwdr.certPem };
+    expect(appleSetupProblems(env as unknown as NodeJS.ProcessEnv)).toEqual([]);
+    expect(appleSetupProblems({ ...env, APPLE_WWDR_CERT: "pasted the wrong thing" } as unknown as NodeJS.ProcessEnv)).toEqual([
+      "APPLE_WWDR_CERT is set, but it does not read as a PEM file (it should begin with the BEGIN line).",
+    ]);
+    expect(appleSetupProblems({ ...env, APPLE_PASS_KEY: other.keyPem } as unknown as NodeJS.ProcessEnv)).toEqual(["APPLE_PASS_CERT and APPLE_PASS_KEY do not belong together."]);
+    expect(appleSetupProblems({ ...env, APPLE_PASS_TYPE_ID: "pass.org.milvector.card" } as unknown as NodeJS.ProcessEnv)[0]).toMatch(/^APPLE_PASS_TYPE_ID does not match the certificate \(pass\.pass\.org\.milvector\.card\)\.$/);
+    const joined = appleSetupProblems({ ...env, APPLE_PASS_KEY: other.keyPem } as unknown as NodeJS.ProcessEnv).join(" ");
+    expect(joined).not.toContain("BEGIN RSA");
+  }, 60_000);
+});
 
 // Reads a stored (uncompressed) ZIP back into its files.
 function unzip(zip: Buffer) {

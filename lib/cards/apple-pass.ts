@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, createPrivateKey, X509Certificate } from "node:crypto";
 import forge from "node-forge";
 import { cardUrl, shortCardUrl } from "@/lib/cards/access";
 import { PASS_ASSETS } from "@/lib/cards/pass-assets";
@@ -144,4 +144,33 @@ export function buildApplePass(args: {
   files.push({ name: "manifest.json", data: Buffer.from(manifestJson, "utf8") });
   files.push({ name: "signature", data: signManifest(manifestJson, args.config) });
   return zipStore(files);
+}
+
+/**
+ * For the admin's Share tab: which Apple Wallet settings are missing or will
+ * not work, by name only, never their values. Empty when all is well.
+ */
+export function appleSetupProblems(env: NodeJS.ProcessEnv = process.env): string[] {
+  const problems: string[] = [];
+  for (const name of ["APPLE_PASS_TYPE_ID", "APPLE_TEAM_ID"] as const) {
+    if (!env[name]?.trim()) problems.push(`${name} is not set.`);
+  }
+  const pems: Record<string, string | null> = {};
+  for (const name of ["APPLE_PASS_CERT", "APPLE_PASS_KEY", "APPLE_WWDR_CERT"] as const) {
+    if (!env[name]?.trim()) problems.push(`${name} is not set.`);
+    else if (!(pems[name] = readPem(env[name]))) problems.push(`${name} is set, but it does not read as a PEM file (it should begin with the BEGIN line).`);
+  }
+  try {
+    if (pems.APPLE_PASS_CERT && pems.APPLE_PASS_KEY) {
+      const cert = new X509Certificate(pems.APPLE_PASS_CERT);
+      const key = env.APPLE_PASS_KEY_PASSPHRASE ? createPrivateKey({ key: pems.APPLE_PASS_KEY, passphrase: env.APPLE_PASS_KEY_PASSPHRASE }) : createPrivateKey(pems.APPLE_PASS_KEY);
+      if (!cert.checkPrivateKey(key)) problems.push("APPLE_PASS_CERT and APPLE_PASS_KEY do not belong together.");
+      const typeId = env.APPLE_PASS_TYPE_ID?.trim();
+      if (typeId && !cert.subject.includes(`UID=${typeId}`)) problems.push(`APPLE_PASS_TYPE_ID does not match the certificate (${cert.subject.match(/UID=([^\n,]+)/)?.[1] ?? "unknown"}).`);
+      if (new Date(cert.validTo) < new Date()) problems.push("The Apple pass certificate has expired; renew it through the developer account.");
+    }
+  } catch (error) {
+    problems.push(`The Apple certificate or key could not be read: ${error instanceof Error ? error.message : String(error)}.`);
+  }
+  return problems;
 }
