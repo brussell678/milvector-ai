@@ -193,7 +193,7 @@ describe("printed cards", () => {
 
   it("prints phone, email, and a web address, preferring the website over LinkedIn", () => {
     expect(printContactLines(card)).toEqual([
-      { label: "Phone", value: "(910) 555-0142" },
+      { label: "Phone", value: "+1 (910) 555-0142" },
       { label: "Email", value: "jordan@example.com" },
       { label: "Web", value: "jordanreyes.com" },
     ]);

@@ -1,4 +1,4 @@
-import { textOnColor, type CardData } from "@/lib/cards/schema";
+import { displayPhone, textOnColor, type CardData } from "@/lib/cards/schema";
 
 // Printable paper business cards (3.5 x 2 inches), built as one standalone
 // HTML page so the browser prints it at exact size.
@@ -37,7 +37,7 @@ export function printContactLines(card: CardData): { label: string; value: strin
   const linkedin = card.links.find((link) => link.type === "linkedin")?.url;
   const web = card.website || linkedin || "";
   return [
-    card.phone && { label: "Phone", value: card.phone },
+    card.phone && { label: "Phone", value: displayPhone(card.phone) },
     card.email && { label: "Email", value: card.email },
     web && { label: "Web", value: bare(web) },
   ].filter(Boolean) as { label: string; value: string }[];

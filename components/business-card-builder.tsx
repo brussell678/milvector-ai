@@ -21,6 +21,7 @@ import {
   MAX_LINKS,
   SOURCE_LABELS,
   activeEvent,
+  displayPhone,
   qrColor,
   type CardData,
   type CardStyle,
@@ -1063,7 +1064,7 @@ function SharePanel({ card, wallet }: { card: SavedCard; wallet: { apple: boolea
   const signatureHtml = useMemo(() => {
     const esc = (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     const line = [data.title, data.company].filter(Boolean).map(esc).join(" | ");
-    const contact = [data.phone && esc(data.phone), data.email && `<a href="mailto:${esc(data.email)}" style="color:${data.accent};">${esc(data.email)}</a>`]
+    const contact = [data.phone && esc(displayPhone(data.phone)), data.email && `<a href="mailto:${esc(data.email)}" style="color:${data.accent};">${esc(data.email)}</a>`]
       .filter(Boolean)
       .join(" &nbsp;|&nbsp; ");
     return [
@@ -1078,7 +1079,7 @@ function SharePanel({ card, wallet }: { card: SavedCard; wallet: { apple: boolea
   }, [data, card.slug]);
 
   async function copySignature() {
-    const plain = [data.name, [data.title, data.company].filter(Boolean).join(" | "), data.phone, data.email, shareUrl(card.slug, "sig")].filter(Boolean).join("\n");
+    const plain = [data.name, [data.title, data.company].filter(Boolean).join(" | "), data.phone && displayPhone(data.phone), data.email, shareUrl(card.slug, "sig")].filter(Boolean).join("\n");
     try {
       await navigator.clipboard.write([
         new ClipboardItem({ "text/html": new Blob([signatureHtml], { type: "text/html" }), "text/plain": new Blob([plain], { type: "text/plain" }) }),

@@ -155,12 +155,12 @@ export const EMPTY_CARD: CardData = {
 /** A phone number as a dialable tel: target: digits and a leading +, nothing else. */
 export const telDigits = (phone: string) => phone.replace(/[^\d+]/g, "");
 
-/** A phone number for reading: a US number as (402) 555-0187, anything else as typed. */
+/** A phone number for reading, the same everywhere it is shown: a US number as +1 (402) 555-0187, anything else as typed. */
 export function displayPhone(phone: string): string {
   const digits = phone.replace(/\D/g, "");
   if (phone.includes("x")) return phone.trim();
   const us = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits.length === 10 && !phone.trim().startsWith("+") ? digits : null;
-  return us ? `(${us.slice(0, 3)}) ${us.slice(3, 6)}-${us.slice(6)}` : phone.trim();
+  return us ? `+1 (${us.slice(0, 3)}) ${us.slice(3, 6)}-${us.slice(6)}` : phone.trim();
 }
 
 // Reads whatever is stored and returns a complete card, so an older or partly

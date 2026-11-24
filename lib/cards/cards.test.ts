@@ -51,10 +51,10 @@ describe("card schema", () => {
   });
 
   it("formats a phone for reading and for dialing", () => {
-    expect(displayPhone("4023008919")).toBe("(402) 300-8919");
-    expect(displayPhone("402-300-8919")).toBe("(402) 300-8919");
-    expect(displayPhone("+1 402 300 8919")).toBe("(402) 300-8919");
-    expect(displayPhone("1 (402) 300-8919")).toBe("(402) 300-8919");
+    expect(displayPhone("4023008919")).toBe("+1 (402) 300-8919");
+    expect(displayPhone("402-300-8919")).toBe("+1 (402) 300-8919");
+    expect(displayPhone("+1 402 300 8919")).toBe("+1 (402) 300-8919");
+    expect(displayPhone("1 (402) 300-8919")).toBe("+1 (402) 300-8919");
     expect(displayPhone("+44 20 7946 0958")).toBe("+44 20 7946 0958");
     expect(displayPhone("910-555-0142 x12")).toBe("910-555-0142 x12");
     expect(telDigits("(402) 300-8919")).toBe("4023008919");
@@ -369,10 +369,10 @@ describe("Apple Wallet pass", () => {
     const plain = buildPassJson({ card, slug: "jordan", cardId: "id-1", config });
     expect(plain.generic.auxiliaryFields).toEqual([]);
     const back = Object.fromEntries((plain.generic.backFields as { key: string; value: string }[]).map((f) => [f.key, f.value]));
-    expect(back["b-phone"]).toBe("(910) 555-0142");
+    expect(back["b-phone"]).toBe("+1 (910) 555-0142");
     expect(back["b-email"]).toBe("jordan@example.com");
     const shown = buildPassJson({ card: { ...card, passShowPhone: true }, slug: "jordan", cardId: "id-1", config });
-    expect(shown.generic.auxiliaryFields).toEqual([{ key: "phone", label: "PHONE", value: "(910) 555-0142" }]);
+    expect(shown.generic.auxiliaryFields).toEqual([{ key: "phone", label: "PHONE", value: "+1 (910) 555-0142" }]);
     expect(buildPassJson({ card: { ...card, phone: "", passShowPhone: true }, slug: "jordan", cardId: "id-1", config }).generic.auxiliaryFields).toEqual([]);
   });
 
@@ -440,7 +440,7 @@ describe("Google Wallet pass", () => {
   it("makes the phone and email tappable in the details, never plain text", () => {
     const object = buildGoogleObject({ ...args, card: { ...card, phone: "910.555.0142" }, issuerId: config.issuerId }, true);
     const links = Object.fromEntries(object.linksModuleData.uris.map((u) => [u.id, u]));
-    expect(links.phone).toEqual({ id: "phone", uri: "tel:9105550142", description: "(910) 555-0142" });
+    expect(links.phone).toEqual({ id: "phone", uri: "tel:9105550142", description: "+1 (910) 555-0142" });
     expect(links.email).toEqual({ id: "email", uri: "mailto:jordan@example.com", description: "jordan@example.com" });
     expect(object.textModulesData.map((t) => (t as { id: string }).id)).toEqual(["about", "location"]);
     const bare = buildGoogleObject({ ...args, card: { ...card, phone: "", email: "" }, issuerId: config.issuerId }, true);
@@ -450,8 +450,8 @@ describe("Google Wallet pass", () => {
   it("shows the phone on the front only when the owner chose it", () => {
     const face = (c: CardData, full = true) => buildGoogleObject({ ...args, card: c, issuerId: config.issuerId }, full).textModulesData.find((t) => (t as { id: string }).id === FACE_PHONE_MODULE);
     expect(face(card)).toBeUndefined();
-    expect(face({ ...card, passShowPhone: true })).toEqual({ id: FACE_PHONE_MODULE, header: "Phone", body: "(910) 555-0142" });
-    expect(face({ ...card, passShowPhone: true }, false)).toEqual({ id: FACE_PHONE_MODULE, header: "Phone", body: "(910) 555-0142" });
+    expect(face({ ...card, passShowPhone: true })).toEqual({ id: FACE_PHONE_MODULE, header: "Phone", body: "+1 (910) 555-0142" });
+    expect(face({ ...card, passShowPhone: true }, false)).toEqual({ id: FACE_PHONE_MODULE, header: "Phone", body: "+1 (910) 555-0142" });
     expect(face({ ...card, phone: "", passShowPhone: true })).toBeUndefined();
     // The shared class shows that module as one row on the front; a pass without it has no row.
     const passClass = googleClass("3388000000012345678.milvector_business_card");
@@ -516,7 +516,7 @@ describe("Google Wallet pass", () => {
     const shown = await googleSaveUrl({ ...args, card: { ...card, passShowPhone: true }, config }, down);
     expect(shown.url.length).toBeLessThan(1800);
     const shownClaims = decode(shown.url.replace("https://pay.google.com/gp/v/save/", ""));
-    expect(shownClaims.payload.genericObjects[0].textModulesData).toEqual([{ id: FACE_PHONE_MODULE, header: "Phone", body: "(910) 555-0142" }]);
+    expect(shownClaims.payload.genericObjects[0].textModulesData).toEqual([{ id: FACE_PHONE_MODULE, header: "Phone", body: "+1 (910) 555-0142" }]);
     // Every field at its longest still fits: the extras give way, never the name or the code.
     const long = { ...card, name: "N".repeat(80), title: "T".repeat(80), company: "C".repeat(80), phone: "+1 (910) 555-0142 x1234", email: `${"e".repeat(100)}@example.com`, passShowPhone: true };
     const longest = await googleSaveUrl({ ...args, card: long, config }, down);
